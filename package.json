@@ -11,6 +11,7 @@
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
+	"check": "svelte-check --tsconfig tsconfig.json",
 	"devDependencies": {
 		"@types/node": "^24.2.1",
 		"@typescript-eslint/eslint-plugin": "^8.39.0",
@@ -22,6 +23,7 @@
 		"svelte": "^4.2.20",
 		"svelte-check": "^4.3.1",
 		"svelte-hmr": "^0.16.0",
+		"svelte-preprocess": "^6.0.3",
 		"tslib": "2.4.0",
 		"typescript": "^5.9.2"
 	}
