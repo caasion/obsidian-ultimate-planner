@@ -1,4 +1,6 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
+import { mount } from 'svelte';
+import Hello from "./components/Hello.svelte";
 
 export const MY_VIEW_TYPE = "my-custom-view"
 
@@ -16,9 +18,12 @@ export class MyCustomView extends ItemView {
     }
 
     async onOpen() {
-        const container = this.containerEl.children[1];
+        const container = this.contentEl;
 		container.empty();
-		container.createEl("h2", { text: "Welcome to My Custom View!" });
+
+        console.log("Opening view!!")
+        mount(Hello, {target: container, props: {}})
+		// new Hello({target: container, props: {}});
     }
 
     async onClose() {
