@@ -39,7 +39,9 @@ const context = await esbuild.context({
 		compilerOptions: {
 			dev: true,
 		},
-		preprocess: sveltePreprocess(),
+		preprocess: sveltePreprocess({
+			typescript: true
+		}),
 	})],
 	target: "es2018",
 	logLevel: "info",
