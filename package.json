@@ -22,7 +22,6 @@
 		"obsidian": "latest",
 		"svelte": "^5.38.0",
 		"svelte-check": "^4.3.1",
-		"svelte-hmr": "^0.16.0",
 		"svelte-preprocess": "^6.0.3",
 		"tslib": "2.4.0",
 		"typescript": "^5.9.2"
