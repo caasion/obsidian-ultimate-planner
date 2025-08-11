@@ -1,24 +1,19 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { MY_VIEW_TYPE, MyCustomView } from './MyCustomView';
+import { UltimatePlannerPluginSettings, UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
 
 // Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
-	mySetting: string;
-}
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class UltimatePlannerPlugin extends Plugin {
+	settings: UltimatePlannerPluginSettings;
 
 	async onload() {
 		await this.loadSettings();
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new UltimatePlannerPluginTab(this.app, this));
 
 		this.registerView(MY_VIEW_TYPE, (leaf) => new MyCustomView(leaf));
 
@@ -74,28 +69,4 @@ class SampleModal extends Modal {
 	}
 }
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
-}

@@ -1,6 +1,6 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { mount } from 'svelte';
-import Hello from "./components/Hello.svelte";
+import UltimatePlannerView from './components/UltimatePlannerView.svelte';
 
 export const MY_VIEW_TYPE = "my-custom-view"
 
@@ -22,7 +22,7 @@ export class MyCustomView extends ItemView {
 		container.empty();
 
         console.log("Opening view!!")
-        mount(Hello, {target: container, props: {}})
+        mount(UltimatePlannerView, {target: container, props: {}})
 		// new Hello({target: container, props: {}});
     }
 
