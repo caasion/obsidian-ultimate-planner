@@ -2,9 +2,6 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 import { MY_VIEW_TYPE, MyCustomView } from './MyCustomView';
 import { UltimatePlannerPluginSettings, UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
 
-// Remember to rename these classes and interfaces!
-
-
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: UltimatePlannerPluginSettings;
@@ -15,7 +12,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new UltimatePlannerPluginTab(this.app, this));
 
-		this.registerView(MY_VIEW_TYPE, (leaf) => new MyCustomView(leaf));
+		this.registerView(MY_VIEW_TYPE, (leaf) => new MyCustomView(leaf, this));
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
@@ -52,21 +49,3 @@ export default class UltimatePlannerPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 }
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-

@@ -2,11 +2,11 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 import UltimatePlannerPlugin from './main.ts';
 
 export interface UltimatePlannerPluginSettings {
-	mySetting: string;
+	actionItemsText: string;
 }
 
 export const DEFAULT_SETTINGS: UltimatePlannerPluginSettings = {
-	mySetting: 'default'
+	actionItemsText: 'Action Item 1'
 }
 
 export class UltimatePlannerPluginTab extends PluginSettingTab {
@@ -22,15 +22,16 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
+        new Setting(containerEl)
+            .setName("Action Items")
+            .setDesc("List out Action Items, separated by a new line")
+            .addTextArea(textArea => textArea
+                .setPlaceholder('Action Item 1')
+                .setValue(this.plugin.settings.actionItemsText)
+                .onChange(async (value) => {
+                    this.plugin.settings.actionItemsText = value;
+                    await this.plugin.saveSettings();
+                })
+            )
 	}
 }

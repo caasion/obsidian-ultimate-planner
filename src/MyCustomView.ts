@@ -1,12 +1,17 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { mount } from 'svelte';
 import UltimatePlannerView from './components/UltimatePlannerView.svelte';
+import UltimatePlannerPlugin from './main.ts';
+
 
 export const MY_VIEW_TYPE = "my-custom-view"
 
 export class MyCustomView extends ItemView {
-    constructor(leaf: WorkspaceLeaf) {
+    plugin: UltimatePlannerPlugin;
+
+    constructor(leaf: WorkspaceLeaf, plugin: UltimatePlannerPlugin) {
         super(leaf);
+        this.plugin = plugin;
     }
 
     getViewType(): string {
@@ -22,7 +27,7 @@ export class MyCustomView extends ItemView {
 		container.empty();
 
         console.log("Opening view!!")
-        mount(UltimatePlannerView, {target: container, props: {}})
+        mount(UltimatePlannerView, {target: container, props: {actionItemsText: this.plugin.settings.actionItemsText}})
 		// new Hello({target: container, props: {}});
     }
 

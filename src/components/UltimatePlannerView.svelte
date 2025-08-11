@@ -1,17 +1,15 @@
 <script lang="ts">
+	let { actionItemsText } = $props();
+
+	const actionItems = actionItemsText.split("\n").map(s => s.trim()).filter(Boolean);
 
 	// Table-Related
+	let rows = actionItems.length;
 	let columns: number = 7;
 
-	let information: string[][] = $state([]);
-
-	$effect(() => {
-		const target = actionItems.length;
-
-		while (information.length < target) {
-			information.push(Array.from({length: columns}, () => ""));
-		}
-	})
+	 let information: string[][] = $state(
+    Array.from({ length: rows }, () => Array.from({ length: columns }, () => ""))
+  );
 
 	// Date Related
 
