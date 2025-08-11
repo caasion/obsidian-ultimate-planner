@@ -38,6 +38,8 @@ const context = await esbuild.context({
 	plugins: [sveltePlugin({
 		compilerOptions: {
 			dev: true,
+			css: 'injected',
+			runes: true,
 		},
 		preprocess: sveltePreprocess({
 			typescript: true
