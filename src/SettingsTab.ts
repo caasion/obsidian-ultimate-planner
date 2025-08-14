@@ -1,12 +1,24 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import UltimatePlannerPlugin from './main.ts';
+import { mount, unmount } from 'svelte';
+import SettingsTab from './components/SettingsTab.svelte';
+
+export type ActionItem = {
+    id: string;       // stable id for reorder
+    label: string;
+    color: string; 
+}
 
 export interface UltimatePlannerPluginSettings {
-	actionItemsText: string;
+	actionItems: ActionItem[];
 }
 
 export const DEFAULT_SETTINGS: UltimatePlannerPluginSettings = {
-	actionItemsText: 'Action Item 1'
+	actionItems: [{
+        id: '1',
+        label: 'First Action Item',
+        color: "#00bcd4"
+    }]
 }
 
 export class UltimatePlannerPluginTab extends PluginSettingTab {
@@ -22,16 +34,18 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-        new Setting(containerEl)
-            .setName("Action Items")
-            .setDesc("List out Action Items, separated by a new line")
-            .addTextArea(textArea => textArea
-                .setPlaceholder('Action Item 1')
-                .setValue(this.plugin.settings.actionItemsText)
-                .onChange(async (value) => {
-                    this.plugin.settings.actionItemsText = value;
-                    await this.plugin.saveSettings();
-                })
-            )
+        mount(SettingsTab, { target: containerEl, props: 
+            { 
+                settings: this.plugin.settings,
+                save: (newSettings: UltimatePlannerPluginSettings) => {
+                    this.plugin.settings = newSettings;
+                    this.plugin.saveSettings();
+                }
+            }
+        });
 	}
+
+    hide(): void {
+        unmount(SettingsTab);
+    }
 }
