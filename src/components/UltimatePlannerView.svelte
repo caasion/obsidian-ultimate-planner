@@ -1,85 +1,58 @@
 <script lang="ts">
-	import type { ActionItem, UltimatePlannerPluginSettings } from '../SettingsTab';
+    //Purpose: To provide an interfact to interact with the objects storing the information. The view reads the objects to generate an appropriate table. 
 
-	let { settings, save } = $props();
 
-	const actionItems: ActionItem[] = settings.actionItems;
-
-	// Table-Related
-	let rows = actionItems.length;
-	let columns: number = 7;
-
-	 let information: string[][] = $state(
-		Array.from({ length: rows }, () => Array.from({ length: columns }, () => ""))
-	);
-
-	let saveTimeout: number;
-    function scheduleSave() {
-        clearTimeout(saveTimeout);
-        saveTimeout = window.setTimeout(() => {
-            save(information);
-        }, 800); // wait 0.8s after last change
+    // Interfaces
+    interface ActionItem {
+        name: string;
+        index: number;
+        color: string;
+        contents: string;
     }
 
-    function handleInput(i: number, j: number, value: string) {
-        information[i][j] = value;
-        scheduleSave();
+    interface DailyData {
+        date: Date;
+        actionItems: ActionItem[];
     }
 
-	// Date Related
+    //Test Generation
+    const templateActionItems = [
+        {name: "First Action Item", index: 1, color: "#cccccc", contents: ""},
+        {name: "Second", index: 2, color: "#ffffff", contents: "none"}
+    ]
 
-	import { format, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
+    import { format, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
 
-	let dates: Date[] = [];
+    const generateWeekBasedOnDay = (date: Date) => {
+        const start = startOfWeek(date, { weekStartsOn: 0 });
+        const end = endOfWeek(date, { weekStartsOn: 0});
 
-	const today = new Date();
+        const days = eachDayOfInterval({ start, end });
 
-	const start = startOfWeek(today, { weekStartsOn: 0 });
-	const end = endOfWeek(today, { weekStartsOn: 0});
+        let data: DailyData[] = [];
 
-	const days = eachDayOfInterval({ start, end });
+        days.forEach((day) => {
+            data.push({date: day, actionItems: templateActionItems});
+        })
 
-	console.log(days)
+        return data;
+    }
 
-	const returnMonthBasedOnMajority = (days: Date[]) => {
-		return format(
-			days
-			.map(day => format(day, "MM"))
-			.sort(
-				(a, b) =>
-				days.filter(d => format(d, "MM") === b).length -
-				days.filter(d => format(d, "MM") === a).length
-			)[0],
-			"MMMM"
-		);
-	};
+    const sampleData = generateWeekBasedOnDay(new Date());
+
+    
 </script>
 
 <h1>The Ultimate Planner</h1>
-
-
-
 <table>
 	<tbody>
 		<tr>
-			<th colspan="7">{returnMonthBasedOnMajority(days)}</th>
-		</tr>
-		<tr>
-			<th>Sun</th>
-			<th>Mon</th>
-			<th>Tue</th>
-			<th>Wed</th>
-			<th>Thu</th>
-			<th>Fri</th>
-			<th>Sat</th>
-		</tr>
-		<tr>
-			{#each days as day}
-			<td class="day-number">{format(day, "dd")}</td>
+			{#each sampleData as day}
+			<th class="day-number">{format(day.date, "EEE dd")}</th>
 			{/each}
 			
 		</tr>
-		{#each Array(rows) as _, i}
+		<!-- {#each Array(rows) as _, i}
 			<tr>
 				{#each Array(columns) as _, j}
 				<td>
@@ -92,39 +65,6 @@
 				</td>
 				{/each}
 			</tr>
-		{/each}
+		{/each} -->
 	</tbody>
 </table>
-
-<style>
-	table {
-		width: 100%;
-		table-layout: fixed;
-		border-collapse: collapse;
-	}
-
-	textarea {
-		width: 100%;
-		height: 100%;
-		background-color: transparent;
-		border: none;
-		overflow-wrap: normal;
-		color: red;
-	}
-
-	tr {
-		border-bottom: 1px solid #ddd !important;
-	}
-
-	td.day-number {
-		text-align: right;
-	}
-
-	td, th {
-		padding: 5px;
-		height: 2em;
-		border: 1px solid #ddd;
-	}
-
-
-</style> 
