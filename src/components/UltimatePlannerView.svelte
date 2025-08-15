@@ -64,8 +64,12 @@
 		</tr>
         {#each Array(getRowSizeFromData(sampleData)) as _, i}
             <tr>
-                {#each sampleData as day}
+                {#each sampleData as day, j}
                     <td>
+                        <!-- Display Action Item name if first column or if changed -->
+                        {#if j == 0 || day.actionItems[i].name != sampleData[j-1]?.actionItems[i].name}
+                            {day.actionItems[i].name}
+                        {/if}
                         {day.actionItems[i].contents}
                     </td>
                 {/each}
