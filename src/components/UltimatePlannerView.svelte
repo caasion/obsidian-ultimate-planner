@@ -17,9 +17,16 @@
 
     //Test Generation
     const templateActionItems = [
-        {name: "First Action Item", index: 1, color: "#cccccc", contents: ""},
-        {name: "Second", index: 2, color: "#ffffff", contents: "none"}
+        {name: "First Action Item", index: 0, color: "#cccccc", contents: ""},
+        {name: "Second", index: 1, color: "#ffffff", contents: "none"}
     ]
+
+    //Helper Function to get action item object based on index
+    const getActionItemFromIndex = (dailyData: DailyData, index: number) => {
+        const actionItems: ActionItem[] = dailyData.actionItems;
+
+        //Assuming no two objects will have the same index
+    }
 
     import { format, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
 
@@ -38,9 +45,12 @@
         return data;
     }
 
-    const sampleData = generateWeekBasedOnDay(new Date());
+    const sampleData: DailyData[] = generateWeekBasedOnDay(new Date());
 
-    
+    // We want to get the largest row size we need because the action item list size can change from day to day, and so we want to account for that
+    const getRowSizeFromData = (data: DailyData[]) => {
+        return Math.max(...data.map(dailyData => dailyData.actionItems.length));
+    }
 </script>
 
 <h1>The Ultimate Planner</h1>
@@ -52,19 +62,47 @@
 			{/each}
 			
 		</tr>
-		<!-- {#each Array(rows) as _, i}
-			<tr>
-				{#each Array(columns) as _, j}
-				<td>
-					{#if j == 0}
-						{actionItems[i].label}
-					{/if}
-					<textarea 
-					bind:value={information[i][j]}
-					oninput={(e) => handleInput(i, j, (e.target as HTMLInputElement).value)}></textarea>
-				</td>
-				{/each}
-			</tr>
-		{/each} -->
+        {#each Array(getRowSizeFromData(sampleData)) as _, i}
+            <tr>
+                {#each sampleData as day}
+                    <td>
+                        {day.actionItems[i].contents}
+                    </td>
+                {/each}
+            </tr>
+        {/each}
 	</tbody>
 </table>
+
+<style>
+	table {
+		width: 100%;
+		table-layout: fixed;
+		border-collapse: collapse;
+	}
+
+	textarea {
+		width: 100%;
+		height: 100%;
+		background-color: transparent;
+		border: none;
+		overflow-wrap: normal;
+		color: red;
+	}
+
+	tr {
+		border-bottom: 1px solid #ddd !important;
+	}
+
+	.day-number {
+		text-align: right;
+	}
+
+	td, th {
+		padding: 5px;
+		height: 2em;
+		border: 1px solid #ddd;
+	}
+
+
+</style> 
