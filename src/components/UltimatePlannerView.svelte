@@ -29,6 +29,7 @@
     }
 
     import { format, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
+	import MarkdownCell from "./MarkdownCell.svelte";
 
     const generateWeekBasedOnDay = (date: Date) => {
         const start = startOfWeek(date, { weekStartsOn: 0 });
@@ -70,7 +71,7 @@
                         {#if j == 0 || day.actionItems[i].name != sampleData[j-1]?.actionItems[i].name}
                             {day.actionItems[i].name}
                         {/if}
-                        {day.actionItems[i].contents}
+                        <MarkdownCell value={day.actionItems[i].contents} onChange={(value) => day.actionItems[i].contents = value}/>
                     </td>
                 {/each}
             </tr>

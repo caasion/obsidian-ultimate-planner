@@ -20,6 +20,7 @@
     onMount(() => {
         Editor.make()
             .config(nord)
+            .use(listener)
             .config((ctx) => {
                 ctx.set(rootCtx, container);
                 ctx.set(defaultValueCtx, value);
