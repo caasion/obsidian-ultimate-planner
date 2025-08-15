@@ -1,15 +1,30 @@
 <script lang="ts">
-	let { actionItemsText } = $props();
+	import type { ActionItem, UltimatePlannerPluginSettings } from '../SettingsTab';
 
-	const actionItems = actionItemsText.split("\n").map(s => s.trim()).filter(Boolean);
+	let { settings, save } = $props();
+
+	const actionItems: ActionItem[] = settings.actionItems;
 
 	// Table-Related
 	let rows = actionItems.length;
 	let columns: number = 7;
 
 	 let information: string[][] = $state(
-    Array.from({ length: rows }, () => Array.from({ length: columns }, () => ""))
-  );
+		Array.from({ length: rows }, () => Array.from({ length: columns }, () => ""))
+	);
+
+	let saveTimeout: number;
+    function scheduleSave() {
+        clearTimeout(saveTimeout);
+        saveTimeout = window.setTimeout(() => {
+            save(information);
+        }, 800); // wait 0.8s after last change
+    }
+
+    function handleInput(i: number, j: number, value: string) {
+        information[i][j] = value;
+        scheduleSave();
+    }
 
 	// Date Related
 
@@ -64,14 +79,16 @@
 			{/each}
 			
 		</tr>
-		{#each Array(information.length) as _, i}
+		{#each Array(rows) as _, i}
 			<tr>
 				{#each Array(columns) as _, j}
 				<td>
 					{#if j == 0}
-						{actionItems[i]}
+						{actionItems[i].label}
 					{/if}
-					<input bind:value={information[i][j]} />
+					<textarea 
+					bind:value={information[i][j]}
+					oninput={(e) => handleInput(i, j, (e.target as HTMLInputElement).value)}></textarea>
 				</td>
 				{/each}
 			</tr>
@@ -86,7 +103,7 @@
 		border-collapse: collapse;
 	}
 
-	input {
+	textarea {
 		width: 100%;
 		height: 100%;
 		background-color: transparent;
