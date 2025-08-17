@@ -78,6 +78,25 @@
     
         return days.map(day => format(day, "yyyy-MM-dd"))
     }
+
+    function getLabelOfWeek() {
+        const first = parseISO(daysOfTheWeek[0]);
+        const last = parseISO(daysOfTheWeek[6]);
+
+        console.log(first.getMonth());
+        console.log(last.getMonth())
+        console.log(first.getMonth() === last.getMonth())
+
+        if (first.getMonth === last.getMonth) {
+            return `${format(first, "MMM")} ${format(first, "dd")}–${format(last, "dd")}, ${format(first, "yyyy")}`
+        } else {
+            console.log("months are not the same")
+            return `${format(first, "MMM")} ${format(first, "dd")} – ${format(last, "MMM")} ${format(last, "dd")}, ${format(first, "yyyy")}`
+        }
+    }
+
+
+    let calendarLabel = $derived(getLabelOfWeek());
     
 
 
@@ -100,11 +119,11 @@
             <button onclick={() => anchorDate = getISODateOfToday()}>today</button>
             <button onclick={() => anchorDate = addDaysISO(anchorDate, 7)}>next</button>
         </div>
-        <div></div>
+        <div><span>{calendarLabel}</span></div>
         <div class="row">
             {#each daysOfTheWeek as date}
-                {date}
-                {format(date, "dd")}
+                
+                {format(parseISO(date), "dd")}
             {/each}
         </div>
     </div>
@@ -112,7 +131,6 @@
         <div class="row">
             <div class="row-label">{row.label}</div>
             {#each daysOfTheWeek as date (date)}
-                {date}
                 <InputCell {date} rowID={row.id} {setCell} {getCell} />
             {/each}
         </div>
