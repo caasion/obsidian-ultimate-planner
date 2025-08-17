@@ -40,7 +40,7 @@
         let data: DailyData[] = [];
 
         days.forEach((day) => {
-            data.push({date: day, actionItems: templateActionItems});
+            data.push({date: day, actionItems: =});
         })
 
         return data;
