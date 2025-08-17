@@ -83,16 +83,16 @@
         const first = parseISO(daysOfTheWeek[0]);
         const last = parseISO(daysOfTheWeek[6]);
 
-        console.log(first.getMonth());
-        console.log(last.getMonth())
-        console.log(first.getMonth() === last.getMonth())
-
-        if (first.getMonth === last.getMonth) {
-            return `${format(first, "MMM")} ${format(first, "dd")}–${format(last, "dd")}, ${format(first, "yyyy")}`
+        if (first.getFullYear() === last.getFullYear()) {
+            if (first.getMonth() === last.getMonth()) {
+                return `${format(first, "MMM")} ${format(first, "dd")} – ${format(last, "dd")}, ${format(first, "yyyy")}`
+            } else {
+                return `${format(first, "MMM")} ${format(first, "dd")} – ${format(last, "MMM")} ${format(last, "dd")}, ${format(first, "yyyy")}`
+            }
         } else {
-            console.log("months are not the same")
-            return `${format(first, "MMM")} ${format(first, "dd")} – ${format(last, "MMM")} ${format(last, "dd")}, ${format(first, "yyyy")}`
+            return `${format(first, "MMM")} ${format(first, "dd")}, ${format(first, "yyyy")} – ${format(first, "MMM")} ${format(last, "dd")}, ${format(first, "yyyy")}`
         }
+
     }
 
 
@@ -120,6 +120,7 @@
             <button onclick={() => anchorDate = addDaysISO(anchorDate, 7)}>next</button>
         </div>
         <div><span>{calendarLabel}</span></div>
+        <div><label for="date-input">{calendarLabel}</label><input type="date" bind:value={anchorDate} /></div>
         <div class="row">
             {#each daysOfTheWeek as date}
                 
