@@ -5,7 +5,7 @@
     //Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table. 
 
     import type { ISODate, ActionItem, PlannerState } from '../types'
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import InputCell from './InputCell.svelte';
 	import { preventDefault } from 'svelte/legacy';
 
@@ -99,13 +99,13 @@
 
 
     let calendarLabel = $derived(getLabelOfWeek());
+
     
     // Table Navigation (Tab, Shift-tab, Enter)
     const rowCount = actionItems.length;
     const colCount = 7;
 
-    let focus: { row: number, col: number, }; // Track focus to preserve focus at the same row
-    // TODO: maintain focus when switching weeks
+    let focus: { row: number, col: number, } = $state({row: 0, col: 0}); // Track focus to preserve focus at the same row
 
     function focusCell(row, col): boolean {
         if (row > rowCount - 1 || row < 0 || col > colCount - 1 || col < 0) {
@@ -144,6 +144,21 @@
         if (successful) event.preventDefault();
     }
 
+    // Maintain focus when switching weeks
+    async function goTo(newDate: ISODate) {
+        anchorDate = newDate;
+        await tick();
+        focusCell(focus.row, focus.col);
+    }
+
+    // Highlight column of active day
+    let activeDate = $derived(daysOfTheWeek[focus.col])
+
+
+    // Export to CSV or Markdown
+    
+
+
 </script>
 
 <pre>
@@ -159,9 +174,9 @@
 <div class="grid">
     <div class="header">
         <div>
-            <button onclick={() => anchorDate = addDaysISO(anchorDate, -7)}>prev</button>
-            <button onclick={() => anchorDate = getISODateOfToday()}>today</button>
-            <button onclick={() => anchorDate = addDaysISO(anchorDate, 7)}>next</button>
+            <button onclick={() => goTo(addDaysISO(anchorDate, -7))}>prev</button>
+            <button onclick={() => goTo(getISODateOfToday())}>today</button>
+            <button onclick={() => goTo(addDaysISO(anchorDate, 7))}>next</button>
         </div>
         <div>
             <label for="date-input">{calendarLabel}</label>
@@ -178,7 +193,8 @@
         <div class="row">
             <div class="row-label">{row.label}</div>
             {#each daysOfTheWeek as date, j (date)}
-                <InputCell {date} rowID={row.id} {setCell} {getCell} row={i} col={j} {handleKeyDown} />
+                <InputCell className={date == activeDate ? "active" : 
+            ""} {date} rowID={row.id} {setCell} {getCell} row={i} col={j} {handleKeyDown} {focusCell} />
             {/each}
         </div>
     {/each}
