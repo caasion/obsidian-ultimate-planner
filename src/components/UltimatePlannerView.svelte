@@ -7,6 +7,7 @@
     import type { ISODate, ActionItem, PlannerState } from '../types'
 	import { onMount } from 'svelte';
 	import InputCell from './InputCell.svelte';
+	import { preventDefault } from 'svelte/legacy';
 
     let plannerState = $state<PlannerState>({ cells: {}})
 
@@ -59,8 +60,9 @@
     //         // setCell(day, "fitness", "hello world");
     //     })
 
-    // Navigation
+    // Navigation between weeks
     let anchorDate = $state(getISODateOfToday());
+    let weeksVisible = 1;
 
     let daysOfTheWeek = $derived(getISODatesOfWeek(anchorDate));
 
@@ -98,7 +100,49 @@
 
     let calendarLabel = $derived(getLabelOfWeek());
     
+    // Table Navigation (Tab, Shift-tab, Enter)
+    const rowCount = actionItems.length;
+    const colCount = 7;
 
+    let focus: { row: number, col: number, }; // Track focus to preserve focus at the same row
+    // TODO: maintain focus when switching weeks
+
+    function focusCell(row, col): boolean {
+        if (row > rowCount - 1 || row < 0 || col > colCount - 1 || col < 0) {
+            console.warn("Attempted to focus on cell out of table bounds")
+            return false; // Informs the caller whether if the focus actually worked
+        }
+
+        document.getElementById(`cell-${row}-${col}`).focus();
+        focus = {row, col};
+        return true;
+    }
+
+    function handleKeyDown(event, row, col) {
+        console.log(event, row, col);
+
+        const shift = event.shiftKey;
+        const ctrl = event.ctrlKey;
+
+        let successful;
+        
+        if (event.key === "Tab") {
+            if (shift === true) {
+                successful = focusCell(row, col - 1);
+            } else {
+                successful = focusCell(row, col + 1);
+            }
+        } else if (event.key === "Enter") {
+            if (ctrl === true) { // Only navigate when "ctrl + enter" is hit
+                successful = focusCell(row - 1, col);
+            } else {
+                successful = focusCell(row + 1, col);
+            }
+            
+        } 
+
+        if (successful) event.preventDefault();
+    }
 
 </script>
 
@@ -119,8 +163,10 @@
             <button onclick={() => anchorDate = getISODateOfToday()}>today</button>
             <button onclick={() => anchorDate = addDaysISO(anchorDate, 7)}>next</button>
         </div>
-        <div><span>{calendarLabel}</span></div>
-        <div><label for="date-input">{calendarLabel}</label><input type="date" bind:value={anchorDate} /></div>
+        <div>
+            <label for="date-input">{calendarLabel}</label>
+            <input type="date" bind:value={anchorDate} /></div>
+            <!-- TODO: Custom Calendar Input that Supports Multiple Weeks -->
         <div class="row">
             {#each daysOfTheWeek as date}
                 
@@ -128,11 +174,11 @@
             {/each}
         </div>
     </div>
-    {#each actionItems as row (row.id)}
+    {#each actionItems as row, i (row.id)}
         <div class="row">
             <div class="row-label">{row.label}</div>
-            {#each daysOfTheWeek as date (date)}
-                <InputCell {date} rowID={row.id} {setCell} {getCell} />
+            {#each daysOfTheWeek as date, j (date)}
+                <InputCell {date} rowID={row.id} {setCell} {getCell} row={i} col={j} {handleKeyDown} />
             {/each}
         </div>
     {/each}
@@ -141,8 +187,6 @@
 </div>
 
 <style>
-
-
     .grid {
         grid-template-columns: 200px repeat(7, 1fr);
     }
