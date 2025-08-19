@@ -7,9 +7,20 @@
     import type { ISODate, ActionItem, PlannerState } from '../types'
 	import { onMount, tick } from 'svelte';
 	import InputCell from './InputCell.svelte';
-	import { preventDefault } from 'svelte/legacy';
 
-    let plannerState = $state<PlannerState>({ cells: {}})
+    interface ViewProps {
+        actionItems: ActionItem[];
+        planner: PlannerState;
+        save: () => void;
+    }
+
+    let { planner, actionItems, save }: ViewProps = $props();
+
+    // Saving
+
+
+    // Planner Data
+    let plannerState = $state<PlannerState>(planner)
 
     function getISODate(date: Date): ISODate {
         return format(date, "yyyy-MM-dd")
@@ -25,6 +36,8 @@
             plannerState.cells[date] = {};
         }
         plannerState.cells[date][rowID] = text;
+        planner.cells = plannerState.cells;
+        save();
     }
 
     function getCell(date, rowID): string {
@@ -35,30 +48,6 @@
 
         return plannerState.cells[date][rowID];
     }
-    
-    // Multiple Action Items
-    const actionItems: ActionItem[] = [
-        {
-            id: "fitness",
-            index: 0,
-            label: "Fitness",
-        },
-        {
-            id: "coding",
-            index: 1,
-            label: "Coding",
-        },
-    ]
-
-    // Seed the rows
-    
-    // daysOfTheWeek.forEach(day => {
-    //         actionItems.forEach(ai => {
-    //             setCell(day, ai.id, "hello world");
-    //         })
-
-    //         // setCell(day, "fitness", "hello world");
-    //     })
 
     // Navigation between weeks
     let anchorDate = $state(getISODateOfToday());
@@ -92,7 +81,7 @@
                 return `${format(first, "MMM")} ${format(first, "dd")} – ${format(last, "MMM")} ${format(last, "dd")}, ${format(first, "yyyy")}`
             }
         } else {
-            return `${format(first, "MMM")} ${format(first, "dd")}, ${format(first, "yyyy")} – ${format(first, "MMM")} ${format(last, "dd")}, ${format(first, "yyyy")}`
+            return `${format(first, "MMM")} ${format(first, "dd")}, ${format(first, "yyyy")} – ${format(last, "MMM")} ${format(last, "dd")}, ${format(last, "yyyy")}`
         }
 
     }
@@ -156,7 +145,7 @@
 
 
     // Export to CSV or Markdown
-    
+
 
 
 </script>

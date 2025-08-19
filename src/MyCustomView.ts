@@ -30,7 +30,9 @@ export class MyCustomView extends ItemView {
 
         console.log("Opening view!!")
         mount(UltimatePlannerView, {target: container, props: {
-            settings: this.plugin.settings,
+            actionItems: this.plugin.settings.actionItems,
+            planner: this.plugin.settings.planner,
+            save: () => this.plugin.queueSave(),
         }})
 		// new Hello({target: container, props: {}});
     }

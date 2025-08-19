@@ -1,10 +1,11 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { MY_VIEW_TYPE, MyCustomView } from './MyCustomView';
-import { UltimatePlannerPluginSettings, UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
+import { UltimatePlannerSettings, UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
 
 
 export default class UltimatePlannerPlugin extends Plugin {
-	settings: UltimatePlannerPluginSettings;
+	settings: UltimatePlannerSettings;
+	private saveTimer: number | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -24,8 +25,9 @@ export default class UltimatePlannerPlugin extends Plugin {
 		});
 	}
 
-	onunload() {
+	async onunload() {
 		this.app.workspace.detachLeavesOfType(MY_VIEW_TYPE);
+		await this.flushSave();
 	}
 
 	async activateMyPlannerView() {
@@ -46,6 +48,37 @@ export default class UltimatePlannerPlugin extends Plugin {
 	}
 
 	async saveSettings() {
+		await this.saveData(this.settings);
+	}
+
+	queueSave = () => {
+		
+  console.log("[UP] queueSave called");
+  console.log("[UP] plugin id:", this.manifest?.id, "has app?", !!this.app);
+  if (this.saveTimer) window.clearTimeout(this.saveTimer);
+  this.saveTimer = window.setTimeout(async () => {
+    this.saveTimer = null;
+    try {
+      // ✅ add a visible heartbeat so you can see it persisted
+      (this.settings as any)._lastSavedAt = new Date().toISOString();
+
+      console.time("[UP] saveData");
+      await this.saveData(this.settings);   // <-- must be awaited
+      console.timeEnd("[UP] saveData");
+      console.log("[UP] save ok", this.settings);
+    } catch (e) {
+      console.error("[UP] save FAILED", e);
+    }
+  }, 400);
+};
+
+
+	private async flushSave() {
+		if (this.saveTimer) {
+			window.clearTimeout(this.saveTimer);
+			this.saveTimer = null;
+		}
+
 		await this.saveData(this.settings);
 	}
 }

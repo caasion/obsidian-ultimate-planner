@@ -4,11 +4,34 @@ import { mount, unmount } from 'svelte';
 import { ISODate, ActionItem, PlannerState } from './types.ts';
 
 export interface UltimatePlannerSettings {
-
+    version: number;
+    settings: {
+        weekStartOn: number,
+        autosaveDebounceMs: number;
+    }
+    actionItems: ActionItem[];
+    planner: PlannerState;
 }
 
 export const DEFAULT_SETTINGS: UltimatePlannerSettings = {
-
+    version: 1,
+    settings: {
+        weekStartOn: 0,
+        autosaveDebounceMs: 0,
+    },
+    actionItems: [
+        {
+            id: "fitness",
+            index: 0,
+            label: "Fitness",
+        },
+        {
+            id: "coding",
+            index: 1,
+            label: "Coding",
+        },
+    ],
+    planner: { cells: {}}
 }
 
 export class UltimatePlannerPluginTab extends PluginSettingTab {
