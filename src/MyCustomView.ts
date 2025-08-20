@@ -1,7 +1,10 @@
 import { ItemView, Notice, TFile, WorkspaceLeaf } from "obsidian";
 import { mount } from 'svelte';
 import UltimatePlannerView from './components/UltimatePlannerView.svelte';
+import ActionItemsEditor from './components/ActionItemsEditor.svelte';
+
 import UltimatePlannerPlugin from './main.ts';
+
 
 
 export const MY_VIEW_TYPE = "my-custom-view"
@@ -29,6 +32,11 @@ export class MyCustomView extends ItemView {
 		container.empty();
 
         console.log("Opening view!!")
+        mount(ActionItemsEditor, {target: container, props: {
+            actionItems: this.plugin.settings.actionItems,
+            save: () => this.plugin.queueSave(),
+        }})
+
         mount(UltimatePlannerView, {target: container, props: {
             actionItems: this.plugin.settings.actionItems,
             planner: this.plugin.settings.planner,

@@ -1,28 +1,36 @@
 <script lang="ts">
-	import type { ActionItem } from "../types";
+	import type { PlannerState, ActionItem } from "../types";
 
     interface ViewProps {
         actionItems: ActionItem[];
+        planner: PlannerState;
         save: () => void;
     }
 
-    let { actionItems, save }: ViewProps = $props();
+    let { planner, actionItems, save }: ViewProps = $props();
 
-    let actionItemState = $state<ActionItem[]>(actionItems);
+    let actionItemsState = $state<ActionItem[]>(actionItems);
 
     function generateID() {
         return "ai-" + crypto.randomUUID();
     }
 
     function addActionItem() {
-        actionItemState.push({
+        actionItemsState.push({
             id: generateID(),
             label: "New",
             index: actionItems.length,
             color: "#cccccc"
         })
 
-        actionItems = actionItemState;
+        actionItems = [...actionItemsState];
+        save();
+    }
+
+    function deleteActionItem(id: string) {
+        actionItemsState.filter(item => item.id !== id);
+
+        actionItems = [...actionItemsState];
         save();
     }
 </script>
@@ -33,7 +41,7 @@
     {JSON.stringify(actionItems, null, 2)}
 </pre>
 
-{#each actionItemState as item (item.id)}
+{#each actionItemsState as item (item.id)}
 <div>
     <input bind:value={item.label}/>
     <input type="color" bind:value={item.color}/>

@@ -7,7 +7,7 @@
     import type { ISODate, ActionItem, PlannerState } from '../types'
 	import { onMount, tick } from 'svelte';
 	import InputCell from './InputCell.svelte';
-	import ActionItemEditor from './ActionItemEditor.svelte';
+	import ActionItemsEditor from './ActionItemsEditor.svelte';
 
     interface ViewProps {
         actionItems: ActionItem[];
@@ -151,7 +151,7 @@
 
 </script>
 
-<ActionItemEditor {actionItems} {save} />
+<!-- <ActionItemsEditor {actionItems} {save} /> -->
 
 <h1>The Ultimate Planner</h1>
 

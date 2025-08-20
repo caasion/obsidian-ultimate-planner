@@ -1,11 +1,12 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { MY_VIEW_TYPE, MyCustomView } from './MyCustomView';
 import { UltimatePlannerSettings, UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
-
+import { actionItemsStore } from './stores';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: UltimatePlannerSettings;
 	private saveTimer: number | null = null;
+	private _unsubActionItems;
 
 	async onload() {
 		await this.loadSettings();
@@ -45,9 +46,14 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this._unsubActionItems = actionItemsStore.subscribe(items => {
+			this.settings.actionItems = items;
+			this.queueSave
+		})
 	}
 
 	async saveSettings() {
+		this._unsubActionItems?.();
 		await this.saveData(this.settings);
 	}
 
