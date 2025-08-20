@@ -7,6 +7,7 @@
     import type { ISODate, ActionItem, PlannerState } from '../types'
 	import { onMount, tick } from 'svelte';
 	import InputCell from './InputCell.svelte';
+	import ActionItemEditor from './ActionItemEditor.svelte';
 
     interface ViewProps {
         actionItems: ActionItem[];
@@ -144,21 +145,19 @@
     let activeDate = $derived(daysOfTheWeek[focus.col])
 
 
-    // Export to CSV or Markdown
+    // TODO: Export to CSV or Markdown
 
 
 
 </script>
 
-<pre>
-    {JSON.stringify(anchorDate)}
-</pre>
+<ActionItemEditor {actionItems} {save} />
+
+<h1>The Ultimate Planner</h1>
 
 <pre>
     {JSON.stringify(plannerState, null, 2)}
 </pre>
-
-<h1>The Ultimate Planner</h1>
 
 <div class="grid">
     <div class="header">

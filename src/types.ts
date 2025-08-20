@@ -4,7 +4,7 @@ export interface ActionItem {
     id: string;       // stable key, e.g. "ai-fitness"
     index: number;    // visual order (0..N-1), fixed
     label: string;    // e.g. "FITNESS ★"
-    color?: string;   // cosmetic only (optional)
+    color: string;   // cosmetic only (optional)
 }
 
 export interface PlannerState {

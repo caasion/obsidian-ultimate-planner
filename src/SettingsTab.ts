@@ -24,11 +24,13 @@ export const DEFAULT_SETTINGS: UltimatePlannerSettings = {
             id: "fitness",
             index: 0,
             label: "Fitness",
+            color: "#cccccc"
         },
         {
             id: "coding",
             index: 1,
             label: "Coding",
+            color: "#cccccc"
         },
     ],
     planner: { cells: {}}
