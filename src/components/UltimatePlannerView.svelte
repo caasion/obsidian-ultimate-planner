@@ -8,14 +8,24 @@
 	import { onMount, tick } from 'svelte';
 	import InputCell from './InputCell.svelte';
 	import ActionItemsEditor from './ActionItemsEditor.svelte';
+    import { actionItemsStore } from '../stores'
+
+    // Subscribe to ActionItems storage
+    let actionItems = $state<ActionItem[]>();
+
+    $effect(() => {
+        const unsub = actionItemsStore.subscribe((v) => {
+            actionItems = v;
+        });
+        return unsub
+    })
 
     interface ViewProps {
-        actionItems: ActionItem[];
         planner: PlannerState;
         save: () => void;
     }
 
-    let { planner, actionItems, save }: ViewProps = $props();
+    let { planner, save }: ViewProps = $props();
 
     // Saving
 
@@ -92,12 +102,14 @@
 
     
     // Table Navigation (Tab, Shift-tab, Enter)
-    const rowCount = actionItems.length;
+    
     const colCount = 7;
 
     let focus: { row: number, col: number, } = $state({row: 0, col: 0}); // Track focus to preserve focus at the same row
 
     function focusCell(row, col): boolean {
+        const rowCount = actionItems.length;
+        
         if (row > rowCount - 1 || row < 0 || col > colCount - 1 || col < 0) {
             console.warn("Attempted to focus on cell out of table bounds")
             return false; // Informs the caller whether if the focus actually worked
@@ -151,7 +163,7 @@
 
 </script>
 
-<!-- <ActionItemsEditor {actionItems} {save} /> -->
+<!-- <ActionItemsEditor {actionItemsStore} {save} /> -->
 
 <h1>The Ultimate Planner</h1>
 

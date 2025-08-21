@@ -1,37 +1,39 @@
 <script lang="ts">
 	import type { PlannerState, ActionItem } from "../types";
+    import { actionItemsStore } from '../stores'
 
-    interface ViewProps {
-        actionItems: ActionItem[];
-        planner: PlannerState;
-        save: () => void;
-    }
+    let actionItems = $state<ActionItem[]>();
 
-    let { planner, actionItems, save }: ViewProps = $props();
-
-    let actionItemsState = $state<ActionItem[]>(actionItems);
+    $effect(() => {
+        const unsub = actionItemsStore.subscribe((v) => {
+            actionItems = v;
+        });
+        return unsub
+    })    
 
     function generateID() {
         return "ai-" + crypto.randomUUID();
     }
 
     function addActionItem() {
-        actionItemsState.push({
+        actionItemsStore.update(store => [
+            ...store,
+            {
             id: generateID(),
             label: "New",
-            index: actionItems.length,
+            index: store.length,
             color: "#cccccc"
-        })
+        }
+        ])
+    }
 
-        actionItems = [...actionItemsState];
-        save();
+    function changeActionItem(id, label, color) {
+        console.log("updating store")
+        actionItemsStore.update(store => store.map(ai => ai.id===id ? {...ai, label, color} : ai))
     }
 
     function deleteActionItem(id: string) {
-        actionItemsState.filter(item => item.id !== id);
-
-        actionItems = [...actionItemsState];
-        save();
+        actionItemsStore.update(a => a.filter(ai => ai.id !== id).map((x,i)=>({...x, index:i})));
     }
 </script>
 
@@ -41,10 +43,10 @@
     {JSON.stringify(actionItems, null, 2)}
 </pre>
 
-{#each actionItemsState as item (item.id)}
+{#each actionItems as item (item.id)}
 <div>
-    <input bind:value={item.label}/>
-    <input type="color" bind:value={item.color}/>
+    <input value={item.label} oninput={(e) => changeActionItem(item.id, (e.target as HTMLInputElement).value, item.color)}/>
+    <input type="color" value={item.color} oninput={(e) => changeActionItem(item.id, item.label, (e.target as HTMLInputElement).value)}/>
     <button>x</button>
 </div>
 {/each}
