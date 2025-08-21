@@ -7,6 +7,15 @@ export interface ActionItem {
     color: string;   // cosmetic only (optional)
 }
 
+export type Template = ActionItem[];
+
+export interface DayData {
+    items: Template;
+    isDirty: boolean;
+}
+
 export interface PlannerState {
     cells: Record<ISODate, Record<string /* rowID */, string /* contents */>>; // Records are much more efficient objects for look-ups
+    days: Record<ISODate, DayData>;
+    templates: Record<ISODate /* Date the templates are effective from */, Template>;
 }
