@@ -7,18 +7,6 @@
     import type { ISODate, ActionItem, PlannerState } from '../types'
 	import { onMount, tick } from 'svelte';
 	import InputCell from './InputCell.svelte';
-	import ActionItemsEditor from './ActionItemsEditor.svelte';
-    import { actionItemsStore } from '../stores'
-
-    // Subscribe to ActionItems storage
-    let actionItems = $state<ActionItem[]>();
-
-    $effect(() => {
-        const unsub = actionItemsStore.subscribe((v) => {
-            actionItems = v;
-        });
-        return unsub
-    })
 
     interface ViewProps {
         planner: PlannerState;
@@ -26,9 +14,6 @@
     }
 
     let { planner, save }: ViewProps = $props();
-
-    // Saving
-
 
     // Planner Data
     let plannerState = $state<PlannerState>(planner)
