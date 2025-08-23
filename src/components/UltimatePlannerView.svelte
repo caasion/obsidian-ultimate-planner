@@ -16,16 +16,34 @@
     let { planner, save }: ViewProps = $props();
 
     // Planner Data
-    let plannerState = $state<PlannerState>(planner)
+    // let plannerState = $state<PlannerState>(planner)
+
+    let plannerState = $state<PlannerState>({
+        cells: {},
+        days: {},
+        templates: {
+            ["2025-08-10"]: [
+                {
+                    id: generateID(),
+                    index: 0,
+                    label: "FIrst Action Item",
+                    color: "#cccccc"
+                }
+            ]
+        }
+    })
+
+    // Helper Functions
+    function generateID() {
+        return "ai-" + crypto.randomUUID();
+    }
 
     function getISODate(date: Date): ISODate {
         return format(date, "yyyy-MM-dd")
     }
 
-    function getISODateOfToday(): ISODate {
-        return getISODate(new Date());
-    }
-    
+    // Cell Functions
+
     function setCell(date, rowID, text): void {
         
         if (!plannerState.cells[date]) {
@@ -45,12 +63,13 @@
         return plannerState.cells[date][rowID];
     }
 
-    // Navigation between weeks
-    let anchorDate = $state(getISODateOfToday());
+    // Dates the table renders & Navigation between weeks
+    let anchorDate = $state(getISODate(new Date()));
     let weeksVisible = 1;
 
     let daysOfTheWeek = $derived(getISODatesOfWeek(anchorDate));
 
+    // Navigation Between Weeks
     function addDaysISO(iso: ISODate, n: number): ISODate {
         return getISODate(addDays(parseISO(iso), n));
     }
@@ -82,10 +101,8 @@
 
     }
 
-
     let calendarLabel = $derived(getLabelOfWeek());
 
-    
     // Table Navigation (Tab, Shift-tab, Enter)
     
     const colCount = 7;
@@ -160,7 +177,7 @@
     <div class="header">
         <div>
             <button onclick={() => goTo(addDaysISO(anchorDate, -7))}>prev</button>
-            <button onclick={() => goTo(getISODateOfToday())}>today</button>
+            <button onclick={() => goTo(getISODate(new Date()))}>today</button>
             <button onclick={() => goTo(addDaysISO(anchorDate, 7))}>next</button>
         </div>
         <div>

@@ -9,14 +9,12 @@ export interface ActionItem {
     color: string;   // cosmetic only (optional)
 }
 
-export type Template = ActionItem[];
-
 export interface DayData {
-    items: Template;
+    items: ActionItem[];
     isDirty: boolean;
 }
 
-export type TemplatesByDate = Record<ISODate /* Date the templates are effective from */, Template>
+export type TemplatesByDate = Record<ISODate /* Date the templates are effective from */, ActionItem[]>
 
 export interface PlannerState {
     cells: Record<ISODate, Record<ActionItemID /* rowID */, string /* contents */>>; // Records are much more efficient objects for look-ups
