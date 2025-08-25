@@ -8,6 +8,7 @@
     import type { ISODate, ActionItem, PlannerState, DayData } from '../types'
 	import { onMount, tick } from 'svelte';
 	import InputCell from './InputCell.svelte';
+	import { truncateSync } from 'fs';
 
     interface ViewProps {
         planner: PlannerState;
@@ -84,7 +85,7 @@
         /** Expected Behavior
           * Changing the past will only make the day "dirty"
           * Changing the present will create a new template that applies from today on
-          * Changing the future will also create a new template that applies from that date 
+          * Changing the future will also create a new template that applies from that date. However, this future template should be based on the template of that day (i.e. if I have a template for Day 2, changing Day 3 would make a copy of Day 2's template and mutate that copy)
         **/ 
 
         if (date === today) { // If it's today, then we add to or update the template
@@ -100,10 +101,26 @@
             plannerState.templates = {...plannerState.templates, [date]: newTemplate};
             planner.templates = plannerState.templates;
             // TODO: Add Index logic (involves the rowsNeeded Function too)
+        } else if (date > today) {
+            console.log("updating the future")
+            const current = templateForDate(plannerState.templates, date)
+
+            plannerState.templates[date] ??= []; // Initialize template
+
+            const newTemplate = current.some(ai => ai.id === rowID)
+                ? current.map(ai => ai.id === rowID ? {...ai, index: 0, label, color} : ai)
+                : [...current, {id: rowID, index: 0, label, color}]
+            
+            plannerState.templates = {...plannerState.templates, [date]: newTemplate};
+            planner.templates = plannerState.templates;
         }
 
         if (!plannerState.days[date]) {
             plannerState.days[date] = generateDayData(templateForDate(plannerState.templates, date));
+        } 
+
+        if (date < today) {
+            plannerState.days[date].isDirty = true;
         }
     }   
 
@@ -157,8 +174,6 @@
 
         return Array.from(new Set(actionItems.map(obj => JSON.stringify(obj)))).map(e => JSON.parse(e))
     }
-
-    
 
     // Navigation Between Weeks
     function addDaysISO(iso: ISODate, n: number): ISODate {
@@ -269,12 +284,14 @@
     {#each rows as rowID, i (rowID)}
         <div class="row">
             {#each daysOfTheWeek as date, j (date)}
-                <div>
-                    <span>{rowID}</span>
-                    <input class="row-label" value={getLabelFromRowID(date, rowID)} onchange={(e) => updateDayData(date, rowID, (e.target as HTMLInputElement).value, "#dddddd")} />
-                    <InputCell 
-                        className={date == activeDate ? "active" : ""} {date} {rowID} {setCell} {getCell} row={i} col={j} {handleKeyDown} {focusCell} 
-                    />
+                <div class={`cell ${date == activeDate ? "active" : ""}`}>
+                    {#if getLabelFromRowID(date, rowID) !== ""} <!-- only display if label is not empty (i.e. AI exists)-->
+                        <span>{rowID}</span>
+                        <input class="row-label" value={getLabelFromRowID(date, rowID)} onchange={(e) => updateDayData(date, rowID, (e.target as HTMLInputElement).value, "#dddddd")} />
+                        <InputCell 
+                             {date} {rowID} {setCell} {getCell} row={i} col={j} {handleKeyDown} {focusCell} 
+                        />
+                    {/if}
                 </div>
             {/each}
         </div>
@@ -300,6 +317,10 @@
         .grid > .row > div {
         padding: 4px;
         border: 1px solid #ccc;
+    }
+
+    div.cell.active {
+        background-color: var(--theme-color);
     }
     
 </style>
