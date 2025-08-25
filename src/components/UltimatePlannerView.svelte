@@ -79,6 +79,20 @@
 
     /* Day Data Functions */
 
+    let showNewRowPrompt = $state(false);
+    let newRowLabel = $state("");
+    let newRowDate = $state<ISODate>("")
+
+    function submitNewRow(create: boolean) {
+        if (create) {
+            updateDayData(newRowDate, generateID(), newRowLabel, "#cccccc")
+        }
+
+        newRowLabel = "";
+        showNewRowPrompt = false;
+        newRowDate = "";
+    }
+
     function updateDayData(date: ISODate, rowID, label, color) {
         const today = getISODate(new Date());
 
@@ -198,7 +212,6 @@
 
     let calendarLabel = $derived(getLabelOfWeek());
 
-
     // Table Navigation (Tab, Shift-tab, Enter)
     
     let focus: { row: number, col: number, } = $state({row: 0, col: 0}); // Track focus to preserve focus at the same row
@@ -250,11 +263,7 @@
     // Highlight column of active day
     let activeDate = $derived(daysOfTheWeek[focus.col])
 
-
     // TODO: Export to CSV or Markdown
-
-
-
 </script>
 
 <h1>The Ultimate Planner</h1>
@@ -271,8 +280,19 @@
     </div>
     <div>
         <label for="date-input">{calendarLabel}</label>
-        <input type="date" bind:value={anchorDate} /></div>
+        <input type="date" bind:value={anchorDate} />
+    </div>
         <!-- TODO: Custom Calendar Input that Supports Multiple Weeks -->
+
+    <div>
+        <button onclick={() => showNewRowPrompt = true}>+</button>
+        {#if showNewRowPrompt}
+            <input class="new-row-label" placeholder="Enter a New Action item" bind:value={newRowLabel}>
+            <input class="new-row-date" type="date" bind:value={newRowDate} />
+            <button onclick={() => submitNewRow(true)}>✔</button>
+            <button onclick={() => submitNewRow(false)}>❌</button>
+        {/if}
+    </div>
     
 </div>
 <div class="grid">
@@ -284,15 +304,21 @@
     {#each rows as rowID, i (rowID)}
         <div class="row">
             {#each daysOfTheWeek as date, j (date)}
-                <div class={`cell ${date == activeDate ? "active" : ""}`}>
-                    {#if getLabelFromRowID(date, rowID) !== ""} <!-- only display if label is not empty (i.e. AI exists)-->
+                
+                {#if getLabelFromRowID(date, rowID) !== ""} <!-- only display if label is not empty (i.e. AI exists)-->
+                    <div class={`cell ${date == activeDate ? "active" : ""}`}>
                         <span>{rowID}</span>
-                        <input class="row-label" value={getLabelFromRowID(date, rowID)} onchange={(e) => updateDayData(date, rowID, (e.target as HTMLInputElement).value, "#dddddd")} />
+                        <input class="row-label" value={getLabelFromRowID(date, rowID)} oninput={(e) => updateDayData(date, rowID, (e.target as HTMLInputElement).value, "#dddddd")} />
                         <InputCell 
-                             {date} {rowID} {setCell} {getCell} row={i} col={j} {handleKeyDown} {focusCell} 
+                            {date} {rowID} {setCell} {getCell} row={i} col={j} {handleKeyDown} {focusCell} 
                         />
-                    {/if}
-                </div>
+                    </div>
+                {:else}
+                    <div class="add-cell">
+                        <span>Nothing here for now</span>
+                    </div>
+                    
+                {/if}
             {/each}
         </div>
     {/each}
