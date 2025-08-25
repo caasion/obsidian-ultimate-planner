@@ -9,9 +9,9 @@ import { ActionItem, ISODate, TemplatesByDate } from "./types";
 export function templateForDate(templates: TemplatesByDate, date: ISODate): ActionItem[] {
     let best: ISODate | null = null;
     for (const key in templates) {
-        if (key <= date && (best === null || key > date)) best = key;
+        if (key <= date && (best === null || key > best)) best = key;
     }
-    return best ? structuredClone(templates[best]) : [];
+    return best ? JSON.parse(JSON.stringify(templates[best])) : [];
     
 }
 
