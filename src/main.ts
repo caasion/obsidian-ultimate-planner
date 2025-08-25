@@ -1,5 +1,5 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { MY_VIEW_TYPE, MyCustomView } from './MyCustomView';
+import { PLANNER_VIEW_TYPE, MyCustomView } from './MyCustomView';
 import { UltimatePlannerSettings, UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
 
 export default class UltimatePlannerPlugin extends Plugin {
@@ -13,7 +13,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new UltimatePlannerPluginTab(this.app, this));
 
-		this.registerView(MY_VIEW_TYPE, (leaf) => new MyCustomView(leaf, this));
+		this.registerView(PLANNER_VIEW_TYPE, (leaf) => new MyCustomView(leaf, this));
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
@@ -23,24 +23,25 @@ export default class UltimatePlannerPlugin extends Plugin {
 				this.activateMyPlannerView();
 			}
 		});
+
 	}
 
 	async onunload() {
-		this.app.workspace.detachLeavesOfType(MY_VIEW_TYPE);
+		this.app.workspace.detachLeavesOfType(PLANNER_VIEW_TYPE);
 		await this.flushSave();
 	}
 
 	async activateMyPlannerView() {
-		const leaves = this.app.workspace.getLeavesOfType(MY_VIEW_TYPE);
+		const leaves = this.app.workspace.getLeavesOfType(PLANNER_VIEW_TYPE);
 		if (leaves.length === 0) {
 			await this.app.workspace.getLeaf(false).setViewState({
-				type: MY_VIEW_TYPE,
+				type: PLANNER_VIEW_TYPE,
 				active: true,
 			});
 
 		}
 
-		this.app.workspace.getLeavesOfType(MY_VIEW_TYPE)[0];
+		this.app.workspace.getLeavesOfType(PLANNER_VIEW_TYPE)[0];
 	}
 
 	async loadSettings() {

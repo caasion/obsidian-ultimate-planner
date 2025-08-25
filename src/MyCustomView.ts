@@ -5,7 +5,7 @@ import UltimatePlannerPlugin from './main.ts';
 
 
 
-export const MY_VIEW_TYPE = "my-custom-view"
+export const PLANNER_VIEW_TYPE = "my-custom-view"
 
 export class MyCustomView extends ItemView {
     plugin: UltimatePlannerPlugin;
@@ -16,7 +16,7 @@ export class MyCustomView extends ItemView {
     }
 
     getViewType(): string {
-        return MY_VIEW_TYPE;
+        return PLANNER_VIEW_TYPE;
     }
 
     getDisplayText(): string {
