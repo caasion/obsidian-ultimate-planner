@@ -20,27 +20,29 @@
 
     let { app, planner, save }: ViewProps = $props();
 
+    const DEFAULT_COLOR = "#cccccc";
+
     let plannerState = $state<PlannerState>({
         actionItems: {
             ["ai-abc"]: {
                 index: 0,
                 label: "Abc",
-                color: "#cccccc"
+                color: DEFAULT_COLOR
             },
             ["ai-def"]: {
                 index: 0,
                 label: "Def",
-                color: "#cccccc"
+                color: DEFAULT_COLOR
             },
             ["ai-ghi"]: {
                 index: 0,
                 label: "Ghi",
-                color: "#cccccc"
+                color: DEFAULT_COLOR
             },
             ["ai-jkl"]: {
                 index: 0,
                 label: "Jkl",
-                color: "#cccccc"
+                color: DEFAULT_COLOR
             }
         },
         cells: {},
@@ -64,15 +66,17 @@
 
     let showNewRowPrompt = $state(false);
     let newRowLabel = $state("");
-    let newRowDate = $state<ISODate>(getISODate(new Date()))
+    let newRowDate = $state<ISODate>(getISODate(new Date()));
+    let newRowColor = $state(DEFAULT_COLOR);
 
     function submitNewRow(create: boolean) {
         if (create) {
-            modifyTemplate(newRowDate, generateID(), newRowLabel, "#cccccc")
+            addActionItem(newRowDate, generateID(), newRowLabel, newRowColor)
         }
 
         newRowLabel = "";
         showNewRowPrompt = false;
+        newRowLabel = DEFAULT_COLOR;
         newRowDate = getISODate(new Date());
     }
 
@@ -81,7 +85,7 @@
         evt.stopPropagation();
 
         const menu = new Menu(app);
-        
+
         menu
             .addItem((i) =>
                 i.setTitle("Rename")
@@ -109,43 +113,24 @@
         plannerState.actionItems[rowID] = { index: 0, label, color}
     }
 
-    function modifyTemplate(date: ISODate, rowID, label, color) {
-        const today = getISODate(new Date());
-
+    function addActionItem(date: ISODate, rowID, label, color) {
         /** Expected Behavior
-          * Renaming: Searches the template for that date
-          * Changing the past will only make the day "dirty"
-          * Changing the present will create a new template that applies from today on
-          * Changing the future will also create a new template that applies from that date. However, this future template should be based on the template of that day (i.e. if I have a template for Day 2, changing Day 3 would make a copy of Day 2's template and mutate that copy)
+          * If the template of the day already exists, modify
+          * Otherwise, get the template of the day, then push a new array with the added action item
+          * Add the Action item to the list
         **/ 
 
-        if (date === today) { // If it's today, then we add to or update the template
-            console.log("updating today!")
-            const current = templateForDate(plannerState.templates, today)
-
-            plannerState.templates[date] ??= []; // Initialize template
-
-            const newTemplate = current.some(ai => ai.id === rowID)
-                ? current.map(ai => ai.id === rowID ? {...ai, index: 0, label, color} : ai)
-                : [...current, {id: rowID, index: 0, label, color}]
-            
-            plannerState.templates = {...plannerState.templates, [date]: newTemplate};
-            planner.templates = plannerState.templates;
-            // TODO: Add Index logic (involves the rowsNeeded Function too)
-        } else if (date > today) {
-            console.log("updating the future")
-            const current = templateForDate(plannerState.templates, date)
-
-            plannerState.templates[date] ??= []; // Initialize template
-
-            const newTemplate = current.some(ai => ai.id === rowID)
-                ? current.map(ai => ai.id === rowID ? {...ai, index: 0, label, color} : ai)
-                : [...current, {id: rowID, index: 0, label, color}]
-            
-            plannerState.templates = {...plannerState.templates, [date]: newTemplate};
-            planner.templates = plannerState.templates;
+        if (plannerState.templates[date]) {
+            plannerState.templates[date].push(rowID);
+        } else {
+            const current = templateForDate(plannerState.templates, date);
+            current.push(rowID);
+            plannerState.templates[date] = current;
         }
-    }   
+
+        plannerState.actionItems[rowID] = { index: 0, label, color};
+    }
+
 
     /* Cell Functions */
     function setCell(date: ISODate, rowID, text): void {
@@ -193,11 +178,19 @@
         return Array.from(new Set(actionItemIDs));
     }
 
-    function getLabelFromRowID(date: ISODate, rowID: string) {
+    function getLabelFromID(date: ISODate, rowID: string) {
         if (!plannerState.actionItems[rowID]) {
             return "";
         } else {
             return plannerState.actionItems[rowID].label;
+        }
+    }
+
+    function getColorFromID(date: ISODate, rowID: string) {
+        if (!plannerState.actionItems[rowID]) {
+            return "";
+        } else {
+            return plannerState.actionItems[rowID].color;
         }
     }
 
@@ -301,6 +294,7 @@
         {#if showNewRowPrompt}
             <input class="new-row-label" placeholder="Enter a New Action item" bind:value={newRowLabel}>
             <input class="new-row-date" type="date" bind:value={newRowDate} />
+            <input type="color" bind:value={newRowColor} />
             <button onclick={() => submitNewRow(true)}>✔</button>
             <button onclick={() => submitNewRow(false)}>❌</button>
         {/if}
@@ -319,8 +313,8 @@
                 {#if templateForDate(plannerState.templates, date).includes(rowID)} <!-- only display if label is not empty (i.e. AI exists)-->
                     <div class={`cell ${date == activeDate ? "active" : ""}`}>
                         <span>{rowID}</span>
-                        <span class="row-label" oncontextmenu={(e) => openActionItemContextMenu(e, rowID)}>{getLabelFromRowID(date, rowID)}</span>
-                        <!-- <input  value={getLabelFromRowID(date, rowID)} oninput={(e) => modifyTemplate(date, rowID, (e.target as HTMLInputElement).value, "#dddddd")} /> -->
+                        <span class="row-label" style={`color: ${getColorFromID(date, rowID)}`} oncontextmenu={(e) => openActionItemContextMenu(e, rowID)}>{getLabelFromID(date, rowID)}</span>
+                        <!-- <input  value={getLabelFromID(date, rowID)} oninput={(e) => modifyTemplate(date, rowID, (e.target as HTMLInputElement).value, "#dddddd")} /> -->
                         <InputCell 
                             {date} {rowID} {setCell} {getCell} row={i} col={j} {handleKeyDown} {focusCell} 
                         />
@@ -328,7 +322,7 @@
                 {:else}
                     <div>
                         <span>Nothing here for now</span>
-                        <button onclick={() => modifyActionItem("ai-abc", "wowow", "#cccccc")}>+</button>
+                        <button onclick={() => modifyActionItem("ai-abc", "wowow", DEFAULT_COLOR)}>+</button>
                     </div>
                     
                 {/if}
