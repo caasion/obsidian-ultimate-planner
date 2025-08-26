@@ -8,13 +8,17 @@
     import type { ISODate, ActionItemID, PlannerState } from '../types'
 	import { onMount, tick } from 'svelte';
 	import InputCell from './InputCell.svelte';
+    import type { App } from "obsidian";
+    import { Menu, Modal } from "obsidian";
+    import { RenameActionItemModal } from './ActionItemModals'
 
     interface ViewProps {
+        app: App;
         planner: PlannerState;
         save: () => void;
     }
 
-    let { planner, save }: ViewProps = $props();
+    let { app, planner, save }: ViewProps = $props();
 
     let plannerState = $state<PlannerState>({
         actionItems: {
@@ -70,6 +74,35 @@
         newRowLabel = "";
         showNewRowPrompt = false;
         newRowDate = getISODate(new Date());
+    }
+
+    function openActionItemContextMenu(evt: MouseEvent, rowID: ActionItemID) {
+        evt.preventDefault();
+        evt.stopPropagation();
+
+        const menu = new Menu(app);
+        
+        menu
+            .addItem((i) =>
+                i.setTitle("Rename")
+                .setIcon("pencil")
+                .onClick(() => {
+                    new RenameActionItemModal(app, plannerState.actionItems[rowID], (label, color) => modifyActionItem(rowID, label, color)).open();
+                })
+            )
+            .addItem((i) =>
+                i.setTitle("Replace from this date…")
+                .setIcon("calendar-plus")
+                .onClick(() => {})
+            )
+            .addSeparator()
+            .addItem((i) =>
+                i.setTitle("Copy ID")
+                .setIcon("copy")
+                .onClick(() => {})
+            );
+
+        menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
     }
 
     function modifyActionItem(rowID, label, color) {
@@ -286,7 +319,7 @@
                 {#if templateForDate(plannerState.templates, date).includes(rowID)} <!-- only display if label is not empty (i.e. AI exists)-->
                     <div class={`cell ${date == activeDate ? "active" : ""}`}>
                         <span>{rowID}</span>
-                        <span class="row-label">{getLabelFromRowID(date, rowID)}</span>
+                        <span class="row-label" oncontextmenu={(e) => openActionItemContextMenu(e, rowID)}>{getLabelFromRowID(date, rowID)}</span>
                         <!-- <input  value={getLabelFromRowID(date, rowID)} oninput={(e) => modifyTemplate(date, rowID, (e.target as HTMLInputElement).value, "#dddddd")} /> -->
                         <InputCell 
                             {date} {rowID} {setCell} {getCell} row={i} col={j} {handleKeyDown} {focusCell} 
