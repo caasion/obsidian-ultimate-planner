@@ -5,10 +5,9 @@
 
     //Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table. 
 
-    import type { ISODate, ActionItem, PlannerState, DayData } from '../types'
+    import type { ISODate, ActionItemID, PlannerState } from '../types'
 	import { onMount, tick } from 'svelte';
 	import InputCell from './InputCell.svelte';
-	import { truncateSync } from 'fs';
 
     interface ViewProps {
         planner: PlannerState;
@@ -18,43 +17,33 @@
     let { planner, save }: ViewProps = $props();
 
     let plannerState = $state<PlannerState>({
+        actionItems: {
+            ["ai-abc"]: {
+                index: 0,
+                label: "Abc",
+                color: "#cccccc"
+            },
+            ["ai-def"]: {
+                index: 0,
+                label: "Def",
+                color: "#cccccc"
+            },
+            ["ai-ghi"]: {
+                index: 0,
+                label: "Ghi",
+                color: "#cccccc"
+            },
+            ["ai-jkl"]: {
+                index: 0,
+                label: "Jkl",
+                color: "#cccccc"
+            }
+        },
         cells: {},
-        days: {},
         templates: {
-            ["2025-08-10"]: [
-                {
-                    id: "ai-6d77235b-073a-48fa-a104-2bc18ffcb7d0",
-                    index: 0,
-                    label: "FIrst Action Item",
-                    color: "#cccccc"
-                }, 
-                {
-                    id: "ai-7f0f4774-53e2-46ee-88e5-dd1532a9a795",
-                    index: 0,
-                    label: "Second Action Item",
-                    color: "#cccccc"
-                }
-            ],
-            ["2025-08-27"]: [
-                {
-                    id: "ai-6d77235b-073a-48fa-a104-2bc18ffcb7d0",
-                    index: 0,
-                    label: "FIrst Action Item",
-                    color: "#cccccc"
-                }, 
-                {
-                    id: "ai-7f0f4774-53e2-46ee-88e5-dd1532a9a795",
-                    index: 0,
-                    label: "Second Action Item",
-                    color: "#cccccc"
-                },
-                {
-                    id: generateID(),
-                    index: 0,
-                    label: "Third Action Item",
-                    color: "#cccccc"
-                }
-            ] 
+            ["2025-08-10"]: ["ai-abc", "ai-def"],
+            ["2025-08-27"]: ["ai-abc"],
+            ["2025-08-29"]: ["ai-abc", "ai-ghi", "ai-jkl"],
         }
     })
 
@@ -67,36 +56,31 @@
         return format(date, "yyyy-MM-dd")
     }
 
-    function getLabelFromRowID(date: ISODate, rowID: string) {
-        return plannerState.days[date] 
-            ? plannerState.days[date].items.filter(item => item.id === rowID)[0]?.label ?? ""
-            : templateForDate(plannerState.templates, date).filter(item => item.id === rowID)[0]?.label ?? ""
-    }
-
-    function generateDayData(template: ActionItem[]): DayData {
-        return { items: template, isDirty: false };
-    }
-
-    /* Day Data Functions */
+    /* Action Item Functions */
 
     let showNewRowPrompt = $state(false);
     let newRowLabel = $state("");
-    let newRowDate = $state<ISODate>("")
+    let newRowDate = $state<ISODate>(getISODate(new Date()))
 
     function submitNewRow(create: boolean) {
         if (create) {
-            updateDayData(newRowDate, generateID(), newRowLabel, "#cccccc")
+            modifyTemplate(newRowDate, generateID(), newRowLabel, "#cccccc")
         }
 
         newRowLabel = "";
         showNewRowPrompt = false;
-        newRowDate = "";
+        newRowDate = getISODate(new Date());
     }
 
-    function updateDayData(date: ISODate, rowID, label, color) {
+    function modifyActionItem(rowID, label, color) {
+        plannerState.actionItems[rowID] = { index: 0, label, color}
+    }
+
+    function modifyTemplate(date: ISODate, rowID, label, color) {
         const today = getISODate(new Date());
 
         /** Expected Behavior
+          * Renaming: Searches the template for that date
           * Changing the past will only make the day "dirty"
           * Changing the present will create a new template that applies from today on
           * Changing the future will also create a new template that applies from that date. However, this future template should be based on the template of that day (i.e. if I have a template for Day 2, changing Day 3 would make a copy of Day 2's template and mutate that copy)
@@ -128,14 +112,6 @@
             plannerState.templates = {...plannerState.templates, [date]: newTemplate};
             planner.templates = plannerState.templates;
         }
-
-        if (!plannerState.days[date]) {
-            plannerState.days[date] = generateDayData(templateForDate(plannerState.templates, date));
-        } 
-
-        if (date < today) {
-            plannerState.days[date].isDirty = true;
-        }
     }   
 
     /* Cell Functions */
@@ -147,11 +123,6 @@
         plannerState.cells[date][rowID] = text;
         planner.cells = plannerState.cells;
         // save();
-
-        // Update Day Information
-        if (!plannerState.days[date]) {
-            plannerState.days[date] = generateDayData(templateForDate(plannerState.templates, date));
-        }
     }
 
     function getCell(date, rowID): string {
@@ -184,9 +155,17 @@
     let rows = $derived(rowsNeeded(daysOfTheWeek));
 
     function rowsNeeded(dates: ISODate[]): string[] {
-        const actionItems = dates.map(date => plannerState.days[date] ? plannerState.days[date].items : templateForDate(plannerState.templates, date)).flat().map(ai => ai.id);
+        const actionItemIDs = dates.flatMap((date) => templateForDate(plannerState.templates, date))
 
-        return Array.from(new Set(actionItems.map(obj => JSON.stringify(obj)))).map(e => JSON.parse(e))
+        return Array.from(new Set(actionItemIDs));
+    }
+
+    function getLabelFromRowID(date: ISODate, rowID: string) {
+        if (!plannerState.actionItems[rowID]) {
+            return "";
+        } else {
+            return plannerState.actionItems[rowID].label;
+        }
     }
 
     // Navigation Between Weeks
@@ -304,18 +283,19 @@
     {#each rows as rowID, i (rowID)}
         <div class="row">
             {#each daysOfTheWeek as date, j (date)}
-                
-                {#if getLabelFromRowID(date, rowID) !== ""} <!-- only display if label is not empty (i.e. AI exists)-->
+                {#if templateForDate(plannerState.templates, date).includes(rowID)} <!-- only display if label is not empty (i.e. AI exists)-->
                     <div class={`cell ${date == activeDate ? "active" : ""}`}>
                         <span>{rowID}</span>
-                        <input class="row-label" value={getLabelFromRowID(date, rowID)} oninput={(e) => updateDayData(date, rowID, (e.target as HTMLInputElement).value, "#dddddd")} />
+                        <span class="row-label">{getLabelFromRowID(date, rowID)}</span>
+                        <!-- <input  value={getLabelFromRowID(date, rowID)} oninput={(e) => modifyTemplate(date, rowID, (e.target as HTMLInputElement).value, "#dddddd")} /> -->
                         <InputCell 
                             {date} {rowID} {setCell} {getCell} row={i} col={j} {handleKeyDown} {focusCell} 
                         />
                     </div>
                 {:else}
-                    <div class="add-cell">
+                    <div>
                         <span>Nothing here for now</span>
+                        <button onclick={() => modifyActionItem("ai-abc", "wowow", "#cccccc")}>+</button>
                     </div>
                     
                 {/if}

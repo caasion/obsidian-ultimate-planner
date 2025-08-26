@@ -2,22 +2,14 @@ export type ISODate = string; // Create date type for dates in ISO 8601 for simp
 
 export type ActionItemID = string;
 
-export interface ActionItem {
-    id: ActionItemID;       // stable key, e.g. "ai-fitness"
+export interface ActionItemMeta {
     index: number;    // visual order (0..N-1), fixed
     label: string;    // e.g. "FITNESS ★"
     color: string;   // cosmetic only (optional)
 }
 
-export interface DayData {
-    items: ActionItem[];
-    isDirty: boolean;
-}
-
-export type TemplatesByDate = Record<ISODate /* Date the templates are effective from */, ActionItem[]>
-
 export interface PlannerState {
-    cells: Record<ISODate, Record<ActionItemID /* rowID */, string /* contents */>>; // Records are much more efficient objects for look-ups
-    days: Record<ISODate, DayData>;
-    templates: TemplatesByDate;
+    actionItems: Record<ActionItemID, ActionItemMeta>;
+    templates: Record<ISODate, ActionItemID[]>;
+    cells: Record<ISODate, Record<ActionItemID, string /* contents */>>; // Records are much more efficient objects for look-ups
 }
