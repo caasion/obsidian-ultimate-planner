@@ -1,7 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import UltimatePlannerPlugin from './main.ts';
+import UltimatePlannerPlugin from './main';
 import { mount, unmount } from 'svelte';
-import { ISODate, ActionItem, PlannerState } from './types.ts';
+import type { PlannerState } from './types';
 
 export interface UltimatePlannerSettings {
     settings: {
@@ -17,8 +17,8 @@ export const DEFAULT_SETTINGS: UltimatePlannerSettings = {
         autosaveDebounceMs: 0,
     },
     planner: { 
+        actionItems: {},
         cells: {},
-        days: {},
         templates: {}
     },
 }

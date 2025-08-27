@@ -23,6 +23,12 @@
   },
   "include": [
     "**/*.ts",
-    "global.d.ts"
+    "global.d.ts",
+    "**/*.svelte"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build"
   ]
 }

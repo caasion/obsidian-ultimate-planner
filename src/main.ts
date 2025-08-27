@@ -1,11 +1,12 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { PLANNER_VIEW_TYPE, MyCustomView } from './MyCustomView';
-import { UltimatePlannerSettings, UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
+import { UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
+import type { UltimatePlannerSettings } from './SettingsTab';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: UltimatePlannerSettings;
 	private saveTimer: number | null = null;
-	private _unsubActionItems;
+	private _unsubActionItems: any;
 
 	async onload() {
 		await this.loadSettings();

@@ -1,7 +1,7 @@
 import { ItemView, Notice, TFile, WorkspaceLeaf } from "obsidian";
 import { mount } from 'svelte';
 import UltimatePlannerView from './components/UltimatePlannerView.svelte';
-import UltimatePlannerPlugin from './main.ts';
+import UltimatePlannerPlugin from './main';
 
 
 

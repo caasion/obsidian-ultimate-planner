@@ -1,7 +1,6 @@
 <script lang="ts">
     import { addDays, eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek } from 'date-fns';
     import type { Day } from 'date-fns';
-    import { templateForDate } from '../templates'
 
     //Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table. 
 
@@ -9,8 +8,9 @@
 	import { onMount, tick } from 'svelte';
 	import InputCell from './InputCell.svelte';
     import type { App } from "obsidian";
-    import { Menu, Modal } from "obsidian";
+    import { Menu, Modal, Notice } from "obsidian";
     import { RenameActionItemModal } from './ActionItemModals'
+	import type { Action } from 'svelte/action';
 
     interface ViewProps {
         app: App;
@@ -62,6 +62,18 @@
         return format(date, "yyyy-MM-dd")
     }
 
+    /** Returns a deep copy of the template that should apply on `date`
+     *  Loops through all the keys (which are dates) in templates and compares them with the date provided.
+     *  If no template exists at or before `date`, it return an emppty array
+     */
+    function templateForDate(date: ISODate): ActionItemID[] {
+        let best: ISODate | null = null;
+        for (const key in plannerState.templates) {
+            if (key <= date && (best === null || key > best)) best = key;
+        }
+        return best ? JSON.parse(JSON.stringify(plannerState.templates[best])) : [];
+}
+
     /* Action Item Functions */
 
     let showNewRowPrompt = $state(false);
@@ -80,7 +92,7 @@
         newRowDate = getISODate(new Date());
     }
 
-    function openActionItemContextMenu(evt: MouseEvent, rowID: ActionItemID) {
+    function openActionItemContextMenu(evt: MouseEvent, date: ISODate, rowID: ActionItemID) {
         evt.preventDefault();
         evt.stopPropagation();
 
@@ -95,9 +107,18 @@
                 })
             )
             .addItem((i) =>
-                i.setTitle("Replace from this date…")
+                i.setTitle("Extend until next template")
                 .setIcon("calendar-plus")
-                .onClick(() => {})
+                .onClick(() => {
+                    extendActionItem(date, rowID);
+                })
+            )
+            .addItem((i) =>
+                i.setTitle("Remove from this date (until next template)")
+                .setIcon("calendar-plus")
+                .onClick(() => {
+                    shortenActionItem(date, rowID);
+                })
             )
             .addSeparator()
             .addItem((i) =>
@@ -123,12 +144,35 @@
         if (plannerState.templates[date]) {
             plannerState.templates[date].push(rowID);
         } else {
-            const current = templateForDate(plannerState.templates, date);
+            const current = templateForDate(date);
             current.push(rowID);
             plannerState.templates[date] = current;
         }
 
         plannerState.actionItems[rowID] = { index: 0, label, color};
+    }
+
+    function shortenActionItem(date: ISODate, rowID: ActionItemID) {
+        plannerState.templates[date] ??= templateForDate(date);
+
+        const template = plannerState.templates[date];
+        const i = template.indexOf(rowID);
+
+        if (i >= 0) {
+            template.splice(i, 1)
+        }
+    }
+
+    function extendActionItem(date: ISODate, rowID: ActionItemID) {
+        const nextDate = getISODate(addDays(parseISO(date), 1))
+        plannerState.templates[nextDate] ??= templateForDate(nextDate);
+        console.log(plannerState.templates[nextDate].contains(rowID))
+        if (!plannerState.templates[nextDate].contains(rowID)) {
+            plannerState.templates[nextDate].push(rowID);
+        } else {
+            new Notice("Item Already in Template");
+        }
+        
     }
 
 
@@ -173,7 +217,7 @@
     let rows = $derived(rowsNeeded(daysOfTheWeek));
 
     function rowsNeeded(dates: ISODate[]): string[] {
-        const actionItemIDs = dates.flatMap((date) => templateForDate(plannerState.templates, date))
+        const actionItemIDs = dates.flatMap((date) => templateForDate(date))
 
         return Array.from(new Set(actionItemIDs));
     }
@@ -278,12 +322,12 @@
 </pre>
 
 <div class="header">
-    <div>
-        <button onclick={() => goTo(addDaysISO(anchorDate, -7))}>prev</button>
-        <button onclick={() => goTo(getISODate(new Date()))}>today</button>
-        <button onclick={() => goTo(addDaysISO(anchorDate, 7))}>next</button>
+    <div class="nav-buttons">
+        <button onclick={() => goTo(addDaysISO(anchorDate, -7))}>Previous Week</button>
+        <button onclick={() => goTo(getISODate(new Date()))}>This Week</button>
+        <button onclick={() => goTo(addDaysISO(anchorDate, 7))}>Next Week</button>
     </div>
-    <div>
+    <div class="">
         <label for="date-input">{calendarLabel}</label>
         <input type="date" bind:value={anchorDate} />
     </div>
@@ -310,10 +354,10 @@
     {#each rows as rowID, i (rowID)}
         <div class="row">
             {#each daysOfTheWeek as date, j (date)}
-                {#if templateForDate(plannerState.templates, date).includes(rowID)} <!-- only display if label is not empty (i.e. AI exists)-->
+                {#if templateForDate(date).includes(rowID)} <!-- only display if label is not empty (i.e. AI exists)-->
                     <div class={`cell ${date == activeDate ? "active" : ""}`}>
                         <span>{rowID}</span>
-                        <span class="row-label" style={`color: ${getColorFromID(date, rowID)}`} oncontextmenu={(e) => openActionItemContextMenu(e, rowID)}>{getLabelFromID(date, rowID)}</span>
+                        <span class="row-label" style={`color: ${getColorFromID(date, rowID)}`} oncontextmenu={(e) => openActionItemContextMenu(e, date, rowID)}>{getLabelFromID(date, rowID)}</span>
                         <!-- <input  value={getLabelFromID(date, rowID)} oninput={(e) => modifyTemplate(date, rowID, (e.target as HTMLInputElement).value, "#dddddd")} /> -->
                         <InputCell 
                             {date} {rowID} {setCell} {getCell} row={i} col={j} {handleKeyDown} {focusCell} 
