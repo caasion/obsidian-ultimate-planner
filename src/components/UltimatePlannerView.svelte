@@ -327,14 +327,14 @@
         <button onclick={() => goTo(getISODate(new Date()))}>This Week</button>
         <button onclick={() => goTo(addDaysISO(anchorDate, 7))}>Next Week</button>
     </div>
-    <div class="">
-        <label for="date-input">{calendarLabel}</label>
+    <div class="week">
+        <span class="week-label">{calendarLabel}</span>
         <input type="date" bind:value={anchorDate} />
     </div>
         <!-- TODO: Custom Calendar Input that Supports Multiple Weeks -->
 
-    <div>
-        <button onclick={() => showNewRowPrompt = true}>+</button>
+    <div class="new-ai">
+        <button onclick={() => showNewRowPrompt = true}>+ Add</button>
         {#if showNewRowPrompt}
             <input class="new-row-label" placeholder="Enter a New Action item" bind:value={newRowLabel}>
             <input class="new-row-date" type="date" bind:value={newRowDate} />
@@ -348,7 +348,12 @@
 <div class="grid">
     <div class="row">
         {#each daysOfTheWeek as date}
-            <div>{format(parseISO(date), "dd")}</div>
+            <div class="dow-label">{format(parseISO(date), "E")}</div>
+        {/each}
+    </div>
+    <div class="row">
+        {#each daysOfTheWeek as date}
+            <div class="date-label">{format(parseISO(date), "dd")}</div>
         {/each}
     </div>
     {#each rows as rowID, i (rowID)}
@@ -365,8 +370,7 @@
                     </div>
                 {:else}
                     <div>
-                        <span>Nothing here for now</span>
-                        <button onclick={() => modifyActionItem("ai-abc", "wowow", DEFAULT_COLOR)}>+</button>
+                        <span>-</span>
                     </div>
                     
                 {/if}
@@ -376,6 +380,25 @@
 </div>
 
 <style>
+    .header {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .week {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .week-label {
+        font-weight: 600;
+    }
+
+    .date-label {
+        align-content: left;
+    }
+
     .grid {
         display: grid;
         grid-template-columns: 200px repeat(6, 1fr);
