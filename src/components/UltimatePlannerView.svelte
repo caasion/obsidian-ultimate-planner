@@ -100,6 +100,11 @@
 
         menu
             .addItem((i) =>
+                i.setTitle(`ID: ${rowID}`)
+                .setIcon("info")
+            )
+            .addSeparator()
+            .addItem((i) =>
                 i.setTitle("Rename")
                 .setIcon("pencil")
                 .onClick(() => {
@@ -119,13 +124,9 @@
                 .onClick(() => {
                     shortenActionItem(date, rowID);
                 })
-            )
-            .addSeparator()
-            .addItem((i) =>
-                i.setTitle("Copy ID")
-                .setIcon("copy")
-                .onClick(() => {})
             );
+            
+            
 
         menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
     }
@@ -265,7 +266,7 @@
     
     let focus: { row: number, col: number, } = $state({row: 0, col: 0}); // Track focus to preserve focus at the same row
 
-    function focusCell(row: number, col: number): boolean {
+    function focusCell(row: number, col: number, fromEditor = false): boolean {
         const rowCount = rows.length;
         
         if (row > rowCount - 1 || row < 0 || col > colCount - 1 || col < 0) {
@@ -273,33 +274,13 @@
             return false; // Informs the caller whether if the focus actually worked
         }
 
-        document.getElementById(`cell-${row}-${col}`)?.focus();
+        if (!fromEditor) {
+            const cell = document.getElementById(`cell-${row}-${col}`);
+            cell?.querySelector<HTMLElement>('.ProseMirror')?.focus();
+        }
+
         focus = {row, col};
         return true;
-    }
-
-    function handleKeyDown(event: KeyboardEvent, row: number, col: number) {
-        const shift = event.shiftKey;
-        const ctrl = event.ctrlKey;
-
-        let successful;
-        
-        if (event.key === "Tab") {
-            if (shift === true) {
-                successful = focusCell(row, col - 1);
-            } else {
-                successful = focusCell(row, col + 1);
-            }
-        } else if (event.key === "Enter") {
-            if (ctrl === true) { // Only navigate when "ctrl + enter" is hit
-                successful = focusCell(row - 1, col);
-            } else {
-                successful = focusCell(row + 1, col);
-            }
-            
-        } 
-
-        if (successful) event.preventDefault();
     }
 
     // Maintain focus when switching weeks
@@ -361,11 +342,10 @@
             {#each daysOfTheWeek as date, j (date)}
                 {#if templateForDate(date).includes(rowID)} <!-- only display if label is not empty (i.e. AI exists)-->
                     <div class={`cell ${date == activeDate ? "active" : ""}`}>
-                        <span>{rowID}</span>
                         <span class="row-label" style={`color: ${getColorFromID(date, rowID)}`} oncontextmenu={(e) => openActionItemContextMenu(e, date, rowID)}>{getLabelFromID(date, rowID)}</span>
                         <!-- <input  value={getLabelFromID(date, rowID)} oninput={(e) => modifyTemplate(date, rowID, (e.target as HTMLInputElement).value, "#dddddd")} /> -->
                         <InputCell 
-                            {date} {rowID} {setCell} {getCell} row={i} col={j} {handleKeyDown} {focusCell} 
+                            {date} {rowID} {setCell} {getCell} row={i} col={j} {focusCell} 
                         />
                     </div>
                 {:else}

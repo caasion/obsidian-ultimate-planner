@@ -5,8 +5,10 @@
     import { history } from "@milkdown/kit/plugin/history";
     import { listener, listenerCtx } from "@milkdown/kit/plugin/listener"
     import { commonmark } from "@milkdown/preset-commonmark";
+    import { keymap } from '@milkdown/prose/keymap';
+    import { prosePluginsCtx } from "@milkdown/core";
 
-    let { date, rowID, setCell, getCell, row, col, handleKeyDown, focusCell } = $props();
+    let { date, rowID, setCell, getCell, row, col, focusCell } = $props();
 
     let container: HTMLDivElement;
     let editorInstance: Editor | null = null;
@@ -23,13 +25,25 @@
                 // Listen for changes
                 ctx.get(listenerCtx)
                     .focus(() => {
-                        // queueMicrotask(() => {
-                        //     focusCell?.(row, col)
-                        // })
+                        focusCell(row, col, true);
                     })
                     .markdownUpdated((_, markdown) => {
                         setCell(date, rowID, markdown);
-                    })
+                    });
+
+                ctx.update(prosePluginsCtx, (plugins) => [
+                    keymap({
+                        Tab: () => {
+                            const moved = focusCell(row, col + 1, /*fromEditor=*/false);
+                            return !!moved; // true = stop PM’s default tab behavior
+                        },
+                        "Shift-Tab": () => {
+                            const moved = focusCell(row, col - 1, false);
+                            return !!moved;
+                        },
+                    }),
+                    ...plugins,
+                ])
             })
             .use(commonmark)
             .use(history)
