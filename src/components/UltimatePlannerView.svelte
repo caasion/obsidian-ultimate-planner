@@ -130,11 +130,11 @@
         menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
     }
 
-    function modifyActionItem(rowID, label, color) {
+    function modifyActionItem(rowID: ActionItemID, label: string, color: string) {
         plannerState.actionItems[rowID] = { index: 0, label, color}
     }
 
-    function addActionItem(date: ISODate, rowID, label, color) {
+    function addActionItem(date: ISODate, rowID: ActionItemID, label: string, color: string) {
         /** Expected Behavior
           * If the template of the day already exists, modify
           * Otherwise, get the template of the day, then push a new array with the added action item
@@ -177,7 +177,7 @@
 
 
     /* Cell Functions */
-    function setCell(date: ISODate, rowID, text): void {
+    function setCell(date: ISODate, rowID: ActionItemID, text: string): void {
         
         // Update Cell Information
         plannerState.cells[date] ??= {}; // Initialize Cell
@@ -187,7 +187,7 @@
         // save();
     }
 
-    function getCell(date, rowID): string {
+    function getCell(date: ISODate, rowID: ActionItemID): string {
 
         if (!plannerState.cells[date] || !plannerState.cells[date][rowID]) {
             return "";
@@ -265,7 +265,7 @@
     
     let focus: { row: number, col: number, } = $state({row: 0, col: 0}); // Track focus to preserve focus at the same row
 
-    function focusCell(row, col): boolean {
+    function focusCell(row: number, col: number): boolean {
         const rowCount = rows.length;
         
         if (row > rowCount - 1 || row < 0 || col > colCount - 1 || col < 0) {
@@ -273,12 +273,12 @@
             return false; // Informs the caller whether if the focus actually worked
         }
 
-        document.getElementById(`cell-${row}-${col}`).focus();
+        document.getElementById(`cell-${row}-${col}`)?.focus();
         focus = {row, col};
         return true;
     }
 
-    function handleKeyDown(event, row, col) {
+    function handleKeyDown(event: KeyboardEvent, row: number, col: number) {
         const shift = event.shiftKey;
         const ctrl = event.ctrlKey;
 
