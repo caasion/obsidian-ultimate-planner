@@ -10,7 +10,7 @@
     import type { App } from "obsidian";
     import { Menu, Modal, Notice } from "obsidian";
     import { RenameActionItemModal } from './ActionItemModals'
-	import type { Action } from 'svelte/action';
+	import TemplateEditorView from './TemplateEditorView.svelte';
 
     interface ViewProps {
         app: App;
@@ -22,36 +22,38 @@
 
     const DEFAULT_COLOR = "#cccccc";
 
-    let plannerState = $state<PlannerState>({
-        actionItems: {
-            ["ai-abc"]: {
-                index: 0,
-                label: "Abc",
-                color: DEFAULT_COLOR
-            },
-            ["ai-def"]: {
-                index: 0,
-                label: "Def",
-                color: DEFAULT_COLOR
-            },
-            ["ai-ghi"]: {
-                index: 0,
-                label: "Ghi",
-                color: DEFAULT_COLOR
-            },
-            ["ai-jkl"]: {
-                index: 0,
-                label: "Jkl",
-                color: DEFAULT_COLOR
-            }
-        },
-        cells: {},
-        templates: {
-            ["2025-08-10"]: ["ai-abc", "ai-def"],
-            ["2025-08-27"]: ["ai-abc"],
-            ["2025-08-29"]: ["ai-abc", "ai-ghi", "ai-jkl"],
-        }
-    })
+    let plannerState = $state<PlannerState>(planner)
+
+    // let plannerState = $state<PlannerState>({
+    //     actionItems: {
+    //         ["ai-abc"]: {
+    //             index: 0,
+    //             label: "Abc",
+    //             color: DEFAULT_COLOR
+    //         },
+    //         ["ai-def"]: {
+    //             index: 0,
+    //             label: "Def",
+    //             color: DEFAULT_COLOR
+    //         },
+    //         ["ai-ghi"]: {
+    //             index: 0,
+    //             label: "Ghi",
+    //             color: DEFAULT_COLOR
+    //         },
+    //         ["ai-jkl"]: {
+    //             index: 0,
+    //             label: "Jkl",
+    //             color: DEFAULT_COLOR
+    //         }
+    //     },
+    //     cells: {},
+    //     templates: {
+    //         ["2025-08-10"]: ["ai-abc", "ai-def"],
+    //         ["2025-08-27"]: ["ai-abc"],
+    //         ["2025-08-29"]: ["ai-abc", "ai-ghi", "ai-jkl"],
+    //     }
+    // })
 
     /* Helper Functions */
     function generateID() {
@@ -83,7 +85,7 @@
 
     function submitNewRow(create: boolean) {
         if (create) {
-            addActionItem(newRowDate, generateID(), newRowLabel, newRowColor)
+            addActionItem(newRowDate, generateID(), newRowLabel, newRowColor);
         }
 
         newRowLabel = "";
@@ -132,7 +134,9 @@
     }
 
     function modifyActionItem(rowID: ActionItemID, label: string, color: string) {
-        plannerState.actionItems[rowID] = { index: 0, label, color}
+        plannerState.actionItems[rowID] = { index: 0, label, color };
+        planner.actionItems = plannerState.actionItems;
+        save();
     }
 
     function addActionItem(date: ISODate, rowID: ActionItemID, label: string, color: string) {
@@ -150,7 +154,10 @@
             plannerState.templates[date] = current;
         }
 
-        plannerState.actionItems[rowID] = { index: 0, label, color};
+        plannerState.actionItems[rowID] = { index: 0, label, color };
+        planner.actionItems = plannerState.actionItems;
+        planner.templates = plannerState.templates;
+        save();
     }
 
     function shortenActionItem(date: ISODate, rowID: ActionItemID) {
@@ -162,6 +169,9 @@
         if (i >= 0) {
             template.splice(i, 1)
         }
+
+        planner.templates = plannerState.templates;
+        save();
     }
 
     function extendActionItem(date: ISODate, rowID: ActionItemID) {
@@ -173,7 +183,9 @@
         } else {
             new Notice("Item Already in Template");
         }
-        
+
+        planner.templates = plannerState.templates;
+        save();
     }
 
 
@@ -185,7 +197,7 @@
 
         plannerState.cells[date][rowID] = text;
         planner.cells = plannerState.cells;
-        // save();
+        save();
     }
 
     function getCell(date: ISODate, rowID: ActionItemID): string {
@@ -346,7 +358,6 @@
                             <!-- svelte-ignore a11y_no_static_element_interactions -->
                             <div 
                                 class="row-label" 
-                                
                                 oncontextmenu={(e) => openActionItemContextMenu(e, date, rowID)}
                             >
                                 {getLabelFromID(date, rowID)}
@@ -368,6 +379,8 @@
         </div>
     {/each}
 </div>
+
+<TemplateEditorView />
 
 <style>
     .header {
