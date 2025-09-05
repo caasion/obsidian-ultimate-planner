@@ -72,7 +72,7 @@
             if (key <= date && (best === null || key > best)) best = key;
         }
         return best ? JSON.parse(JSON.stringify(plannerState.templates[best])) : [];
-}
+    }
 
     /* Action Item Functions */
 
@@ -341,8 +341,18 @@
         <div class="row">
             {#each daysOfTheWeek as date, j (date)}
                 {#if templateForDate(date).includes(rowID)} <!-- only display if label is not empty (i.e. AI exists)-->
-                    <div class={`cell ${date == activeDate ? "active" : ""}`}>
-                        <span class="row-label" style={`color: ${getColorFromID(date, rowID)}`} oncontextmenu={(e) => openActionItemContextMenu(e, date, rowID)}>{getLabelFromID(date, rowID)}</span>
+                    <div class={`cell ${date == activeDate ? "active" : ""}`} style={`color: ${getColorFromID(date, rowID)}`} >
+                        {#if j == 0 || !templateForDate(addDaysISO(date, -1)).includes(rowID)}
+                            <!-- svelte-ignore a11y_no_static_element_interactions -->
+                            <div 
+                                class="row-label" 
+                                
+                                oncontextmenu={(e) => openActionItemContextMenu(e, date, rowID)}
+                            >
+                                {getLabelFromID(date, rowID)}
+                            </div>
+                            
+                        {/if}
                         <!-- <input  value={getLabelFromID(date, rowID)} oninput={(e) => modifyTemplate(date, rowID, (e.target as HTMLInputElement).value, "#dddddd")} /> -->
                         <InputCell 
                             {date} {rowID} {setCell} {getCell} row={i} col={j} {focusCell} 
@@ -390,17 +400,18 @@
     }
 
     .row-label {
+        font-style: italic;
+        font-size: small;
         padding: 4px;
-        border: 1px solid #ccc;
     }
 
-        .grid > .row > div {
+    .grid > .row > div {
         padding: 4px;
         border: 1px solid #ccc;
     }
 
     div.cell.active {
-        background-color: var(--theme-color);
+        /* background-color: var(--theme-color); */
     }
     
 </style>

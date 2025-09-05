@@ -56,8 +56,6 @@
                 editorInstance = editor;
             });
         
-        console.log("mount", row, col)
-
         return () => {
             alive = false;
             if (editorInstance) {
@@ -77,10 +75,7 @@
 
 <style>
 	.milkdown-editor {
-		min-height: 4em;
 		border: 1px solid var(--interactive-normal);
-		padding: 4px;
-		border-radius: 4px;
 		background-color: var(--background-primary);
 	}
 </style>
