@@ -372,7 +372,11 @@
     {/each}
 </div>
 
-<TemplateEditorView />
+<pre>
+    {JSON.stringify(plannerState, null, 2)}
+</pre>
+
+<TemplateEditorView templates={planner.templates} {save} />
 
 <style>
     .header {
