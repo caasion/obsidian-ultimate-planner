@@ -10,7 +10,7 @@
     import type { App } from "obsidian";
     import { Menu, Modal, Notice } from "obsidian";
     import { RenameActionItemModal } from './ActionItemModals'
-	import TemplateEditorView from './TemplateEditorView.svelte';
+	import TemplateEditorView from './TemplateEditor.svelte';
 
     interface ViewProps {
         app: App;
@@ -94,7 +94,7 @@
         evt.preventDefault();
         evt.stopPropagation();
 
-        const menu = new Menu(app);
+        const menu = new Menu();
 
         menu
             .addItem((i) =>
@@ -375,8 +375,6 @@
 <pre>
     {JSON.stringify(plannerState, null, 2)}
 </pre>
-
-<TemplateEditorView templates={planner.templates} {save} />
 
 <style>
     .header {

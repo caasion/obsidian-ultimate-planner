@@ -1,13 +1,11 @@
-import { ItemView, Notice, TFile, WorkspaceLeaf } from "obsidian";
+import { ItemView, WorkspaceLeaf } from "obsidian";
 import { mount } from 'svelte';
-import UltimatePlannerView from './components/UltimatePlannerView.svelte';
+import UltimatePlannerView from './components/UltimatePlanner.svelte';
 import UltimatePlannerPlugin from './main';
 
+export const PLANNER_VIEW_TYPE = "ultimate-planner-view"
 
-
-export const PLANNER_VIEW_TYPE = "my-custom-view"
-
-export class MyCustomView extends ItemView {
+export class PlannerView extends ItemView {
     plugin: UltimatePlannerPlugin;
 
     constructor(leaf: WorkspaceLeaf, plugin: UltimatePlannerPlugin) {
@@ -20,10 +18,8 @@ export class MyCustomView extends ItemView {
     }
 
     getDisplayText(): string {
-        return "My Custom View"
+        return "Ultimate Planner View"
     }
-
-    
 
     async onOpen() {
         const container = this.contentEl;

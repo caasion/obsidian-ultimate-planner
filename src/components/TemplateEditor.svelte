@@ -25,12 +25,21 @@
 {#each dates as date (date)}
     <h3>{date}</h3>
     {#each templatesState[date] as rowID, i}
-        <p>{rowID}</p>
-        <button onclick={() => swapActionItems(date, i, i-1)}>↑</button>
-        <button onclick={() => swapActionItems(date, i, i+1)}>↓</button>
+        <div class="action-item">
+            <p>{rowID}</p>
+            <button onclick={() => swapActionItems(date, i, i-1)}>↑</button>
+            <button onclick={() => swapActionItems(date, i, i+1)}>↓</button>
+        </div>
     {/each}
 {/each}
 
 <pre>
     {JSON.stringify(templatesState, null, 2)}
 </pre>
+
+<style>
+    .action-item {
+        display: flex;
+        align-items: center;
+    }
+</style>
