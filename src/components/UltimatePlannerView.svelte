@@ -27,22 +27,18 @@
     // let plannerState = $state<PlannerState>({
     //     actionItems: {
     //         ["ai-abc"]: {
-    //             index: 0,
     //             label: "Abc",
     //             color: DEFAULT_COLOR
     //         },
     //         ["ai-def"]: {
-    //             index: 0,
     //             label: "Def",
     //             color: DEFAULT_COLOR
     //         },
     //         ["ai-ghi"]: {
-    //             index: 0,
     //             label: "Ghi",
     //             color: DEFAULT_COLOR
     //         },
     //         ["ai-jkl"]: {
-    //             index: 0,
     //             label: "Jkl",
     //             color: DEFAULT_COLOR
     //         }
@@ -134,7 +130,7 @@
     }
 
     function modifyActionItem(rowID: ActionItemID, label: string, color: string) {
-        plannerState.actionItems[rowID] = { index: 0, label, color };
+        plannerState.actionItems[rowID] = { label, color };
         planner.actionItems = plannerState.actionItems;
         save();
     }
@@ -154,7 +150,7 @@
             plannerState.templates[date] = current;
         }
 
-        plannerState.actionItems[rowID] = { index: 0, label, color };
+        plannerState.actionItems[rowID] = { label, color };
         planner.actionItems = plannerState.actionItems;
         planner.templates = plannerState.templates;
         save();
@@ -309,10 +305,6 @@
 </script>
 
 <h1>The Ultimate Planner</h1>
-
-<pre>
-    {JSON.stringify(plannerState, null, 2)}
-</pre>
 
 <div class="header">
     <div class="nav-buttons">
