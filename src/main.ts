@@ -3,6 +3,7 @@ import { PLANNER_VIEW_TYPE, PlannerView } from './PlannerView';
 import { UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
 import type { UltimatePlannerSettings } from './SettingsTab';
 import { TEMPLATES_VIEW_TYPE, TemplatesView } from './TemplatesView';
+import { plannerStore } from './state/plannerStore';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: UltimatePlannerSettings;
@@ -71,6 +72,9 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		// Initialize Storse
+		plannerStore.set(this.settings.planner);
+
 	}
 
 	async saveSettings() {
@@ -79,20 +83,20 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 	queueSave = () => {
 		console.log("[UP] queueSave called");
-		console.log("[UP] plugin id:", this.manifest?.id, "has app?", !!this.app);
+		// console.log("[UP] plugin id:", this.manifest?.id, "has app?", !!this.app);
 		if (this.saveTimer) window.clearTimeout(this.saveTimer);
 		this.saveTimer = window.setTimeout(async () => {
 			this.saveTimer = null;
 			try {
-			// ✅ add a visible heartbeat so you can see it persisted
-			(this.settings as any)._lastSavedAt = new Date().toISOString();
+				// ✅ add a visible heartbeat so you can see it persisted
+				(this.settings as any)._lastSavedAt = new Date().toISOString();
 
-			console.time("[UP] saveData");
-			await this.saveData(this.settings);   // <-- must be awaited
-			console.timeEnd("[UP] saveData");
-			console.log("[UP] save ok", this.settings);
+				console.time("[UP] saveData");
+				await this.saveData(this.settings);   // <-- must be awaited
+				console.timeEnd("[UP] saveData");
+				console.log("[UP] save ok", this.settings);
 			} catch (e) {
-			console.error("[UP] save FAILED", e);
+				console.error("[UP] save FAILED", e);
 			}
 		}, 400);
 		};

@@ -27,7 +27,6 @@ export class PlannerView extends ItemView {
         
         mount(UltimatePlannerView, {target: container, props: {
             app: this.plugin.app,
-            planner: this.plugin.settings.planner,
             save: () => this.plugin.queueSave(),
         }})
     }

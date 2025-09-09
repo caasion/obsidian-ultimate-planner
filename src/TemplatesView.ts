@@ -26,7 +26,6 @@ export class TemplatesView extends ItemView {
 		container.empty();
         
         mount(TemplateEditor, {target: container, props: {
-            templates: this.plugin.settings.planner.templates,
             save: () => this.plugin.queueSave(),
         }})
     }

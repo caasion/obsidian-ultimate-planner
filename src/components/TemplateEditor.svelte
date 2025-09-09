@@ -1,30 +1,38 @@
 <script lang="ts">
-	import type { ActionItemID, ISODate } from "src/types";
+	import { plannerStore } from "src/state/plannerStore";
+	import type { ActionItemID, ISODate, PlannerState } from "src/types";
 
     interface ViewProps {
-        templates: Record<ISODate, ActionItemID[]>;
         save: () => void;
     }
 
-    let { templates, save }: ViewProps = $props();
+    let { save }: ViewProps = $props();
 
-    let templatesState = $state<Record<ISODate, ActionItemID[]>>(templates)
+    let planner = $state<PlannerState>($plannerStore);
 
-    const dates = $derived<ISODate[]>(Object.keys(templates).sort());
+    const dates = $derived<ISODate[]>(Object.keys(planner.templates).sort());
 
     function swapActionItems(date: ISODate, a: number, b: number) {
-        var itemB = templatesState[date][b];
-        templatesState[date][b] = templatesState[date][a];
-        templatesState[date][a] = itemB; 
+    
+        const current = planner.templates[date] ?? [];
+        const next = [...current];
 
-        templates = templatesState;
+        if (
+            a >= 0 && b >= 0 &&
+            a < next.length &&
+            b < next.length
+        ) return;
+
+        [next[a], next[b]] = [next[b], next[a]];
+        planner.templates[date] = next;
         save();
+        
     }
 </script>
 
 {#each dates as date (date)}
     <h3>{date}</h3>
-    {#each templatesState[date] as rowID, i}
+    {#each planner.templates[date] as rowID, i}
         <div class="action-item">
             <p>{rowID}</p>
             <button onclick={() => swapActionItems(date, i, i-1)}>↑</button>
@@ -34,7 +42,7 @@
 {/each}
 
 <pre>
-    {JSON.stringify(templatesState, null, 2)}
+    {JSON.stringify(planner.templates, null, 2)}
 </pre>
 
 <style>

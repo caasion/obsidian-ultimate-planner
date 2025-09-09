@@ -11,18 +11,18 @@
     import { Menu, Modal, Notice } from "obsidian";
     import { RenameActionItemModal } from './ActionItemModals'
 	import TemplateEditorView from './TemplateEditor.svelte';
+	import { plannerStore } from 'src/state/plannerStore';
 
     interface ViewProps {
         app: App;
-        planner: PlannerState;
         save: () => void;
     }
 
-    let { app, planner, save }: ViewProps = $props();
+    let { app, save }: ViewProps = $props();
 
     const DEFAULT_COLOR = "#cccccc";
 
-    let plannerState = $state<PlannerState>(planner)
+    let plannerState = $state<PlannerState>($plannerStore);
 
     // let plannerState = $state<PlannerState>({
     //     actionItems: {
@@ -131,7 +131,6 @@
 
     function modifyActionItem(rowID: ActionItemID, label: string, color: string) {
         plannerState.actionItems[rowID] = { label, color };
-        planner.actionItems = plannerState.actionItems;
         save();
     }
 
@@ -151,8 +150,6 @@
         }
 
         plannerState.actionItems[rowID] = { label, color };
-        planner.actionItems = plannerState.actionItems;
-        planner.templates = plannerState.templates;
         save();
     }
 
@@ -166,7 +163,6 @@
             template.splice(i, 1)
         }
 
-        planner.templates = plannerState.templates;
         save();
     }
 
@@ -180,7 +176,6 @@
             new Notice("Item Already in Template");
         }
 
-        planner.templates = plannerState.templates;
         save();
     }
 
@@ -192,7 +187,6 @@
         plannerState.cells[date] ??= {}; // Initialize Cell
 
         plannerState.cells[date][rowID] = text;
-        planner.cells = plannerState.cells;
         save();
     }
 
