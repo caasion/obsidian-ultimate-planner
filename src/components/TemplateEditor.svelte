@@ -17,15 +17,13 @@
         const current = planner.templates[date] ?? [];
         const next = [...current];
 
-        if (
-            a >= 0 && b >= 0 &&
-            a < next.length &&
-            b < next.length
-        ) return;
+        if (a <= 0 && b <= 0) return;
+        if (a >= next.length || b >= next.length) return;
 
         [next[a], next[b]] = [next[b], next[a]];
         planner.templates[date] = next;
-        save();
+        // plannerStore.set(planner);
+        // save();
         
     }
 </script>
@@ -34,7 +32,7 @@
     <h3>{date}</h3>
     {#each planner.templates[date] as rowID, i}
         <div class="action-item">
-            <p>{rowID}</p>
+            <p>{planner.actionItems[rowID].label}</p>
             <button onclick={() => swapActionItems(date, i, i-1)}>↑</button>
             <button onclick={() => swapActionItems(date, i, i+1)}>↓</button>
         </div>

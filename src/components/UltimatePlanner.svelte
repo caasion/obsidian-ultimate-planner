@@ -86,8 +86,7 @@
 
         newRowLabel = "";
         showNewRowPrompt = false;
-        newRowLabel = DEFAULT_COLOR;
-        newRowDate = getISODate(new Date());
+        newRowColor = DEFAULT_COLOR;
     }
 
     function openActionItemContextMenu(evt: MouseEvent, date: ISODate, rowID: ActionItemID) {
@@ -114,6 +113,13 @@
                 .setIcon("calendar-plus")
                 .onClick(() => {
                     extendActionItem(date, rowID);
+                })
+            )
+            .addItem((i) =>
+                i.setTitle("Extend to previous template")
+                .setIcon("calendar-plus")
+                .onClick(() => {
+                    extendActionItemBack(date, rowID);
                 })
             )
             .addItem((i) =>
@@ -172,9 +178,21 @@
     function extendActionItem(date: ISODate, rowID: ActionItemID) {
         const nextDate = getISODate(addDays(parseISO(date), 1))
         plannerState.templates[nextDate] ??= templateForDate(nextDate);
-        console.log(plannerState.templates[nextDate].contains(rowID))
         if (!plannerState.templates[nextDate].contains(rowID)) {
             plannerState.templates[nextDate].push(rowID);
+        } else {
+            new Notice("Item Already in Template");
+        }
+
+        plannerStore.set(plannerState);
+        save();
+    }
+
+    function extendActionItemBack(date: ISODate, rowID: ActionItemID) {
+        const prevDate = getISODate(addDays(parseISO(date), -1))
+        plannerState.templates[prevDate] ??= templateForDate(prevDate);
+        if (!plannerState.templates[prevDate].contains(rowID)) {
+            plannerState.templates[prevDate].push(rowID);
         } else {
             new Notice("Item Already in Template");
         }
@@ -347,7 +365,12 @@
         <div class="row">
             {#each daysOfTheWeek as date, j (date)}
                 {#if templateForDate(date).includes(rowID)} <!-- only display if label is not empty (i.e. AI exists)-->
-                    <div class={`cell ${date == activeDate ? "active" : ""}`} style={`color: ${getColorFromID(date, rowID)}`} >
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div 
+                        class={`cell ${date == activeDate ? "active" : ""}`} 
+                        style={`color: ${getColorFromID(date, rowID)}`} 
+                        oncontextmenu={(e) => openActionItemContextMenu(e, date, rowID)}
+                    >
                         {#if j == 0 || !templateForDate(addDaysISO(date, -1)).includes(rowID)}
                             <!-- svelte-ignore a11y_no_static_element_interactions -->
                             <div 
