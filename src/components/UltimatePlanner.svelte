@@ -203,16 +203,9 @@
 
 
     /* Cell Functions */
-    import { setCell } from '../plannerActions';
+    import { setCell, getCell } from '../cellActions';
 
-    function getCell(date: ISODate, rowID: ActionItemID): string {
-
-        if (!plannerState.cells[date] || !plannerState.cells[date][rowID]) {
-            return "";
-        }
-
-        return plannerState.cells[date][rowID];
-    }
+    
 
     /* Table Rendering */
     let anchorDate = $state<ISODate>(getISODate(new Date()));
