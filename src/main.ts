@@ -63,7 +63,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 		plannerStore.set(this.settings.planner); // Initialize Store
-		plannerStore.subscribe(() => this.queueSave());
+		this.plannerSubscription = plannerStore.subscribe(() => this.queueSave());
 
 	}
 

@@ -22,9 +22,9 @@
 
     const DEFAULT_COLOR = "#cccccc";
 
-    let plannerState = $state<PlannerState>($plannerStore);
+    // let $plannerStore = $state<PlannerState>($plannerStore);
 
-    // let plannerState = $state<PlannerState>({
+    // let $plannerStore = $state<PlannerState>({
     //     actionItems: {
     //         ["ai-abc"]: {
     //             label: "Abc",
@@ -102,11 +102,11 @@
     }
 
     function getLabelFromID(rowID: string) {
-        return plannerState.actionItems[rowID] ? plannerState.actionItems[rowID].label : "";
+        return $plannerStore.actionItems[rowID] ? $plannerStore.actionItems[rowID].label : "";
     }
 
     function getColorFromID(rowID: string) {
-        return plannerState.actionItems[rowID] ? plannerState.actionItems[rowID].color : "";
+        return $plannerStore.actionItems[rowID] ? $plannerStore.actionItems[rowID].color : "";
     }
 
     // Navigation Between Weeks
@@ -236,11 +236,11 @@
     {/each}
 </div>
 
-<pre>{JSON.stringify(plannerState, null, 2) == JSON.stringify($plannerStore, null, 2)}</pre>
+<pre>{JSON.stringify($plannerStore, null, 2) == JSON.stringify($plannerStore, null, 2)}</pre>
 
 
 <pre>
-    {JSON.stringify(plannerState, null, 2)}
+    {JSON.stringify($plannerStore, null, 2)}
 </pre>
 
 

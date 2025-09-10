@@ -22,7 +22,8 @@ export function templateForDate(date: ISODate): ActionItemID[] {
 /* Action Items */
 export function modifyActionItem(rowID: ActionItemID, label: string, color: string) {
     plannerStore.update(current => {
-        current.actionItems[rowID] = { label, color};
+        // const next = { ...current, actionItems: { ...current.actionItems, [rowID]: { label, color}}};
+        current.actionItems[rowID] = { label, color };
         return current;
     })
 }
