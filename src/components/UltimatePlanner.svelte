@@ -203,18 +203,7 @@
 
 
     /* Cell Functions */
-    function setCell(date: ISODate, rowID: ActionItemID, text: string): void {
-        
-        // Update Cell Information
-        plannerState.cells[date] ??= {}; // Initialize Cell
-
-        // plannerState.cells = { ...plannerState.cells, [date]: { ...plannerState.cells[date], [rowID]: text}}
-
-        plannerState.cells[date][rowID] = text;
-
-        plannerStore.set(plannerState);
-        save();
-    }
+    import { setCell } from '../plannerActions';
 
     function getCell(date: ISODate, rowID: ActionItemID): string {
 
@@ -346,7 +335,7 @@
             <input type="color" bind:value={newRowColor} />
             <button onclick={() => submitNewRow(true)}>✔</button>
             <button onclick={() => submitNewRow(false)}>❌</button>
-        {/if}
+        {/if} 
     </div>
     
 </div>
