@@ -131,6 +131,7 @@
 
     function modifyActionItem(rowID: ActionItemID, label: string, color: string) {
         plannerState.actionItems[rowID] = { label, color };
+        plannerStore.set(plannerState);
         save();
     }
 
@@ -150,6 +151,7 @@
         }
 
         plannerState.actionItems[rowID] = { label, color };
+        plannerStore.set(plannerState);
         save();
     }
 
@@ -163,6 +165,7 @@
             template.splice(i, 1)
         }
 
+        plannerStore.set(plannerState);
         save();
     }
 
@@ -176,6 +179,7 @@
             new Notice("Item Already in Template");
         }
 
+        plannerStore.set(plannerState);
         save();
     }
 
@@ -186,7 +190,11 @@
         // Update Cell Information
         plannerState.cells[date] ??= {}; // Initialize Cell
 
+        // plannerState.cells = { ...plannerState.cells, [date]: { ...plannerState.cells[date], [rowID]: text}}
+
         plannerState.cells[date][rowID] = text;
+
+        plannerStore.set(plannerState);
         save();
     }
 
@@ -366,9 +374,13 @@
     {/each}
 </div>
 
+<pre>{JSON.stringify(plannerState, null, 2) == JSON.stringify($plannerStore, null, 2)}</pre>
+
+
 <pre>
     {JSON.stringify(plannerState, null, 2)}
 </pre>
+
 
 <style>
     .header {

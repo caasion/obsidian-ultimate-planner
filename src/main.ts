@@ -4,6 +4,7 @@ import { UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
 import type { UltimatePlannerSettings } from './SettingsTab';
 import { TEMPLATES_VIEW_TYPE, TemplatesView } from './TemplatesView';
 import { plannerStore } from './state/plannerStore';
+import { get } from 'svelte/store';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: UltimatePlannerSettings;
@@ -92,6 +93,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 				(this.settings as any)._lastSavedAt = new Date().toISOString();
 
 				console.time("[UP] saveData");
+				this.settings.planner = get(plannerStore);
 				await this.saveData(this.settings);   // <-- must be awaited
 				console.timeEnd("[UP] saveData");
 				console.log("[UP] save ok", this.settings);
