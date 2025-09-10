@@ -68,8 +68,6 @@
 	import { newActionItem, openActionItemContextMenu, templateForDate } from 'src/actions/itemActions';
 	import { getISODate, generateID, addDaysISO, getLabelFromID, getColorFromID } from 'src/actions/helpers';
 
-    
-
     /* Table Rendering */
     let anchorDate = $state<ISODate>(getISODate(new Date()));
     let weeksVisible = 1;

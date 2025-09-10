@@ -7,6 +7,8 @@
 
 The Ultimate Planner is an [Obsidian](https://obsidian.md) plugin to make long-term planning much simpler. Instead of being stuck with rigid todo lists, you can plan what to do for each action item (i.e. a course or a fitness goal) over the long-term.
 
+I've started to document my development of this plugin! Please see ![devlog]!
+
 ### Built With
 [![Svelte][Svelte.dev]][Svelte-url] [![Typescript][Typescript]][Typescript-url]
 
@@ -112,3 +114,4 @@ Don't forget to give the project a star! Thanks again!
 [Svelte-url]: https://svelte.dev/
 [Typescript]: https://shields.io/badge/TypeScript-3178C6?logo=TypeScript&logoColor=FFF&style=flat-square
 [Typescript-url]: https://typescriptlang.org
+[devlog]: docs/devlog.md
