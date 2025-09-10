@@ -13,8 +13,6 @@ export function setCell(date: ISODate, rowID: ActionItemID, text: string): void 
         // current.cells[date][rowID] = text;
         return current;
     })
-
-    this.plugin.queueSave();
 }
 
 export function getCell(date: ISODate, rowID: ActionItemID): string {

@@ -4,11 +4,12 @@ import { UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
 import type { UltimatePlannerSettings } from './SettingsTab';
 import { TEMPLATES_VIEW_TYPE, TemplatesView } from './TemplatesView';
 import { plannerStore } from './state/plannerStore';
-import { get } from 'svelte/store';
+import { get, type Unsubscriber } from 'svelte/store';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: UltimatePlannerSettings;
 	private saveTimer: number | null = null;
+	private plannerSubscription: Unsubscriber;
 
 	async onload() {
 		await this.loadSettings();
@@ -42,6 +43,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 	async onunload() {
 		// this.app.workspace.detachLeavesOfType(PLANNER_VIEW_TYPE);
 		// this.app.workspace.detachLeavesOfType(TEMPLATES_VIEW_TYPE);
+		this.plannerSubscription();
 		await this.flushSave();
 	}
 
@@ -60,8 +62,8 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-		// Initialize Storse
-		plannerStore.set(this.settings.planner);
+		plannerStore.set(this.settings.planner); // Initialize Store
+		plannerStore.subscribe(() => this.queueSave());
 
 	}
 
