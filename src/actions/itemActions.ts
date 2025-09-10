@@ -1,9 +1,9 @@
-import type { ISODate, ActionItemID, PlannerState } from './types';
-import { plannerStore } from './state/plannerStore';
+import type { ISODate, ActionItemID, PlannerState } from '../types';
+import { plannerStore } from '../state/plannerStore';
 import { get } from 'svelte/store';
 import { App, Menu, Notice } from 'obsidian';
 import { addDaysISO } from './helpers';
-import { RenameActionItemModal } from './components/ActionItemModals';
+import { RenameActionItemModal } from '../components/ActionItemModals';
 
 /* Template */
 /** Returns a deep copy of the template that should apply on `date`

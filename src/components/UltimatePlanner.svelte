@@ -1,17 +1,14 @@
 <script lang="ts">
-    import { addDays, eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek } from 'date-fns';
+    import { eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek } from 'date-fns';
     import type { Day } from 'date-fns';
 
     //Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table. 
 
-    import type { ISODate, ActionItemID, PlannerState } from '../types'
-	import { onMount, tick } from 'svelte';
+    import type { ISODate } from '../types'
+	import { tick } from 'svelte';
 	import InputCell from './InputCell.svelte';
     import type { App } from "obsidian";
-    import { Menu, Modal, Notice } from "obsidian";
-    import { RenameActionItemModal } from './ActionItemModals'
-	import TemplateEditorView from './TemplateEditor.svelte';
-	import { plannerStore } from 'src/state/plannerStore';
+    import { plannerStore } from 'src/state/plannerStore';
 
     interface ViewProps {
         app: App;
@@ -21,8 +18,6 @@
     let { app, save }: ViewProps = $props();
 
     const DEFAULT_COLOR = "#cccccc";
-
-    // let $plannerStore = $state<PlannerState>($plannerStore);
 
     // let $plannerStore = $state<PlannerState>({
     //     actionItems: {
@@ -69,9 +64,9 @@
     }
 
     /* Cell Functions */
-    import { setCell, getCell } from '../cellActions';
-	import { addItemToTemplate, modifyActionItem, newActionItem, openActionItemContextMenu, removeItemFromTemplate, templateForDate } from 'src/itemActions';
-	import { getISODate, generateID, addDaysISO } from 'src/helpers';
+    import { setCell, getCell } from '../actions/cellActions';
+	import { newActionItem, openActionItemContextMenu, templateForDate } from 'src/actions/itemActions';
+	import { getISODate, generateID, addDaysISO, getLabelFromID, getColorFromID } from 'src/actions/helpers';
 
     
 
@@ -101,13 +96,7 @@
         return Array.from(new Set(actionItemIDs));
     }
 
-    function getLabelFromID(rowID: string) {
-        return $plannerStore.actionItems[rowID] ? $plannerStore.actionItems[rowID].label : "";
-    }
-
-    function getColorFromID(rowID: string) {
-        return $plannerStore.actionItems[rowID] ? $plannerStore.actionItems[rowID].color : "";
-    }
+    
 
     // Navigation Between Weeks
     
