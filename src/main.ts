@@ -4,11 +4,12 @@ import { UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
 import type { UltimatePlannerSettings } from './SettingsTab';
 import { TEMPLATES_VIEW_TYPE, TemplatesView } from './TemplatesView';
 import { plannerStore } from './state/plannerStore';
-import { get } from 'svelte/store';
+import { get, type Unsubscriber } from 'svelte/store';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: UltimatePlannerSettings;
 	private saveTimer: number | null = null;
+	private plannerSubscription: Unsubscriber;
 
 	async onload() {
 		await this.loadSettings();
@@ -25,7 +26,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 			id: 'open-planner-view',
 			name: 'Open Ultimate Planner',
 			callback: () => {
-				this.activatePlannerView();
+				this.activateView(PLANNER_VIEW_TYPE);
 			}
 		});
 
@@ -33,7 +34,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 			id: 'open-templates-view',
 			name: 'Open Templates Editor',
 			callback: () => {
-				this.activateTemplatesView();
+				this.activateView(TEMPLATES_VIEW_TYPE);
 			}
 		});
 
@@ -42,39 +43,27 @@ export default class UltimatePlannerPlugin extends Plugin {
 	async onunload() {
 		// this.app.workspace.detachLeavesOfType(PLANNER_VIEW_TYPE);
 		// this.app.workspace.detachLeavesOfType(TEMPLATES_VIEW_TYPE);
+		this.plannerSubscription();
 		await this.flushSave();
 	}
 
-	async activatePlannerView() {
-		const leaves = this.app.workspace.getLeavesOfType(PLANNER_VIEW_TYPE);
+	async activateView(view: string) {
+		const leaves = this.app.workspace.getLeavesOfType(view);
 		if (leaves.length === 0) {
 			await this.app.workspace.getLeaf(false).setViewState({
-				type: PLANNER_VIEW_TYPE,
+				type: view,
 				active: true,
 			});
 
 		}
 
-		this.app.workspace.getLeavesOfType(PLANNER_VIEW_TYPE)[0];
-	}
-
-	async activateTemplatesView() {
-		const leaves = this.app.workspace.getLeavesOfType(TEMPLATES_VIEW_TYPE);
-		if (leaves.length === 0) {
-			await this.app.workspace.getLeaf(false).setViewState({
-				type: TEMPLATES_VIEW_TYPE,
-				active: true,
-			});
-
-		}
-
-		this.app.workspace.getLeavesOfType(TEMPLATES_VIEW_TYPE)[0];
+		this.app.workspace.getLeavesOfType(view)[0];
 	}
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-		// Initialize Storse
-		plannerStore.set(this.settings.planner);
+		plannerStore.set(this.settings.planner); // Initialize Store
+		this.plannerSubscription = plannerStore.subscribe(() => this.queueSave());
 
 	}
 
@@ -82,7 +71,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	queueSave = () => {
+	public queueSave = () => {
 		console.log("[UP] queueSave called");
 		// console.log("[UP] plugin id:", this.manifest?.id, "has app?", !!this.app);
 		if (this.saveTimer) window.clearTimeout(this.saveTimer);

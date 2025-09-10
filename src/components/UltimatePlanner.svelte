@@ -1,17 +1,14 @@
 <script lang="ts">
-    import { addDays, eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek } from 'date-fns';
+    import { eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek } from 'date-fns';
     import type { Day } from 'date-fns';
 
     //Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table. 
 
-    import type { ISODate, ActionItemID, PlannerState } from '../types'
-	import { onMount, tick } from 'svelte';
+    import type { ISODate } from '../types'
+	import { tick } from 'svelte';
 	import InputCell from './InputCell.svelte';
     import type { App } from "obsidian";
-    import { Menu, Modal, Notice } from "obsidian";
-    import { RenameActionItemModal } from './ActionItemModals'
-	import TemplateEditorView from './TemplateEditor.svelte';
-	import { plannerStore } from 'src/state/plannerStore';
+    import { plannerStore } from 'src/state/plannerStore';
 
     interface ViewProps {
         app: App;
@@ -22,9 +19,7 @@
 
     const DEFAULT_COLOR = "#cccccc";
 
-    let plannerState = $state<PlannerState>($plannerStore);
-
-    // let plannerState = $state<PlannerState>({
+    // let $plannerStore = $state<PlannerState>({
     //     actionItems: {
     //         ["ai-abc"]: {
     //             label: "Abc",
@@ -51,27 +46,6 @@
     //     }
     // })
 
-    /* Helper Functions */
-    function generateID() {
-        return "ai-" + crypto.randomUUID();
-    }
-
-    function getISODate(date: Date): ISODate {
-        return format(date, "yyyy-MM-dd")
-    }
-
-    /** Returns a deep copy of the template that should apply on `date`
-     *  Loops through all the keys (which are dates) in templates and compares them with the date provided.
-     *  If no template exists at or before `date`, it return an emppty array
-     */
-    function templateForDate(date: ISODate): ActionItemID[] {
-        let best: ISODate | null = null;
-        for (const key in plannerState.templates) {
-            if (key <= date && (best === null || key > best)) best = key;
-        }
-        return best ? JSON.parse(JSON.stringify(plannerState.templates[best])) : [];
-    }
-
     /* Action Item Functions */
 
     let showNewRowPrompt = $state(false);
@@ -81,7 +55,7 @@
 
     function submitNewRow(create: boolean) {
         if (create) {
-            addActionItem(newRowDate, generateID(), newRowLabel, newRowColor);
+            newActionItem(newRowDate, generateID(), newRowLabel, newRowColor);
         }
 
         newRowLabel = "";
@@ -89,141 +63,12 @@
         newRowColor = DEFAULT_COLOR;
     }
 
-    function openActionItemContextMenu(evt: MouseEvent, date: ISODate, rowID: ActionItemID) {
-        evt.preventDefault();
-        evt.stopPropagation();
-
-        const menu = new Menu();
-
-        menu
-            .addItem((i) =>
-                i.setTitle(`ID: ${rowID}`)
-                .setIcon("info")
-            )
-            .addSeparator()
-            .addItem((i) =>
-                i.setTitle("Rename")
-                .setIcon("pencil")
-                .onClick(() => {
-                    new RenameActionItemModal(app, plannerState.actionItems[rowID], (label, color) => modifyActionItem(rowID, label, color)).open();
-                })
-            )
-            .addItem((i) =>
-                i.setTitle("Extend until next template")
-                .setIcon("calendar-plus")
-                .onClick(() => {
-                    extendActionItem(date, rowID);
-                })
-            )
-            .addItem((i) =>
-                i.setTitle("Extend to previous template")
-                .setIcon("calendar-plus")
-                .onClick(() => {
-                    extendActionItemBack(date, rowID);
-                })
-            )
-            .addItem((i) =>
-                i.setTitle("Remove from this date (until next template)")
-                .setIcon("calendar-plus")
-                .onClick(() => {
-                    shortenActionItem(date, rowID);
-                })
-            );
-            
-            
-
-        menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
-    }
-
-    function modifyActionItem(rowID: ActionItemID, label: string, color: string) {
-        plannerState.actionItems[rowID] = { label, color };
-        plannerStore.set(plannerState);
-        save();
-    }
-
-    function addActionItem(date: ISODate, rowID: ActionItemID, label: string, color: string) {
-        /** Expected Behavior
-          * If the template of the day already exists, modify
-          * Otherwise, get the template of the day, then push a new array with the added action item
-          * Add the Action item to the list
-        **/ 
-
-        if (plannerState.templates[date]) {
-            plannerState.templates[date].push(rowID);
-        } else {
-            const current = templateForDate(date);
-            current.push(rowID);
-            plannerState.templates[date] = current;
-        }
-
-        plannerState.actionItems[rowID] = { label, color };
-        plannerStore.set(plannerState);
-        save();
-    }
-
-    function shortenActionItem(date: ISODate, rowID: ActionItemID) {
-        plannerState.templates[date] ??= templateForDate(date);
-
-        const template = plannerState.templates[date];
-        const i = template.indexOf(rowID);
-
-        if (i >= 0) {
-            template.splice(i, 1)
-        }
-
-        plannerStore.set(plannerState);
-        save();
-    }
-
-    function extendActionItem(date: ISODate, rowID: ActionItemID) {
-        const nextDate = getISODate(addDays(parseISO(date), 1))
-        plannerState.templates[nextDate] ??= templateForDate(nextDate);
-        if (!plannerState.templates[nextDate].contains(rowID)) {
-            plannerState.templates[nextDate].push(rowID);
-        } else {
-            new Notice("Item Already in Template");
-        }
-
-        plannerStore.set(plannerState);
-        save();
-    }
-
-    function extendActionItemBack(date: ISODate, rowID: ActionItemID) {
-        const prevDate = getISODate(addDays(parseISO(date), -1))
-        plannerState.templates[prevDate] ??= templateForDate(prevDate);
-        if (!plannerState.templates[prevDate].contains(rowID)) {
-            plannerState.templates[prevDate].push(rowID);
-        } else {
-            new Notice("Item Already in Template");
-        }
-
-        plannerStore.set(plannerState);
-        save();
-    }
-
-
     /* Cell Functions */
-    function setCell(date: ISODate, rowID: ActionItemID, text: string): void {
-        
-        // Update Cell Information
-        plannerState.cells[date] ??= {}; // Initialize Cell
+    import { setCell, getCell } from '../actions/cellActions';
+	import { newActionItem, openActionItemContextMenu, templateForDate } from 'src/actions/itemActions';
+	import { getISODate, generateID, addDaysISO, getLabelFromID, getColorFromID } from 'src/actions/helpers';
 
-        // plannerState.cells = { ...plannerState.cells, [date]: { ...plannerState.cells[date], [rowID]: text}}
-
-        plannerState.cells[date][rowID] = text;
-
-        plannerStore.set(plannerState);
-        save();
-    }
-
-    function getCell(date: ISODate, rowID: ActionItemID): string {
-
-        if (!plannerState.cells[date] || !plannerState.cells[date][rowID]) {
-            return "";
-        }
-
-        return plannerState.cells[date][rowID];
-    }
+    
 
     /* Table Rendering */
     let anchorDate = $state<ISODate>(getISODate(new Date()));
@@ -251,27 +96,10 @@
         return Array.from(new Set(actionItemIDs));
     }
 
-    function getLabelFromID(date: ISODate, rowID: string) {
-        if (!plannerState.actionItems[rowID]) {
-            return "";
-        } else {
-            return plannerState.actionItems[rowID].label;
-        }
-    }
-
-    function getColorFromID(date: ISODate, rowID: string) {
-        if (!plannerState.actionItems[rowID]) {
-            return "";
-        } else {
-            return plannerState.actionItems[rowID].color;
-        }
-    }
+    
 
     // Navigation Between Weeks
-    function addDaysISO(iso: ISODate, n: number): ISODate {
-        return getISODate(addDays(parseISO(iso), n));
-    }
-
+    
     function getLabelOfWeek() {
         const first = parseISO(daysOfTheWeek[0]);
         const last = parseISO(daysOfTheWeek[6]);
@@ -346,7 +174,7 @@
             <input type="color" bind:value={newRowColor} />
             <button onclick={() => submitNewRow(true)}>✔</button>
             <button onclick={() => submitNewRow(false)}>❌</button>
-        {/if}
+        {/if} 
     </div>
     
 </div>
@@ -368,16 +196,16 @@
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div 
                         class={`cell ${date == activeDate ? "active" : ""}`} 
-                        style={`color: ${getColorFromID(date, rowID)}`} 
-                        oncontextmenu={(e) => openActionItemContextMenu(e, date, rowID)}
+                        style={`color: ${getColorFromID(rowID)}`} 
+                        oncontextmenu={(e) => openActionItemContextMenu(app, e, date, rowID)}
                     >
                         {#if j == 0 || !templateForDate(addDaysISO(date, -1)).includes(rowID)}
                             <!-- svelte-ignore a11y_no_static_element_interactions -->
                             <div 
                                 class="row-label" 
-                                oncontextmenu={(e) => openActionItemContextMenu(e, date, rowID)}
+                                oncontextmenu={(e) => openActionItemContextMenu(app, e, date, rowID)}
                             >
-                                {getLabelFromID(date, rowID)}
+                                {getLabelFromID(rowID)}
                             </div>
                             
                         {/if}
@@ -397,11 +225,11 @@
     {/each}
 </div>
 
-<pre>{JSON.stringify(plannerState, null, 2) == JSON.stringify($plannerStore, null, 2)}</pre>
+<pre>{JSON.stringify($plannerStore, null, 2) == JSON.stringify($plannerStore, null, 2)}</pre>
 
 
 <pre>
-    {JSON.stringify(plannerState, null, 2)}
+    {JSON.stringify($plannerStore, null, 2)}
 </pre>
 
 
