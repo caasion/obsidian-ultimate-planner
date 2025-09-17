@@ -1,3 +1,22 @@
+## 2025-09-17
+- I'm struggling to find a user-friendly way to allow modification of action items
+- With my action items, I aim to:
+    - Allow it to be a one-off thing that I don't have to worry about after setting up
+    - Provide flexibility when life changes and so does one's action items
+    - Render the table in a concise way that doesn't take up a ton of space
+- I added features "Extend until latest template" and "Remove form this date (until latest templates)" to allow for more fine-grain control of templates. Instead of having to manually click multiple times to add an action item to a template (if the template exists), this allows you to go all the way.
+- I fixed the table's reactivity when completely removing action items by using the svelte component's reactive `templateStoreForDate` function instead of the non-reactive one
+- I refactored the svelte component `UltimatePlanner.svelte` because there were still some functionalities unrelated to rendering that I could move out.
+- I did various style tweaks to make the calendar look better
+    - Adding colored headers for days of the week
+    - Centering the Week Label
+    - Simplifying week navigation buttons
+    - Aligning + Add Button to the right
+    - Aligning dates to the right
+- Next time, I hope 
+    - to improve the UI and UX of reordering templates in the TemplatesEditor tab
+    - to implement clean-up when saving data (i.e. removing an action item)
+
 ## 2025-09-16
 - I encountered a few problems today:
     - (1) The table doesn't update after removing a template from the editor (some issue with reactivity)
