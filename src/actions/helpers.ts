@@ -16,14 +16,3 @@ export function getISODate(date: Date): ISODate {
 export function addDaysISO(iso: ISODate, n: number): ISODate {
     return getISODate(addDays(parseISO(iso), n));
 }
-
-// Table Helpers
-export function getLabelFromID(rowID: string) {
-    const actionItem = get(plannerStore).actionItems[rowID];
-    return actionItem ? actionItem.label : "";
-}
-
-export function getColorFromID(rowID: string) {
-    const actionItem = get(plannerStore).actionItems[rowID];
-    return actionItem ? actionItem.color : "";
-}

@@ -1,3 +1,11 @@
+## 2025-09-16
+- I encountered a few problems today:
+    - (1) The table doesn't update after removing a template from the editor (some issue with reactivity)
+    - (2) There is a bloating of action items in the templates editor (and the general completion of the templates editor)
+- (1) I found out that some of my functions use the `get()` function, which only gets a snapshot. Because of this, svelte doesn't know to rerun the function to get the updated values. Therefore, to fix this, I moved these reactive components from `helper.ts` and `itemActions.ts` back into the svelte component, since it was related to rendering the interface.
+- (2) I will continue this tomorrow
+
+
 ## 2025-09-10
 - Today, I worked to fix proper saving for the code.
 - However, I also decided to do a big refactor (and pull out all the action functions out), so I also had to fix the saving again.

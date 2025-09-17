@@ -46,6 +46,16 @@
     //     }
     // })
 
+    /* Template Store Reactivity */
+    function templateStoreForDate(date: ISODate) {
+        let best: ISODate | null = null;
+        const templates = $plannerStore.templates
+        for (const key in templates) {
+            if (key <= date && (best === null || key > best)) best = key;
+        }
+        return best ? JSON.parse(JSON.stringify(templates[best])) : [];
+    }
+
     /* Action Item Functions */
 
     let showNewRowPrompt = $state(false);
@@ -66,7 +76,8 @@
     /* Cell Functions */
     import { setCell, getCell } from '../actions/cellActions';
 	import { newActionItem, openActionItemContextMenu, templateForDate } from 'src/actions/itemActions';
-	import { getISODate, generateID, addDaysISO, getLabelFromID, getColorFromID } from 'src/actions/helpers';
+	import { getISODate, generateID, addDaysISO } from 'src/actions/helpers';
+	import { derived } from 'svelte/store';
 
     /* Table Rendering */
     let anchorDate = $state<ISODate>(getISODate(new Date()));
@@ -190,20 +201,20 @@
     {#each rows as rowID, i (rowID)}
         <div class="row">
             {#each daysOfTheWeek as date, j (date)}
-                {#if templateForDate(date).includes(rowID)} <!-- only display if label is not empty (i.e. AI exists)-->
+                {#if templateStoreForDate(date).includes(rowID)} <!-- only display if label is not empty (i.e. AI exists)-->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div 
                         class={`cell ${date == activeDate ? "active" : ""}`} 
-                        style={`color: ${getColorFromID(rowID)}`} 
+                        style={`color: ${$plannerStore.actionItems[rowID].color ?? ""}`} 
                         oncontextmenu={(e) => openActionItemContextMenu(app, e, date, rowID)}
                     >
-                        {#if j == 0 || !templateForDate(addDaysISO(date, -1)).includes(rowID)}
+                        {#if j == 0 || !templateStoreForDate(addDaysISO(date, -1)).includes(rowID)}
                             <!-- svelte-ignore a11y_no_static_element_interactions -->
                             <div 
                                 class="row-label" 
                                 oncontextmenu={(e) => openActionItemContextMenu(app, e, date, rowID)}
                             >
-                                {getLabelFromID(rowID)}
+                                {$plannerStore.actionItems[rowID].label ?? ""}
                             </div>
                             
                         {/if}

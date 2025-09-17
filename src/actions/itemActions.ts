@@ -2,7 +2,7 @@ import type { ISODate, ActionItemID, PlannerState } from '../types';
 import { plannerStore } from '../state/plannerStore';
 import { get } from 'svelte/store';
 import { App, Menu, Notice } from 'obsidian';
-import { addDaysISO } from './helpers';
+import { addDaysISO, getISODate } from './helpers';
 import { RenameActionItemModal } from '../components/ActionItemModals';
 
 /* Template */
@@ -10,6 +10,8 @@ import { RenameActionItemModal } from '../components/ActionItemModals';
  *  Loops through all the keys (which are dates) in templates and compares them with the date provided.
  *  If no template exists at or before `date`, it return an empty array
  */
+
+
 export function templateForDate(date: ISODate): ActionItemID[] {
     let best: ISODate | null = null;
     const templates = get(plannerStore).templates
@@ -19,12 +21,17 @@ export function templateForDate(date: ISODate): ActionItemID[] {
     return best ? JSON.parse(JSON.stringify(templates[best])) : [];
 }
 
+function isActive(rowID: ActionItemID): boolean {
+    return templateForDate(getISODate(new Date())).contains(rowID);
+}
+
 /* Action Items */
 export function modifyActionItem(rowID: ActionItemID, label: string, color: string) {
     plannerStore.update(current => {
-        // const next = { ...current, actionItems: { ...current.actionItems, [rowID]: { label, color}}};
-        current.actionItems[rowID] = { label, color };
-        return current;
+        const next = { ...current, actionItems: { ...current.actionItems, [rowID]: { label, color}}};
+        // const active = isActive(rowID);
+        // current.actionItems[rowID] = { label, color, active };
+        return next;
     })
 }
 

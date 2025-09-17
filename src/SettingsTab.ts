@@ -15,7 +15,7 @@ export const DEFAULT_SETTINGS: UltimatePlannerSettings = {
     settings: {
         weekStartOn: 0,
         autosaveDebounceMs: 0,
-    },
+    }, 
     planner: { 
         actionItems: {},
         cells: {},
