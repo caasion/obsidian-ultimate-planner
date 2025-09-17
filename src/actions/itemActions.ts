@@ -18,7 +18,8 @@ export function templateForDate(date: ISODate): ActionItemID[] {
     for (const key in templates) {
         if (key <= date && (best === null || key > best)) best = key;
     }
-    return best ? JSON.parse(JSON.stringify(templates[best])) : [];
+    return best ? templates[best] : [];
+    // return best ? JSON.parse(JSON.stringify(templates[best])) : [];
 }
 
 function isActive(rowID: ActionItemID): boolean {
@@ -49,6 +50,15 @@ export function newActionItem(date: ISODate, rowID: ActionItemID, label: string,
     })
 }
 
+export function getDatesWithTemplatesFromDate(date: ISODate) {
+    const templates = get(plannerStore).templates
+    let dates = [];
+    for (const key in templates) {
+        if (key >= date) dates.push(key);
+    }
+    return dates;
+}
+
 // !! Need to fix reactivity!
 export function addItemToTemplate(date: ISODate, rowID: ActionItemID) {
     plannerStore.update(current => {
@@ -64,6 +74,14 @@ export function addItemToTemplate(date: ISODate, rowID: ActionItemID) {
     })
 }
 
+export function addItemToTemplates(from: ISODate, rowID: ActionItemID) {
+    const dates = getDatesWithTemplatesFromDate(from);
+
+    dates.forEach((date) => {
+        addItemToTemplate(date, rowID);
+    })
+}
+
 export function removeItemFromTemplate(date: ISODate, rowID: ActionItemID) {
     plannerStore.update(current => {
         current.templates[date] ??= templateForDate(date);
@@ -76,6 +94,14 @@ export function removeItemFromTemplate(date: ISODate, rowID: ActionItemID) {
         }
 
         return current;
+    })
+}
+
+export function removeItemFromTemplates(from: ISODate, rowID: ActionItemID) {
+    const dates = getDatesWithTemplatesFromDate(from);
+
+    dates.forEach((date) => {
+        removeItemFromTemplate(date, rowID);
     })
 }
 
@@ -95,7 +121,7 @@ export function openActionItemContextMenu(app: App, evt: MouseEvent, date: ISODa
         )
         .addSeparator()
         .addItem((i) =>
-            i.setTitle("Rename")
+            i.setTitle("Edit")
             .setIcon("pencil")
             .onClick(() => {
                 new RenameActionItemModal(app, initial, (label, color) => modifyActionItem(rowID, label, color)).open();
@@ -106,6 +132,13 @@ export function openActionItemContextMenu(app: App, evt: MouseEvent, date: ISODa
             .setIcon("calendar-plus")
             .onClick(() => {
                 addItemToTemplate(addDaysISO(date, 1), rowID);
+            })
+        )
+        .addItem((i) =>
+            i.setTitle("Extend until latest template")
+            .setIcon("calendar-plus")
+            .onClick(() => {
+                addItemToTemplates(addDaysISO(date, 1), rowID);
             })
         )
         .addItem((i) =>
@@ -120,6 +153,12 @@ export function openActionItemContextMenu(app: App, evt: MouseEvent, date: ISODa
             .setIcon("calendar-plus")
             .onClick(() => {
                 removeItemFromTemplate(date, rowID);
+            })
+        ).addItem((i) =>
+            i.setTitle("Remove from this date (until latest templates)")
+            .setIcon("calendar-plus")
+            .onClick(() => {
+                removeItemFromTemplates(date, rowID);
             })
         );
         

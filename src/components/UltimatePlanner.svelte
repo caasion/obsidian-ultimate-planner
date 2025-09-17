@@ -100,12 +100,10 @@
     let rows = $derived(rowsNeeded(daysOfTheWeek));
 
     function rowsNeeded(dates: ISODate[]): string[] {
-        const actionItemIDs = dates.flatMap((date) => templateForDate(date))
+        const actionItemIDs = dates.flatMap((date) => templateStoreForDate(date))
 
         return Array.from(new Set(actionItemIDs));
     }
-
-    
 
     // Navigation Between Weeks
     
@@ -218,7 +216,6 @@
                             </div>
                             
                         {/if}
-                        <!-- <input  value={getLabelFromID(date, rowID)} oninput={(e) => modifyTemplate(date, rowID, (e.target as HTMLInputElement).value, "#dddddd")} /> -->
                         <InputCell 
                             {date} {rowID} {setCell} {getCell} row={i} col={j} {focusCell} 
                         />
