@@ -75,7 +75,7 @@
 
 <style>
 	.milkdown-editor {
-		border: 1px solid var(--interactive-normal);
-		background-color: var(--background-primary);
+		background-color: none;
+        height: 100%;
 	}
 </style>
