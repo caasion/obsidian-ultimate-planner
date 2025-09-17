@@ -1,9 +1,8 @@
+
 <script lang="ts">
-    import { eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek } from 'date-fns';
-    import type { Day } from 'date-fns';
+    // Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table. 
 
-    //Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table. 
-
+    import { format, parseISO } from 'date-fns';
     import type { ISODate } from '../types'
 	import { tick } from 'svelte';
 	import InputCell from './InputCell.svelte';
@@ -12,39 +11,11 @@
 
     interface ViewProps {
         app: App;
-        save: () => void;
     }
 
-    let { app, save }: ViewProps = $props();
+    let { app }: ViewProps = $props();
 
     const DEFAULT_COLOR = "#cccccc";
-
-    // let $plannerStore = $state<PlannerState>({
-    //     actionItems: {
-    //         ["ai-abc"]: {
-    //             label: "Abc",
-    //             color: DEFAULT_COLOR
-    //         },
-    //         ["ai-def"]: {
-    //             label: "Def",
-    //             color: DEFAULT_COLOR
-    //         },
-    //         ["ai-ghi"]: {
-    //             label: "Ghi",
-    //             color: DEFAULT_COLOR
-    //         },
-    //         ["ai-jkl"]: {
-    //             label: "Jkl",
-    //             color: DEFAULT_COLOR
-    //         }
-    //     },
-    //     cells: {},
-    //     templates: {
-    //         ["2025-08-10"]: ["ai-abc", "ai-def"],
-    //         ["2025-08-27"]: ["ai-abc"],
-    //         ["2025-08-29"]: ["ai-abc", "ai-ghi", "ai-jkl"],
-    //     }
-    // })
 
     /* Template Store Reactivity */
     function templateStoreForDate(date: ISODate) {
@@ -56,7 +27,7 @@
         return best ? JSON.parse(JSON.stringify(templates[best])) : [];
     }
 
-    /* Action Item Functions */
+    /* Create Action Item */
 
     let showNewRowPrompt = $state(false);
     let newRowLabel = $state("");
@@ -75,57 +46,24 @@
 
     /* Cell Functions */
     import { setCell, getCell } from '../actions/cellActions';
-	import { newActionItem, openActionItemContextMenu, templateForDate } from 'src/actions/itemActions';
-	import { getISODate, generateID, addDaysISO } from 'src/actions/helpers';
-	import { derived } from 'svelte/store';
+	import { newActionItem, openActionItemContextMenu } from 'src/actions/itemActions';
+	import { getISODate, generateID, addDaysISO, getISODatesOfWeek, getLabelFromDateRange } from 'src/actions/helpers';
 
     /* Table Rendering */
     let anchorDate = $state<ISODate>(getISODate(new Date()));
-    let weeksVisible = 1;
-
-    function getISODatesOfWeek(anchorDate: ISODate, weekStartsOn: Day = 0): ISODate[] {
-        const date = parseISO(anchorDate);
-    
-        const start = startOfWeek(date, { weekStartsOn });
-        const end = endOfWeek(date, { weekStartsOn });
-    
-        const days = eachDayOfInterval({ start, end });
-    
-        return days.map(day => format(day, "yyyy-MM-dd"))
-    }
-
     let daysOfTheWeek = $derived<ISODate[]>(getISODatesOfWeek(anchorDate));
-
+    let weeksVisible = 1;
     const colCount = 7;
-    let rows = $derived(rowsNeeded(daysOfTheWeek));
+    let rows = $derived(rowsToRender(daysOfTheWeek));
+    let calendarLabel = $derived(getLabelFromDateRange(daysOfTheWeek[0], daysOfTheWeek[6]));
 
-    function rowsNeeded(dates: ISODate[]): string[] {
+    function rowsToRender(dates: ISODate[]): string[] {
         const actionItemIDs = dates.flatMap((date) => templateStoreForDate(date))
 
         return Array.from(new Set(actionItemIDs));
     }
 
-    // Navigation Between Weeks
-    
-    function getLabelOfWeek() {
-        const first = parseISO(daysOfTheWeek[0]);
-        const last = parseISO(daysOfTheWeek[6]);
-
-        if (first.getFullYear() === last.getFullYear()) {
-            if (first.getMonth() === last.getMonth()) {
-                return `${format(first, "MMM")} ${format(first, "dd")} – ${format(last, "dd")}, ${format(first, "yyyy")}`
-            } else {
-                return `${format(first, "MMM")} ${format(first, "dd")} – ${format(last, "MMM")} ${format(last, "dd")}, ${format(first, "yyyy")}`
-            }
-        } else {
-            return `${format(first, "MMM")} ${format(first, "dd")}, ${format(first, "yyyy")} – ${format(last, "MMM")} ${format(last, "dd")}, ${format(last, "yyyy")}`
-        }
-
-    }
-
-    let calendarLabel = $derived(getLabelOfWeek());
-
-    // Table Navigation (Tab, Shift-tab, Enter)
+    /* Table Navigation (Tab, Shift-tab, Enter) */
     
     let focus: { row: number, col: number, } = $state({row: 0, col: 0}); // Track focus to preserve focus at the same row
 
@@ -146,15 +84,15 @@
         return true;
     }
 
-    // Maintain focus when switching weeks
-    async function goTo(newDate: ISODate) {
+    // Currently doesn't work
+    async function goTo(newDate: ISODate) { /* Maintain focus when switching weeks */
         anchorDate = newDate;
         await tick();
         focusCell(focus.row, focus.col);
     }
 
     // Highlight column of active day
-    let activeDate = $derived(daysOfTheWeek[focus.col])
+    
 
     // TODO: Export to CSV or Markdown
 </script>
@@ -202,7 +140,7 @@
                 {#if templateStoreForDate(date).includes(rowID)} <!-- only display if label is not empty (i.e. AI exists)-->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div 
-                        class={`cell ${date == activeDate ? "active" : ""}`} 
+                        class="cell"
                         style={`color: ${$plannerStore.actionItems[rowID].color ?? ""}`} 
                         oncontextmenu={(e) => openActionItemContextMenu(app, e, date, rowID)}
                     >
@@ -221,7 +159,7 @@
                         />
                     </div>
                 {:else}
-                    <div>
+                    <div class="cell empty">
                         <span>-</span>
                     </div>
                     
@@ -278,6 +216,17 @@
     .grid > .row > div {
         padding: 4px;
         border: 1px solid #ccc;
+    }
+
+    .cell.inactive {
+        background-color: #3b3b3b;
+    }
+
+    .cell.empty {
+        background-color: #3b3b3b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     div.cell.active {
