@@ -1,3 +1,6 @@
+## 2025-09-19
+- I added a context-menu command to move aciton items up and down in a template
+    - For simplicity, I've decided to move template modifications to the calendar itself, instead of having another view 
 ## 2025-09-17
 - I'm struggling to find a user-friendly way to allow modification of action items
 - With my action items, I aim to:

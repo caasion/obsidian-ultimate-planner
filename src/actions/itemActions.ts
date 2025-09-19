@@ -105,6 +105,39 @@ export function removeItemFromTemplates(from: ISODate, rowID: ActionItemID) {
     })
 }
 
+export function swapActionItems(date: ISODate, a: number, b: number) {
+    plannerStore.update(current => {
+        current.templates[date] ??= [];
+        const next = current.templates[date];
+
+        if (a <= 0 && b <= 0) return current;
+        if (a >= next.length || b >= next.length) return current;
+
+        [next[a], next[b]] = [next[b], next[a]];
+        return current;
+    })
+}
+
+export function moveActionItemDown(date: ISODate, rowID: ActionItemID) {
+    const templates = get(plannerStore).templates[date];
+
+    if (!templates) return;
+
+    const a = templates.findIndex((value) => value == rowID);
+
+    swapActionItems(date, a, a-1);
+}
+
+export function moveActionItemUp(date: ISODate, rowID: ActionItemID) {
+    const templates = get(plannerStore).templates[date];
+
+    if (!templates) return;
+
+    const a = templates.findIndex((value) => value == rowID);
+
+    swapActionItems(date, a, a+1);
+}
+
 /* Context Menu */
 export function openActionItemContextMenu(app: App, evt: MouseEvent, date: ISODate, rowID: ActionItemID) {
     evt.preventDefault();
@@ -129,7 +162,7 @@ export function openActionItemContextMenu(app: App, evt: MouseEvent, date: ISODa
         )
         .addItem((i) =>
             i.setTitle("Extend until next template")
-            .setIcon("calendar-plus")
+            .setIcon("calendar-plus-2")
             .onClick(() => {
                 addItemToTemplate(addDaysISO(date, 1), rowID);
             })
@@ -143,22 +176,34 @@ export function openActionItemContextMenu(app: App, evt: MouseEvent, date: ISODa
         )
         .addItem((i) =>
             i.setTitle("Extend to previous template")
-            .setIcon("calendar-plus")
+            .setIcon("calendar-minus")
             .onClick(() => {
                 addItemToTemplate(addDaysISO(date, -1), rowID);
             })
         )
         .addItem((i) =>
             i.setTitle("Remove from this date (until next template)")
-            .setIcon("calendar-plus")
+            .setIcon("calendar-x")
             .onClick(() => {
                 removeItemFromTemplate(date, rowID);
             })
         ).addItem((i) =>
             i.setTitle("Remove from this date (until latest templates)")
-            .setIcon("calendar-plus")
+            .setIcon("calendar-off")
             .onClick(() => {
                 removeItemFromTemplates(date, rowID);
+            })
+        ).addItem((i) =>
+            i.setTitle("Move up")
+            .setIcon("chevron-up")
+            .onClick(() => {
+                moveActionItemDown(date, rowID);
+            })
+        ).addItem((i) =>
+            i.setTitle("Move down")
+            .setIcon("chevron-down")
+            .onClick(() => {
+                moveActionItemUp(date, rowID);
             })
         );
         
