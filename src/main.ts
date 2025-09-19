@@ -2,7 +2,6 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 import { PLANNER_VIEW_TYPE, PlannerView } from './PlannerView';
 import { UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
 import type { UltimatePlannerSettings } from './SettingsTab';
-import { TEMPLATES_VIEW_TYPE, TemplatesView } from './TemplatesView';
 import { plannerStore } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
 
@@ -19,8 +18,6 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 		this.registerView(PLANNER_VIEW_TYPE, (leaf) => new PlannerView(leaf, this));
 
-		this.registerView(TEMPLATES_VIEW_TYPE, (leaf) => new TemplatesView(leaf, this));
-
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
 			id: 'open-planner-view',
@@ -29,15 +26,6 @@ export default class UltimatePlannerPlugin extends Plugin {
 				this.activateView(PLANNER_VIEW_TYPE);
 			}
 		});
-
-		this.addCommand({
-			id: 'open-templates-view',
-			name: 'Open Templates Editor',
-			callback: () => {
-				this.activateView(TEMPLATES_VIEW_TYPE);
-			}
-		});
-
 	}
 
 	async onunload() {
