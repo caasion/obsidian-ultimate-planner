@@ -43,3 +43,19 @@ export function getLabelFromDateRange(firstDate: ISODate, lastDate: ISODate) {
     }
 
 }
+
+// Templates helpers
+export function idIsUsedAnywhere(
+  state: PlannerState,
+  rowID: ActionItemID
+): boolean {
+  // Check all template arrays
+  for (const arr of Object.values(state.templates)) {
+    if (arr.includes(rowID)) return true;
+  }
+  // Also check cells (optional, but usually right)
+  for (const cellMap of Object.values(state.cells)) {
+    if (rowID in cellMap) return true;
+  }
+  return false;
+}

@@ -5,6 +5,7 @@ export type ActionItemID = string;
 export interface ActionItemMeta {
     label: string;    // e.g. "FITNESS ★"
     color: string;   // cosmetic only (optional)
+    active?: boolean;
 }
 
 export interface PlannerState {

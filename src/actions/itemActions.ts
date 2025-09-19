@@ -2,7 +2,7 @@ import type { ISODate, ActionItemID, PlannerState } from '../types';
 import { plannerStore } from '../state/plannerStore';
 import { get } from 'svelte/store';
 import { App, Menu, Notice } from 'obsidian';
-import { addDaysISO, getISODate } from './helpers';
+import { addDaysISO, getISODate, idIsUsedAnywhere } from './helpers';
 import { RenameActionItemModal } from '../components/ActionItemModals';
 
 /* Template */
@@ -86,13 +86,25 @@ export function removeItemFromTemplate(date: ISODate, rowID: ActionItemID) {
     plannerStore.update(current => {
         current.templates[date] ??= templateForDate(date);
 
+        
         const template = current.templates[date];
         const i = template.indexOf(rowID);
 
-        if (i >= 0) {
-            template.splice(i, 1)
-        }
+        if (i >= 0) template.splice(i, 1);
 
+        if (idIsUsedAnywhere(current, rowID)) {
+            delete current.actionItems[rowID];
+
+            for (const date of Object.keys(current.cells)) { // Remove stray cell content
+                const map = current.cells[date];
+                if (map && rowID in map) {
+                    const copy = { ...map };
+                    delete copy[rowID];
+                    current.cells[date] = copy;
+                }
+            }
+        }
+        
         return current;
     })
 }
