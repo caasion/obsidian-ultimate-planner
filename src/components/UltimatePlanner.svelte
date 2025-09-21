@@ -236,7 +236,7 @@
 
 	.grid {
 		display: grid;
-		grid-template-columns: 200px repeat(6, 1fr);
+		grid-template-columns: repeat(7, 1fr);
 		border-collapse: collapse;
 	}
 

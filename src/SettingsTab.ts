@@ -35,8 +35,6 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
         const { containerEl } = this;
 
         containerEl.empty();
-
-        
     }
 
     hide(): void {
