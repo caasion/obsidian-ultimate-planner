@@ -5,18 +5,20 @@ import type { PlannerState } from './types';
 
 export interface UltimatePlannerSettings {
     settings: {
-        weekStartOn: string,
-        autosaveDebounceMs: string;
+        weekStartOn: number,
+        autosaveDebounceMs: number;
         remoteCalendarUrl: string;
+        refreshRemote: number;
     }
     planner: PlannerState;
 }
 
 export const DEFAULT_SETTINGS: UltimatePlannerSettings = {
     settings: {
-        weekStartOn: "0",
-        autosaveDebounceMs: "200",
-        remoteCalendarUrl: ""
+        weekStartOn: 0,
+        autosaveDebounceMs: 200,
+        remoteCalendarUrl: "",
+        refreshRemote: 5,
     }, 
     planner: { 
         actionItems: {},
@@ -44,26 +46,27 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
                 dropdown
                     .addOption("0", "Sunday")
                     .addOption("1", "Monday")
-                    .setValue(this.plugin.settings.settings.weekStartOn)
+                    .setValue(String(this.plugin.settings.settings.weekStartOn))
                     .onChange(async (value) => {
-                        this.plugin.settings.settings.weekStartOn = value;
+                        this.plugin.settings.settings.weekStartOn = value !== "" ? Number(value) : 0;
                         await this.plugin.saveSettings();
                     })
 
             });
 
         new Setting(containerEl)
-            .setName('Default value')
-            .addText((text) =>
-                text
-                .setPlaceholder("200")
-                .setValue(this.plugin.settings.settings.autosaveDebounceMs)
-                .onChange(async (value) => {
-                    this.plugin.settings.settings.autosaveDebounceMs = value;
-                    await this.plugin.saveSettings();
-                })
-            );
-
+            .setName('Autosave Debounce (ms)')
+            .addSlider(slider => 
+                slider
+                    .setDynamicTooltip()
+                    .setLimits(100, 2000, 50)
+                    .setValue(this.plugin.settings.settings.autosaveDebounceMs)
+                    .onChange(async (value) => {
+                        this.plugin.settings.settings.autosaveDebounceMs = value;
+                        this.plugin.saveSettings();
+                    })
+            )
+                
         new Setting(containerEl)
             .setName('Remote Calendar')
             .addText((text) => {
@@ -75,6 +78,19 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     })
             })
+
+        new Setting(containerEl)
+            .setName('Remote Calendar Refresh Interval')
+            .addSlider(slider => 
+                slider
+                    .setDynamicTooltip()
+                    .setLimits(1, 10, 1)
+                    .setValue(this.plugin.settings.settings.refreshRemote)
+                    .onChange(async (value) => {
+                        this.plugin.settings.settings.refreshRemote = value;
+                        await this.plugin.saveSettings();
+                    })
+            )
     }
 
     hide(): void {
