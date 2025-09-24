@@ -7,9 +7,23 @@
 	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
 	import { plannerStore } from "src/state/plannerStore";
+	import { setCell, getCell } from "../actions/cellActions";
+	import {
+		newActionItem,
+		openActionItemContextMenu,
+	} from "src/actions/itemActions";
+	import {
+		getISODate,
+		generateID,
+		addDaysISO,
+		getISODatesOfWeek,
+		getLabelFromDateRange,
+	} from "src/actions/helpers";
+	import type { UltimatePlannerSettings } from "src/SettingsTab";
 
 	interface ViewProps {
 		app: App;
+		settings: UltimatePlannerSettings;
 	}
 
 	let { app }: ViewProps = $props();
@@ -44,25 +58,16 @@
 	}
 
 	/* Cell Functions */
-	import { setCell, getCell } from "../actions/cellActions";
-	import {
-		newActionItem,
-		openActionItemContextMenu,
-	} from "src/actions/itemActions";
-	import {
-		getISODate,
-		generateID,
-		addDaysISO,
-		getISODatesOfWeek,
-		getLabelFromDateRange,
-	} from "src/actions/helpers";
+	
 
 	/* Table Rendering */
+
+	let weeksVisible = 2;
 	let anchorDate = $state<ISODate>(getISODate(new Date()));
-	let daysOfTheWeek = $derived<ISODate[]>(getISODatesOfWeek(anchorDate));
-	let weeksVisible = 1;
+	let isoDates = $derived<ISODate[][]>(getISODatesOfWeek(anchorDate, weeksVisible));
+	
 	const colCount = 7;
-	let rows = $derived(rowsToRender(daysOfTheWeek));
+	let rows = $derived(rowsToRender(isoDates[0]));
 
 	function rowsToRender(dates: ISODate[]): string[] {
 		const actionItemIDs = dates.flatMap((date) =>
@@ -113,7 +118,7 @@
 		<button onclick={() => goTo(addDaysISO(anchorDate, 7))}>&gt;</button>
 	</div>
 	<div class="week">
-		<span class="week-label">{getLabelFromDateRange(daysOfTheWeek[0], daysOfTheWeek[6])}</span>
+		<span class="week-label">{getLabelFromDateRange(isoDates[0][0], isoDates[isoDates.length - 1][6])}</span>
 		<input type="date" bind:value={anchorDate} />
 	</div>
 
@@ -134,36 +139,39 @@
 </div>
 <div class="grid">
 	<div class="row">
-		{#each daysOfTheWeek as date}
+		{#each isoDates[0] as date}
 			<div class="dow-label">{format(parseISO(date), "E")}</div>
 		{/each}
 	</div>
-	<div class="row">
-		{#each daysOfTheWeek as date}
-			<div class="date-label">{format(parseISO(date), "dd")}</div>
-		{/each}
-	</div>
-	{#each rows as rowID, i (rowID)}
+	{#each isoDates as week, w (week)}
 		<div class="row">
-			{#each daysOfTheWeek as date, j (date)}
-				{#if templateStoreForDate(date).includes(rowID)}
-					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div
-						class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
-						style={`color: ${$plannerStore.actionItems[rowID].color ?? ""}`}
-						oncontextmenu={(e) => openActionItemContextMenu(app, e, date, rowID)}
-					>
-						{#if (j == 0 && $plannerStore.actionItems[rowID].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(rowID)}
-							<div class="row-label">{$plannerStore.actionItems[rowID].label ?? ""}</div>
-						{/if}
-						<InputCell {date} {rowID} {setCell} {getCell} row={i} col={j} {focusCell} />
-					</div>
-				{:else}
-					<div class="cell empty">-</div>
-				{/if}
+			{#each isoDates[w] as date}
+				<div class="date-label">{format(parseISO(date), "dd")}</div>
 			{/each}
 		</div>
+		{#each rows as rowID, i (rowID)}
+			<div class="row">
+				{#each isoDates[w] as date, j (date)}
+					{#if templateStoreForDate(date).includes(rowID)}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<div
+							class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
+							style={`color: ${$plannerStore.actionItems[rowID].color ?? ""}`}
+							oncontextmenu={(e) => openActionItemContextMenu(app, e, date, rowID)}
+						>
+							{#if (j == 0 && $plannerStore.actionItems[rowID].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(rowID)}
+								<div class="row-label">{$plannerStore.actionItems[rowID].label ?? ""}</div>
+							{/if}
+							<InputCell {date} {rowID} {setCell} {getCell} row={i} col={j} {focusCell} />
+						</div>
+					{:else}
+						<div class="cell empty">-</div>
+					{/if}
+				{/each}
+			</div>
+		{/each}
 	{/each}
+	
 </div>
 
 <!-- For debugging -->

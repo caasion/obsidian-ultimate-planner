@@ -17,15 +17,21 @@ export function addDaysISO(iso: ISODate, n: number): ISODate {
     return getISODate(addDays(parseISO(iso), n));
 }
 
-export function getISODatesOfWeek(anchorDate: ISODate, weekStartsOn: Day = 0): ISODate[] {
+export function getISODatesOfWeek(anchorDate: ISODate, weeks: number, weekStartsOn: Day = 0): ISODate[][] {
     const date = parseISO(anchorDate);
 
-    const start = startOfWeek(date, { weekStartsOn });
-    const end = endOfWeek(date, { weekStartsOn });
+    let isoDates: ISODate[][] = [];
 
-    const days = eachDayOfInterval({ start, end });
+    for (let i = 0; i < weeks; i++) {
+        const start = startOfWeek(addDays( date, i * 7 ), { weekStartsOn });
+        const end = endOfWeek(addDays( date, i * 7 ), { weekStartsOn });
 
-    return days.map(day => format(day, "yyyy-MM-dd"))
+        const days = eachDayOfInterval({ start, end });
+
+        isoDates.push(days.map(day => getISODate(day)));
+    }
+
+    return isoDates;
 }
 
 export function getLabelFromDateRange(firstDate: ISODate, lastDate: ISODate) {
