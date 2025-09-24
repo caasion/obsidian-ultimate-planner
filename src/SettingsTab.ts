@@ -1,22 +1,26 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import UltimatePlannerPlugin from './main';
-import { mount, unmount } from 'svelte';
 import type { PlannerState } from './types';
+import type { Day } from 'date-fns';
 
 export interface UltimatePlannerSettings {
-    settings: {
-        weekStartOn: number,
-        autosaveDebounceMs: number;
-        remoteCalendarUrl: string;
-        refreshRemote: number;
-    }
+    settings: UltimatePlannerInnerSettings;
     planner: PlannerState;
+}
+
+export interface UltimatePlannerInnerSettings {
+    weekStartOn: Day,
+    autosaveDebounceMs: number;
+    weeksToRender: number;
+    remoteCalendarUrl: string;
+    refreshRemote: number;
 }
 
 export const DEFAULT_SETTINGS: UltimatePlannerSettings = {
     settings: {
         weekStartOn: 0,
         autosaveDebounceMs: 200,
+        weeksToRender: 1,
         remoteCalendarUrl: "",
         refreshRemote: 5,
     }, 
@@ -48,7 +52,7 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
                     .addOption("1", "Monday")
                     .setValue(String(this.plugin.settings.settings.weekStartOn))
                     .onChange(async (value) => {
-                        this.plugin.settings.settings.weekStartOn = value !== "" ? Number(value) : 0;
+                        this.plugin.settings.settings.weekStartOn = value !== "" ? Number(value) as Day: 0;
                         await this.plugin.saveSettings();
                     })
 
@@ -63,6 +67,19 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.settings.autosaveDebounceMs)
                     .onChange(async (value) => {
                         this.plugin.settings.settings.autosaveDebounceMs = value;
+                        this.plugin.saveSettings();
+                    })
+            )
+
+        new Setting(containerEl)
+            .setName('# of Weeks to Render')
+            .addSlider(slider => 
+                slider
+                    .setDynamicTooltip()
+                    .setLimits(1, 6, 1)
+                    .setValue(this.plugin.settings.settings.weeksToRender)
+                    .onChange(async (value) => {
+                        this.plugin.settings.settings.weeksToRender = value;
                         this.plugin.saveSettings();
                     })
             )

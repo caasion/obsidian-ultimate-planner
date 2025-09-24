@@ -8,25 +8,16 @@
 	import type { App } from "obsidian";
 	import { plannerStore } from "src/state/plannerStore";
 	import { setCell, getCell } from "../actions/cellActions";
-	import {
-		newActionItem,
-		openActionItemContextMenu,
-	} from "src/actions/itemActions";
-	import {
-		getISODate,
-		generateID,
-		addDaysISO,
-		getISODatesOfWeek,
-		getLabelFromDateRange,
-	} from "src/actions/helpers";
-	import type { UltimatePlannerSettings } from "src/SettingsTab";
+	import { newActionItem, openActionItemContextMenu, } from "src/actions/itemActions";
+	import { getISODate, generateID, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
+	import type { UltimatePlannerInnerSettings } from "src/SettingsTab";
 
 	interface ViewProps {
 		app: App;
-		settings: UltimatePlannerSettings;
+		settings: UltimatePlannerInnerSettings;
 	}
 
-	let { app }: ViewProps = $props();
+	let { app, settings }: ViewProps = $props();
 
 	const DEFAULT_COLOR = "#cccccc";
 
@@ -62,9 +53,9 @@
 
 	/* Table Rendering */
 
-	let weeksVisible = 2;
+	let weeksVisible = settings.weeksToRender;
 	let anchorDate = $state<ISODate>(getISODate(new Date()));
-	let isoDates = $derived<ISODate[][]>(getISODatesOfWeek(anchorDate, weeksVisible));
+	let isoDates = $derived<ISODate[][]>(getISODatesOfWeek(anchorDate, weeksVisible, settings.weekStartOn));
 	
 	const colCount = 7;
 	let rows = $derived(rowsToRender(isoDates[0]));
