@@ -153,7 +153,7 @@
 						style={`color: ${$plannerStore.actionItems[rowID].color ?? ""}`}
 						oncontextmenu={(e) => openActionItemContextMenu(app, e, date, rowID)}
 					>
-						{#if j == 0 || !templateStoreForDate(addDaysISO(date, -1)).includes(rowID)}
+						{#if (j == 0 && $plannerStore.actionItems[rowID].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(rowID)}
 							<div class="row-label">{$plannerStore.actionItems[rowID].label ?? ""}</div>
 						{/if}
 						<InputCell {date} {rowID} {setCell} {getCell} row={i} col={j} {focusCell} />

@@ -1,3 +1,15 @@
+## 2025-09-23
+- I hope to implement these features in the near future:
+    - Google Calendar Integration
+    - Daily Notes/Dataview Integration (ability to render items from dataview)
+    - Daily Notes Navigation (click on the dates and get to that daily note)
+    - Ability to display multiple weeks at a time
+    - Different views (be able to show only a certain action item across several weeks)
+- It's been a few days since I've updated. However, I've implemented several improvements:
+    - Implemented clean-up when saving data
+    - Added Style Tweaks
+    - Add Settings Tabs 
+
 ## 2025-09-19
 - I added a context-menu command to move aciton items up and down in a template
     - For simplicity, I've decided to move template modifications to the calendar itself, instead of having another view 
