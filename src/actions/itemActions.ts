@@ -18,12 +18,8 @@ export function templateForDate(date: ISODate): ActionItemID[] {
     for (const key in templates) {
         if (key <= date && (best === null || key > best)) best = key;
     }
-    return best ? templates[best] : [];
-    // return best ? JSON.parse(JSON.stringify(templates[best])) : [];
-}
-
-function isActive(rowID: ActionItemID): boolean {
-    return templateForDate(getISODate(new Date())).contains(rowID);
+    // return best ? templates[best] : [];
+    return best ? JSON.parse(JSON.stringify(templates[best])) : [];
 }
 
 /* Action Items */
@@ -86,24 +82,27 @@ export function removeItemFromTemplate(date: ISODate, rowID: ActionItemID) {
     plannerStore.update(current => {
         current.templates[date] ??= templateForDate(date);
 
-        
+        console.log(date)
+
         const template = current.templates[date];
         const i = template.indexOf(rowID);
 
+        console.log(template)
+
         if (i >= 0) template.splice(i, 1);
 
-        if (idIsUsedAnywhere(current, rowID)) {
-            delete current.actionItems[rowID];
+        // if (!idIsUsedAnywhere(current, rowID)) {
+        //     delete current.actionItems[rowID];
 
-            for (const date of Object.keys(current.cells)) { // Remove stray cell content
-                const map = current.cells[date];
-                if (map && rowID in map) {
-                    const copy = { ...map };
-                    delete copy[rowID];
-                    current.cells[date] = copy;
-                }
-            }
-        }
+        //     for (const date of Object.keys(current.cells)) { // Remove stray cell content
+        //         const map = current.cells[date];
+        //         if (map && rowID in map) {
+        //             const copy = { ...map };
+        //             delete copy[rowID];
+        //             current.cells[date] = copy;
+        //         }
+        //     }
+        // }
         
         return current;
     })
