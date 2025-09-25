@@ -118,9 +118,8 @@ export function removeItemFromTemplates(from: ISODate, rowID: ActionItemID) {
 }
 
 export function swapActionItems(date: ISODate, a: number, b: number) {
-    plannerStore.update(current => {
-        current.templates[date] ??= [];
-        const next = current.templates[date];
+    plannerStore.update(current => {;
+        const next = templateForDate(date);
 
         if (a <= 0 && b <= 0) return current;
         if (a >= next.length || b >= next.length) return current;
@@ -131,23 +130,22 @@ export function swapActionItems(date: ISODate, a: number, b: number) {
 }
 
 export function moveActionItemDown(date: ISODate, rowID: ActionItemID) {
-    const templates = get(plannerStore).templates[date];
+    const template = templateForDate(date);
 
-    if (!templates) return;
+    const a = template.findIndex((value) => value == rowID);
+    console.log("moving down")
 
-    const a = templates.findIndex((value) => value == rowID);
-
-    swapActionItems(date, a, a-1);
+    swapActionItems(date, a, a+1);
 }
 
 export function moveActionItemUp(date: ISODate, rowID: ActionItemID) {
-    const templates = get(plannerStore).templates[date];
+    const template = templateForDate(date);
 
-    if (!templates) return;
+    if (!template) return;
 
-    const a = templates.findIndex((value) => value == rowID);
+    const a = template.findIndex((value) => value == rowID);
 
-    swapActionItems(date, a, a+1);
+    swapActionItems(date, a, a-1);
 }
 
 /* Context Menu */
@@ -209,13 +207,13 @@ export function openActionItemContextMenu(app: App, evt: MouseEvent, date: ISODa
             i.setTitle("Move up")
             .setIcon("chevron-up")
             .onClick(() => {
-                moveActionItemDown(date, rowID);
+                moveActionItemUp(date, rowID);
             })
         ).addItem((i) =>
             i.setTitle("Move down")
             .setIcon("chevron-down")
             .onClick(() => {
-                moveActionItemUp(date, rowID);
+                moveActionItemDown(date, rowID);
             })
         );
         

@@ -13,7 +13,7 @@ export class RenameActionItemModal extends Modal {
             .setName("New name")
             .addText((t) => t.setValue(label).onChange((v) => (label = v)));
         new Setting(contentEl)
-            .setName("New name")
+            .setName("New color")
             .addColorPicker(c => c  
                 .setValue(color)
                 .onChange((v) => color = v)
@@ -38,7 +38,7 @@ export class ReplaceActionItemModal extends Modal {
             .setName("New name")
             .addText((t) => t.setValue(label).onChange((v) => (label = v)));
         new Setting(contentEl)
-            .setName("New name")
+            .setName("New color")
             .addColorPicker(c => c  
                 .setValue(color)
                 .onChange((v) => color = v)

@@ -48,9 +48,6 @@
 		newRowColor = DEFAULT_COLOR;
 	}
 
-	/* Cell Functions */
-	
-
 	/* Table Rendering */
 
 	let weeksVisible = settings.weeksToRender;
@@ -269,9 +266,5 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-	}
-
-	div.cell.active {
-		/* background-color: var(--theme-color); */
 	}
 </style>
