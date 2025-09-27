@@ -3,7 +3,7 @@
 	"name": "Ultimate Planner",
 	"version": "0.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "Create a long-range plan for your action items.",
+	"description": "Bridge the gap between your calendar and daily planning by creating a long-range plan for what you do everyday.",
 	"author": "Obsidian",
 	"authorUrl": "https://github.com/caasion",
 	"isDesktopOnly": false
