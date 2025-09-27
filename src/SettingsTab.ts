@@ -45,7 +45,7 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
         containerEl.empty();
 
         new Setting(containerEl)
-            .setName('Start Week On')
+            .setName('Start week on')
             .addDropdown((dropdown) => {
                 dropdown
                     .addOption("0", "Sunday")
@@ -59,20 +59,7 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
             });
 
         new Setting(containerEl)
-            .setName('Autosave Debounce (ms)')
-            .addSlider(slider => 
-                slider
-                    .setDynamicTooltip()
-                    .setLimits(100, 2000, 50)
-                    .setValue(this.plugin.settings.settings.autosaveDebounceMs)
-                    .onChange(async (value) => {
-                        this.plugin.settings.settings.autosaveDebounceMs = value;
-                        this.plugin.saveSettings();
-                    })
-            )
-
-        new Setting(containerEl)
-            .setName('# of Weeks to Render')
+            .setName('# of weeks to render')
             .addSlider(slider => 
                 slider
                     .setDynamicTooltip()
@@ -83,31 +70,46 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
                         this.plugin.saveSettings();
                     })
             )
-                
-        new Setting(containerEl)
-            .setName('Remote Calendar')
-            .addText((text) => {
-                text
-                    .setPlaceholder('link')
-                    .setValue(this.plugin.settings.settings.remoteCalendarUrl)
-                    .onChange(async (value) => {
-                        this.plugin.settings.settings.remoteCalendarUrl = value;
-                        await this.plugin.saveSettings();
-                    })
-            })
 
         new Setting(containerEl)
-            .setName('Remote Calendar Refresh Interval')
+            .setName('Autosave debounce (ms)')
             .addSlider(slider => 
                 slider
                     .setDynamicTooltip()
-                    .setLimits(1, 10, 1)
-                    .setValue(this.plugin.settings.settings.refreshRemote)
+                    .setLimits(100, 2000, 50)
+                    .setValue(this.plugin.settings.settings.autosaveDebounceMs)
                     .onChange(async (value) => {
-                        this.plugin.settings.settings.refreshRemote = value;
-                        await this.plugin.saveSettings();
+                        this.plugin.settings.settings.autosaveDebounceMs = value;
+                        this.plugin.saveSettings();
                     })
             )
+        
+        // new Setting(containerEl).setName('Remote Calendar').setHeading();
+                
+        // new Setting(containerEl)
+        //     .setName('Remote Calendar Link')
+        //     .addText((text) => {
+        //         text
+        //             .setPlaceholder('link')
+        //             .setValue(this.plugin.settings.settings.remoteCalendarUrl)
+        //             .onChange(async (value) => {
+        //                 this.plugin.settings.settings.remoteCalendarUrl = value;
+        //                 await this.plugin.saveSettings();
+        //             })
+        //     })
+
+        // new Setting(containerEl)
+        //     .setName('Remote Calendar Refresh Interval')
+        //     .addSlider(slider => 
+        //         slider
+        //             .setDynamicTooltip()
+        //             .setLimits(1, 10, 1)
+        //             .setValue(this.plugin.settings.settings.refreshRemote)
+        //             .onChange(async (value) => {
+        //                 this.plugin.settings.settings.refreshRemote = value;
+        //                 await this.plugin.saveSettings();
+        //             })
+        //     )
     }
 
     hide(): void {

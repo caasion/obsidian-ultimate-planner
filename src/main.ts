@@ -60,7 +60,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 	}
 
 	public queueSave = () => {
-		console.log("[UP] queueSave called");
+		// console.log("[UP] queueSave called");
 		// console.log("[UP] plugin id:", this.manifest?.id, "has app?", !!this.app);
 		if (this.saveTimer) window.clearTimeout(this.saveTimer);
 		this.saveTimer = window.setTimeout(async () => {
@@ -69,13 +69,13 @@ export default class UltimatePlannerPlugin extends Plugin {
 				// ✅ add a visible heartbeat so you can see it persisted
 				(this.settings as any)._lastSavedAt = new Date().toISOString();
 
-				console.time("[UP] saveData");
+				// console.time("[UP] saveData");
 				this.settings.planner = get(plannerStore);
 				await this.saveData(this.settings);   // <-- must be awaited
-				console.timeEnd("[UP] saveData");
-				console.log("[UP] save ok", this.settings);
+				// console.timeEnd("[UP] saveData");
+				// console.log("[UP] save ok", this.settings);
 			} catch (e) {
-				console.error("[UP] save FAILED", e);
+				// console.error("[UP] save FAILED", e);
 			}
 		}, 400);
 		};

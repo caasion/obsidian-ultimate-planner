@@ -82,27 +82,23 @@ export function removeItemFromTemplate(date: ISODate, rowID: ActionItemID) {
     plannerStore.update(current => {
         current.templates[date] ??= templateForDate(date);
 
-        console.log(date)
-
         const template = current.templates[date];
         const i = template.indexOf(rowID);
 
-        console.log(template)
-
         if (i >= 0) template.splice(i, 1);
 
-        // if (!idIsUsedAnywhere(current, rowID)) {
-        //     delete current.actionItems[rowID];
+        if (!idIsUsedAnywhere(current, rowID)) {
+            delete current.actionItems[rowID];
 
-        //     for (const date of Object.keys(current.cells)) { // Remove stray cell content
-        //         const map = current.cells[date];
-        //         if (map && rowID in map) {
-        //             const copy = { ...map };
-        //             delete copy[rowID];
-        //             current.cells[date] = copy;
-        //         }
-        //     }
-        // }
+            for (const date of Object.keys(current.cells)) { // Remove stray cell content
+                const map = current.cells[date];
+                if (map && rowID in map) {
+                    const copy = { ...map };
+                    delete copy[rowID];
+                    current.cells[date] = copy;
+                }
+            }
+        }
         
         return current;
     })
@@ -132,7 +128,6 @@ export function moveActionItemDown(date: ISODate, rowID: ActionItemID) {
     const template = templateForDate(date);
 
     const a = template.findIndex((value) => value == rowID);
-    console.log("moving down")
 
     swapActionItems(date, a, a+1);
 }
