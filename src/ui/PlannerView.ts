@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { mount } from 'svelte';
-import UltimatePlannerView from './components/UltimatePlanner.svelte';
-import UltimatePlannerPlugin from './main';
+import UltimatePlannerView from './UltimatePlanner.svelte';
+import UltimatePlannerPlugin from '../main';
 
 export const PLANNER_VIEW_TYPE = "ultimate-planner-view"
 

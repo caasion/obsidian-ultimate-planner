@@ -10,7 +10,7 @@
 	import { setCell, getCell } from "../actions/cellActions";
 	import { newActionItem, openActionItemContextMenu, } from "src/actions/itemActions";
 	import { getISODate, generateID, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
-	import type { UltimatePlannerInnerSettings } from "src/SettingsTab";
+	import type { UltimatePlannerInnerSettings } from "../settings";
 
 	interface ViewProps {
 		app: App;

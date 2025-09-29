@@ -1,7 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { PLANNER_VIEW_TYPE, PlannerView } from './PlannerView';
-import { UltimatePlannerPluginTab, DEFAULT_SETTINGS } from './SettingsTab';
-import type { UltimatePlannerSettings } from './SettingsTab';
+import { PLANNER_VIEW_TYPE, PlannerView } from './ui/PlannerView';
+import { UltimatePlannerPluginTab } from './ui/SettingsTab';
+import { DEFAULT_SETTINGS, type UltimatePlannerSettings } from './settings';
 import { plannerStore } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
 

@@ -3,7 +3,7 @@ import { plannerStore } from '../state/plannerStore';
 import { get } from 'svelte/store';
 import { App, Menu, Notice } from 'obsidian';
 import { addDaysISO, getISODate, idIsUsedAnywhere } from './helpers';
-import { RenameActionItemModal } from '../components/ActionItemModals';
+import { RenameActionItemModal } from '../ui/ActionItemModals';
 
 /* Template */
 /** Returns a deep copy of the template that should apply on `date`
@@ -161,7 +161,7 @@ export function openActionItemContextMenu(app: App, evt: MouseEvent, date: ISODa
             i.setTitle("Edit")
             .setIcon("pencil")
             .onClick(() => {
-                new RenameActionItemModal(app, initial, (label, color) => modifyActionItem(rowID, label, color)).open();
+                new RenameActionItemModal(app, initial, (label: string, color: string) => modifyActionItem(rowID, label, color)).open();
             })
         )
         .addItem((i) =>
