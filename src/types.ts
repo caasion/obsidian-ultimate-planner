@@ -34,7 +34,10 @@ export interface PluginSettings {
 }
 
 export interface CalendarCache {
-    data?: string;
+    etag?: string;
+    lastModified?: string;
+    lastFetched?: number;
+    rawData?: string;
 }
 
 /* DEFAULT VALUES */

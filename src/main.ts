@@ -5,6 +5,7 @@ import { plannerStore } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
 import { DEFAULT_SETTINGS, type PluginData, type PluginSettings } from './types';
 import { calendarStore } from './state/calendarStore';
+import { fetchFromUrl } from './actions/calendarFetch';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
@@ -20,6 +21,14 @@ export default class UltimatePlannerPlugin extends Plugin {
 			name: 'Debug: Log snapshot',
 			callback: () => {
 				console.log(this.snapshot())
+			}
+		});
+
+		this.addCommand({
+			id: 'debug-fetch-url',
+			name: 'Debug: Fetch URL',
+			callback: async () => {
+				await fetchFromUrl(this.settings.remoteCalendarUrl);
 			}
 		});
 		
@@ -86,8 +95,6 @@ export default class UltimatePlannerPlugin extends Plugin {
 		this.saveTimer = window.setTimeout(async () => {
 			this.saveTimer = null;
 			try {
-				(this.settings as any)._lastSavedAt = new Date().toISOString(); // Add a visible heartbeat
-
 				await this.saveData(this.snapshot()); 
 			} catch (e) {
 				console.error("[UP] save FAILED", e);
