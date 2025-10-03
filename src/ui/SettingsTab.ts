@@ -23,10 +23,10 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
                 dropdown
                     .addOption("0", "Sunday")
                     .addOption("1", "Monday")
-                    .setValue(String(this.plugin.settings.settings.weekStartOn))
+                    .setValue(String(this.plugin.settings.weekStartOn))
                     .onChange(async (value) => {
-                        this.plugin.settings.settings.weekStartOn = value !== "" ? Number(value) as Day: 0;
-                        await this.plugin.saveSettings();
+                        this.plugin.settings.weekStartOn = value !== "" ? Number(value) as Day: 0;
+                        await this.plugin.queueSave();
                     })
 
             });
@@ -37,10 +37,10 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
                 slider
                     .setDynamicTooltip()
                     .setLimits(1, 6, 1)
-                    .setValue(this.plugin.settings.settings.weeksToRender)
+                    .setValue(this.plugin.settings.weeksToRender)
                     .onChange(async (value) => {
-                        this.plugin.settings.settings.weeksToRender = value;
-                        this.plugin.saveSettings();
+                        this.plugin.settings.weeksToRender = value;
+                        await this.plugin.queueSave();
                     })
             )
 
@@ -50,39 +50,39 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
                 slider
                     .setDynamicTooltip()
                     .setLimits(100, 2000, 50)
-                    .setValue(this.plugin.settings.settings.autosaveDebounceMs)
+                    .setValue(this.plugin.settings.autosaveDebounceMs)
                     .onChange(async (value) => {
-                        this.plugin.settings.settings.autosaveDebounceMs = value;
-                        this.plugin.saveSettings();
+                        this.plugin.settings.autosaveDebounceMs = value;
+                        await this.plugin.queueSave();
                     })
             )
         
-        // new Setting(containerEl).setName('Remote Calendar').setHeading();
+        new Setting(containerEl).setName('Remote Calendar').setHeading();
                 
-        // new Setting(containerEl)
-        //     .setName('Remote Calendar Link')
-        //     .addText((text) => {
-        //         text
-        //             .setPlaceholder('link')
-        //             .setValue(this.plugin.settings.settings.remoteCalendarUrl)
-        //             .onChange(async (value) => {
-        //                 this.plugin.settings.settings.remoteCalendarUrl = value;
-        //                 await this.plugin.saveSettings();
-        //             })
-        //     })
+        new Setting(containerEl)
+            .setName('Remote Calendar Link')
+            .addText((text) => {
+                text
+                    .setPlaceholder('link')
+                    .setValue(this.plugin.settings.remoteCalendarUrl)
+                    .onChange(async (value) => {
+                        this.plugin.settings.remoteCalendarUrl = value;
+                        await this.plugin.queueSave();
+                    })
+            })
 
-        // new Setting(containerEl)
-        //     .setName('Remote Calendar Refresh Interval')
-        //     .addSlider(slider => 
-        //         slider
-        //             .setDynamicTooltip()
-        //             .setLimits(1, 10, 1)
-        //             .setValue(this.plugin.settings.settings.refreshRemote)
-        //             .onChange(async (value) => {
-        //                 this.plugin.settings.settings.refreshRemote = value;
-        //                 await this.plugin.saveSettings();
-        //             })
-        //     )
+        new Setting(containerEl)
+            .setName('Remote Calendar Refresh Interval')
+            .addSlider(slider => 
+                slider
+                    .setDynamicTooltip()
+                    .setLimits(1, 10, 1)
+                    .setValue(this.plugin.settings.refreshRemote)
+                    .onChange(async (value) => {
+                        this.plugin.settings.refreshRemote = value;
+                        await this.plugin.queueSave();
+                    })
+            )
     }
 
     hide(): void {
