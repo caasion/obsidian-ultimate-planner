@@ -1,24 +1,36 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { PLANNER_VIEW_TYPE, PlannerView } from './ui/PlannerView';
 import { UltimatePlannerPluginTab } from './ui/SettingsTab';
-import { DEFAULT_SETTINGS, type UltimatePlannerSettings } from './settings';
 import { plannerStore } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
+import { DEFAULT_SETTINGS, type PluginData, type PluginSettings } from './types';
+import { calendarStore } from './state/calendarStore';
 
 export default class UltimatePlannerPlugin extends Plugin {
-	settings: UltimatePlannerSettings;
+	settings: PluginSettings;
 	private saveTimer: number | null = null;
 	private plannerSubscription: Unsubscriber;
+	private calendarSubscription: Unsubscriber;
 
 	async onload() {
-		await this.loadSettings();
+		await this.loadPersisted();
+		// Add debug command
+		this.addCommand({
+			id: 'debug-log-snaposhot',
+			name: 'Debug: Log snapshot',
+			callback: () => {
+				console.log(this.snapshot())
+			}
+		});
+		
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
+		// Add Settings Tab using Obsidian's API
 		this.addSettingTab(new UltimatePlannerPluginTab(this.app, this));
 
+		// Register UPV using Obsidian's API
 		this.registerView(PLANNER_VIEW_TYPE, (leaf) => new PlannerView(leaf, this));
 
-		// This adds a simple command that can be triggered anywhere
+		// Add a command to open UPV
 		this.addCommand({
 			id: 'open-planner-view',
 			name: 'Open Ultimate Planner',
@@ -29,10 +41,11 @@ export default class UltimatePlannerPlugin extends Plugin {
 	}
 
 	async onunload() {
-		// this.app.workspace.detachLeavesOfType(PLANNER_VIEW_TYPE);
-		// this.app.workspace.detachLeavesOfType(TEMPLATES_VIEW_TYPE);
+		// Unsubscribe to stores
 		this.plannerSubscription();
-		await this.flushSave();
+		this.calendarSubscription();
+
+		await this.flushSave(); // Save immediately
 	}
 
 	async activateView(view: string) {
@@ -48,34 +61,36 @@ export default class UltimatePlannerPlugin extends Plugin {
 		this.app.workspace.getLeavesOfType(view)[0];
 	}
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-		plannerStore.set(this.settings.planner); // Initialize Store
-		this.plannerSubscription = plannerStore.subscribe(() => this.queueSave());
+	async loadPersisted() {
+		const data: PluginData = await this.loadData();
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings) // Populate Settings
 
+		// Initialize Stores, Subscribe, and assign unsubscribers
+		plannerStore.set(data.planner);
+		calendarStore.set(data.calendar);
+		this.plannerSubscription = plannerStore.subscribe(() => this.queueSave());
+		this.calendarSubscription = calendarStore.subscribe(() => this.queueSave())
 	}
 
-	async saveSettings() {
-		await this.saveData(this.settings);
+	private snapshot(): PluginData {
+		return {
+			version: 1,
+			settings: this.settings,
+			planner: get(plannerStore),
+			calendar: get(calendarStore)
+		}
 	}
 
 	public queueSave = () => {
-		// console.log("[UP] queueSave called");
-		// console.log("[UP] plugin id:", this.manifest?.id, "has app?", !!this.app);
 		if (this.saveTimer) window.clearTimeout(this.saveTimer);
 		this.saveTimer = window.setTimeout(async () => {
 			this.saveTimer = null;
 			try {
-				// ✅ add a visible heartbeat so you can see it persisted
-				(this.settings as any)._lastSavedAt = new Date().toISOString();
+				(this.settings as any)._lastSavedAt = new Date().toISOString(); // Add a visible heartbeat
 
-				// console.time("[UP] saveData");
-				this.settings.planner = get(plannerStore);
-				await this.saveData(this.settings);   // <-- must be awaited
-				// console.timeEnd("[UP] saveData");
-				// console.log("[UP] save ok", this.settings);
+				await this.saveData(this.snapshot()); 
 			} catch (e) {
-				// console.error("[UP] save FAILED", e);
+				console.error("[UP] save FAILED", e);
 			}
 		}, 400);
 		};
@@ -87,6 +102,6 @@ export default class UltimatePlannerPlugin extends Plugin {
 			this.saveTimer = null;
 		}
 
-		await this.saveData(this.settings);
+		await this.saveData(this.snapshot());
 	}
 }
