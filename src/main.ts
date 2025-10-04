@@ -3,9 +3,9 @@ import { PLANNER_VIEW_TYPE, PlannerView } from './ui/PlannerView';
 import { UltimatePlannerPluginTab } from './ui/SettingsTab';
 import { plannerStore } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
-import { DEFAULT_SETTINGS, type PluginData, type PluginSettings } from './types';
+import { DEFAULT_SETTINGS, EMPTY_PLANNER, type PluginData, type PluginSettings } from './types';
 import { calendarStore } from './state/calendarStore';
-import { fetchFromUrl } from './actions/calendarFetch';
+import { fetchFromUrl, shouldFetch } from './actions/calendarFetch';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
@@ -71,12 +71,12 @@ export default class UltimatePlannerPlugin extends Plugin {
 	}
 
 	async loadPersisted() {
-		const data: PluginData = await this.loadData();
+		const data: PluginData = await this.loadData() ?? {};
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings) // Populate Settings
 
 		// Initialize Stores, Subscribe, and assign unsubscribers
-		plannerStore.set(data.planner);
-		calendarStore.set(data.calendar);
+		plannerStore.set(Object.assign({}, EMPTY_PLANNER, data.planner));
+		calendarStore.set(Object.assign({}, data.calendar));
 		this.plannerSubscription = plannerStore.subscribe(() => this.queueSave());
 		this.calendarSubscription = calendarStore.subscribe(() => this.queueSave())
 	}
