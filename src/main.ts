@@ -28,7 +28,14 @@ export default class UltimatePlannerPlugin extends Plugin {
 			id: 'debug-fetch-url',
 			name: 'Debug: Fetch URL',
 			callback: async () => {
-				await fetchFromUrl(this.settings.remoteCalendarUrl);
+				const calendar = get(calendarStore);
+
+				if (!shouldFetch(this.settings.refreshRemoteMs, calendar.lastFetched ?? undefined)) {
+					if (get(calendarStore))
+					console.log("wait a bit more bruh", calendar.lastFetched ?? 0 - Date.now())
+					return;
+				}
+				console.log(await fetchFromUrl(this.settings.remoteCalendarUrl, calendar));
 			}
 		});
 		
