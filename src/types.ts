@@ -30,7 +30,7 @@ export interface PluginSettings {
     autosaveDebounceMs: number;
     weeksToRender: number;
     remoteCalendarUrl: string;
-    refreshRemote: number;
+    refreshRemoteMs: number;
 }
 
 export interface CalendarCache {
@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     autosaveDebounceMs: 200,
     weeksToRender: 1,
     remoteCalendarUrl: "",
-    refreshRemote: 5,
+    refreshRemoteMs: 5 * 60 * 1000,
 }
 
 export const EMPTY_PLANNER: PlannerState = {

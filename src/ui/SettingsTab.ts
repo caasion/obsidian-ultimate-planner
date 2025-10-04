@@ -72,14 +72,15 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
             })
 
         new Setting(containerEl)
-            .setName('Remote Calendar Refresh Interval')
+            .setName('Remote Calendar Refresh Interval (min)')
             .addSlider(slider => 
                 slider
                     .setDynamicTooltip()
                     .setLimits(1, 10, 1)
-                    .setValue(this.plugin.settings.refreshRemote)
+                    // Display as minutes by dividing when displaying and multiply when saving
+                    .setValue(this.plugin.settings.refreshRemoteMs / 60 / 1000)
                     .onChange(async (value) => {
-                        this.plugin.settings.refreshRemote = value;
+                        this.plugin.settings.refreshRemoteMs = value * 60 * 1000;
                         await this.plugin.queueSave();
                     })
             )
