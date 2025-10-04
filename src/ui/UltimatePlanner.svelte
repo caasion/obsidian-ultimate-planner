@@ -2,7 +2,7 @@
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
 	import { format, parseISO } from "date-fns";
-	import type { ISODate } from "../types";
+	import type { ISODate } from "../types/types";
 	import { tick } from "svelte";
 	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
@@ -10,7 +10,7 @@
 	import { setCell, getCell } from "../actions/cellActions";
 	import { newActionItem, openActionItemContextMenu, } from "src/actions/itemActions";
 	import { getISODate, generateID, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
-	import type { UltimatePlannerInnerSettings } from "../settings";
+	import type { UltimatePlannerInnerSettings } from "../types/settings";
 
 	interface ViewProps {
 		app: App;
