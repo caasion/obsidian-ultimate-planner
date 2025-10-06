@@ -5,7 +5,7 @@ import { plannerStore } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
 import { DEFAULT_SETTINGS, EMPTY_PLANNER, type PluginData, type PluginSettings } from './types';
 import { calendarStore } from './state/calendarStore';
-import { fetchFromUrl, shouldFetch } from './actions/calendarFetch';
+import { fetchFromUrl, hashText, detectFetchChange, shouldFetch, stripICSVariance } from './actions/calendarFetch';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
@@ -31,15 +31,19 @@ export default class UltimatePlannerPlugin extends Plugin {
 				const calendar = get(calendarStore);
 
 				if (!shouldFetch(this.settings.refreshRemoteMs, calendar.lastFetched ?? undefined)) {
-					if (get(calendarStore))
-					console.log("wait a bit more bruh", calendar.lastFetched ?? 0 - Date.now())
+					console.log("wait a bit more bruh", (calendar.lastFetched ?? 0) - Date.now())
 					return;
 				}
-				console.log(await fetchFromUrl(this.settings.remoteCalendarUrl, calendar));
-			}
+
+				
+				const response = await fetchFromUrl(this.settings.remoteCalendarUrl); // TODO: I probably need to catch this error now
+				
+				if (await detectFetchChange(response)) {
+					console.log("hey! something changed... you should update the cache.")
+				}
+		}
 		});
 		
-
 		// Add Settings Tab using Obsidian's API
 		this.addSettingTab(new UltimatePlannerPluginTab(this.app, this));
 
