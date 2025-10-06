@@ -3,9 +3,10 @@ import { PLANNER_VIEW_TYPE, PlannerView } from './ui/PlannerView';
 import { UltimatePlannerPluginTab } from './ui/SettingsTab';
 import { plannerStore } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
-import { DEFAULT_SETTINGS, EMPTY_PLANNER, type PluginData, type PluginSettings } from './types';
+import { DEFAULT_SETTINGS, EMPTY_PLANNER, type NormalizedEvent, type PluginData, type PluginSettings } from './types';
 import { calendarStore } from './state/calendarStore';
 import { fetchFromUrl, hashText, detectFetchChange, shouldFetch, stripICSVariance } from './actions/calendarFetch';
+import IcalExpander from 'ical-expander';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
@@ -25,8 +26,8 @@ export default class UltimatePlannerPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'debug-fetch-url',
-			name: 'Debug: Fetch URL',
+			id: 'debug-fetch-url-check',
+			name: 'Debug: Fetch URL & Check',
 			callback: async () => {
 				const calendar = get(calendarStore);
 
@@ -37,6 +38,41 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 				
 				const response = await fetchFromUrl(this.settings.remoteCalendarUrl); // TODO: I probably need to catch this error now
+				
+				if (await detectFetchChange(response)) {
+					console.log("hey! something changed... you should update the cache.")
+				}
+		}
+		});
+
+		this.addCommand({
+			id: 'debug-fetch-url-parse',
+			name: 'Debug: Fetch URL & Parse',
+			callback: async () => {				
+				const response = await fetchFromUrl(this.settings.remoteCalendarUrl); // TODO: I probably need to catch this error now
+
+				const icalExpander = new IcalExpander({ics: response.text, maxIterations: 10})
+
+				const results = icalExpander.all();
+
+				console.log(results.events)
+
+				const mappedEvents: NormalizedEvent[] = results.events.map(e => ({ 
+					id: e.uid,
+					start: e.startDate,
+					end: e.endDate,
+					allDay: false,
+					summary: e.summary,
+					location: e.location,
+					description: e.description,
+					calendarId: "hi"
+				})); // only contains one-off events
+				const mappedOccurrences = results.occurrences.map(o => ({ start: o.startDate, summary: o.item.summary }));
+				const allEvents = [...mappedEvents, ...mappedOccurrences]; // contains recurring events
+
+				console.log(mappedEvents, mappedOccurrences)
+
+				console.log(allEvents.map(e => `${e.start.toJSDate().toISOString()} - ${e.summary}`).join('\n'));
 				
 				if (await detectFetchChange(response)) {
 					console.log("hey! something changed... you should update the cache.")

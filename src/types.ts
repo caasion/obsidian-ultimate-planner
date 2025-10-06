@@ -37,7 +37,19 @@ export interface CalendarCache {
     etag?: string;
     lastModified?: string;
     lastFetched?: number;
-    rawData?: string;
+    contentHash?: string;
+}
+
+export interface NormalizedEvent {
+    id: string;
+    start: string;
+    end: string;
+    allDay: boolean;
+    summary: string;
+    location?: string;
+    description?: string;
+    calendarId: string;
+    sourceUrl?: string;
 }
 
 /* DEFAULT VALUES */

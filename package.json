@@ -33,6 +33,7 @@
 		"@milkdown/preset-commonmark": "^7.15.3",
 		"@milkdown/prose": "^7.15.3",
 		"@milkdown/theme-nord": "^7.15.3",
-		"date-fns": "^4.1.0"
+		"date-fns": "^4.1.0",
+		"ical-expander": "^3.2.0"
 	}
 }
