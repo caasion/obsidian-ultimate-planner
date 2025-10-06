@@ -7,6 +7,7 @@ import { DEFAULT_SETTINGS, EMPTY_PLANNER, type NormalizedEvent, type PluginData,
 import { calendarStore } from './state/calendarStore';
 import { fetchFromUrl, hashText, detectFetchChange, shouldFetch, stripICSVariance } from './actions/calendarFetch';
 import IcalExpander from 'ical-expander';
+import { normalizeEvent, normalizeOccurrenceEvent, parseICS } from './actions/calendarParse';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
@@ -51,26 +52,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 			callback: async () => {				
 				const response = await fetchFromUrl(this.settings.remoteCalendarUrl); // TODO: I probably need to catch this error now
 
-				const icalExpander = new IcalExpander({ics: response.text, maxIterations: 10})
-
-				const results = icalExpander.all();
-
-				console.log(results.events)
-
-				const mappedEvents: NormalizedEvent[] = results.events.map(e => ({ 
-					id: e.uid,
-					start: e.startDate,
-					end: e.endDate,
-					allDay: false,
-					summary: e.summary,
-					location: e.location,
-					description: e.description,
-					calendarId: "hi"
-				})); // only contains one-off events
-				const mappedOccurrences = results.occurrences.map(o => ({ start: o.startDate, summary: o.item.summary }));
-				const allEvents = [...mappedEvents, ...mappedOccurrences]; // contains recurring events
-
-				console.log(mappedEvents, mappedOccurrences)
+				const allEvents = parseICS(response.text, "hi");
 
 				console.log(allEvents.map(e => `${e.start.toJSDate().toISOString()} - ${e.summary}`).join('\n'));
 				

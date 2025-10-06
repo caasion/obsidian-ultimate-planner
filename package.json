@@ -20,6 +20,7 @@
 		"builtin-modules": "3.3.0",
 		"esbuild": "^0.25.8",
 		"esbuild-svelte": "^0.9.3",
+		"ical.js": "^2.2.1",
 		"obsidian": "latest",
 		"svelte": "^5.38.0",
 		"svelte-check": "^4.3.1",
