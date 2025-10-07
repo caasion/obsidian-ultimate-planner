@@ -42,7 +42,11 @@ export interface CalendarBlob {
     events: NormalizedEvent[];
     index: Record<ISODate, string[]> // Dictionary of ISODates and Event IDs
     eventsById: Record<string, NormalizedEvent>
+}
 
+export interface CalendarState {
+    status: "idle" | "fetching" | "unchanged" | "updated" | "error";
+    lastError?: string;
 }
 
 export interface NormalizedEvent {

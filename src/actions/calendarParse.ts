@@ -8,11 +8,12 @@ import { get } from "svelte/store";
 
 export function parseICS(ics: string, calendarId: string): NormalizedEvent[] {
     const icalExpander = new IcalExpander({ics, maxIterations: 10})
+    // TODO: Handle iterations
 
     const results = icalExpander.all();
 
     const mappedEvents: NormalizedEvent[] = results.events.map(e => normalizeEvent(e, calendarId)); // only contains one-off events
-    const mappedOccurrences = results.occurrences.map(o => normalizeOccurrenceEvent(o, calendarId));
+    const mappedOccurrences: NormalizedEvent[] = results.occurrences.map(o => normalizeOccurrenceEvent(o, calendarId));
     const allEvents = [...mappedEvents, ...mappedOccurrences]; // contains recurring events
 
     return allEvents;

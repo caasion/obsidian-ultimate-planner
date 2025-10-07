@@ -12,7 +12,6 @@ export function shouldFetch(fetchInterval: number, lastFetched?: number, ): bool
 
 export async function fetchFromUrl(url: string): Promise<RequestUrlResponse> {
     if (!url) {
-        new Notice("No URL to fetch");
         throw new Error("No URL to fetch");
     }
 

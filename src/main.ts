@@ -4,7 +4,7 @@ import { UltimatePlannerPluginTab } from './ui/SettingsTab';
 import { plannerStore } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
 import { DEFAULT_SETTINGS, EMPTY_PLANNER, type NormalizedEvent, type PluginData, type PluginSettings } from './types';
-import { calendarStore } from './state/calendarStore';
+import { calendarState, calendarStore } from './state/calendarStore';
 import { fetchFromUrl, hashText, detectFetchChange, shouldFetch, stripICSVariance } from './actions/calendarFetch';
 import IcalExpander from 'ical-expander';
 import { buildEventDictionaries, getEvents, normalizeEvent, normalizeOccurrenceEvent, parseICS } from './actions/calendarParse';
@@ -14,9 +14,14 @@ export default class UltimatePlannerPlugin extends Plugin {
 	private saveTimer: number | null = null;
 	private plannerSubscription: Unsubscriber;
 	private calendarSubscription: Unsubscriber;
+	private _calendarStateSubscription: Unsubscriber;
 
 	async onload() {
 		await this.loadPersisted();
+
+		// Set default Calendar State
+		calendarState.update(() => { return { status: "idle" } });
+
 		// Add debug command
 		this.addCommand({
 			id: 'debug-log-snaposhot',
@@ -25,6 +30,8 @@ export default class UltimatePlannerPlugin extends Plugin {
 				console.log(this.snapshot())
 			}
 		});
+
+		this._calendarStateSubscription = calendarState.subscribe((state) => console.log(state));
 
 		this.addCommand({
 			id: 'debug-fetch-url',
@@ -37,19 +44,31 @@ export default class UltimatePlannerPlugin extends Plugin {
 					return;
 				}
 
+				calendarState.update(state => { return { ...state, status: "fetching" } });
+
+				try {
+					const response = await fetchFromUrl(this.settings.remoteCalendarUrl); // TODO: I probably need to catch this error now
+
+					const contentHash = await hashText(stripICSVariance(response.text));
 				
-				const response = await fetchFromUrl(this.settings.remoteCalendarUrl); // TODO: I probably need to catch this error now
+					if (detectFetchChange(response, contentHash)) {
+						const allEvents = parseICS(response.text, "hi");
 
-				const contentHash = await hashText(stripICSVariance(response.text));
-				
-				if (detectFetchChange(response, contentHash)) {
-					const allEvents = parseICS(response.text, "hi");
+						const { index, eventsById } = buildEventDictionaries(allEvents);
 
-					const { index, eventsById } = buildEventDictionaries(allEvents);
+						calendarStore.update(cal => {
+							return {...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), events: allEvents, contentHash, index, eventsById}
+						}) // QUESTION: Do we really need to store allEvents? Can't we just discard it after indexing and sorting by id?
 
-					calendarStore.update(cal => {
-						return {...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), contentHash, index, eventsById}
-					})
+						calendarState.update(state => { return { ...state, status: "updated" } });
+						
+					} else {
+						calendarState.update(state => { return { ...state, status: "unchanged" } });
+					}
+				} catch (error) {
+					calendarState.update(() => { return { status: "error", lastError: error } });
+					new Notice("An error occured while fetching. See console for details");
+					console.error("An error occured while fetching:", error.message)
 				}
 		}
 		});
@@ -74,6 +93,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 		// Unsubscribe to stores
 		this.plannerSubscription();
 		this.calendarSubscription();
+		this._calendarStateSubscription();
 
 		await this.flushSave(); // Save immediately
 	}
