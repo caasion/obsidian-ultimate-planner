@@ -1,5 +1,4 @@
 import type { Day } from "date-fns";
-import type Time from "ical.js/dist/types/time";
 
 /* Plugin Data Types */
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
@@ -23,7 +22,7 @@ export interface PluginData {
     version: number;
     settings: PluginSettings;
     planner: PlannerState;
-    calendar: CalendarCache;
+    calendar: CalendarBlob;
 }
 
 export interface PluginSettings {
@@ -34,17 +33,23 @@ export interface PluginSettings {
     refreshRemoteMs: number;
 }
 
-export interface CalendarCache {
+export interface CalendarBlob {
+    url: string;
     etag?: string;
-    lastModified?: string;
     lastFetched?: number;
+    lastModified?: string;
     contentHash?: string;
+    events: NormalizedEvent[];
+    index: Record<ISODate, string[]> // Dictionary of ISODates and Event IDs
+    eventsById: Record<string, NormalizedEvent>
+
 }
 
 export interface NormalizedEvent {
     id: string;
-    start: Time;
-    end: Time;
+    recurrId?: Date;
+    start: Date;
+    end: Date;
     allDay: boolean;
     summary: string;
     location?: string;
