@@ -14,6 +14,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 	private saveTimer: number | null = null;
 	private plannerSubscription: Unsubscriber;
 	private calendarSubscription: Unsubscriber;
+	private refreshToken = 0;
 	private _calendarStateSubscription: Unsubscriber;
 
 	async onload() {
@@ -50,8 +51,12 @@ export default class UltimatePlannerPlugin extends Plugin {
 			id: 'debug-full-pipeline',
 			name: 'Debug: Full Pipeline - Manual',
 			callback: async () => {
-				const calendar = get(calendarStore);
+				// Set up variables to check if we should fetch or continue to fetch
 				const status = get(calendarState).status;
+				const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
+				const startUrl = this.settings.remoteCalendarUrl;
+
+				console.log(startUrl);
 
 				// Check if we should fetch; bail if currently fetching
 				if (status === "fetching") return; 
@@ -69,8 +74,25 @@ export default class UltimatePlannerPlugin extends Plugin {
 						return {...cache, lastFetched: Date.now()}
 					})
 
+					await new Promise(r => setTimeout(r, 5000))
+
 					// Prepare contentHash for detectFetchChange
 					const contentHash = await hashText(stripICSVariance(response.text));
+
+					// [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
+					if (myToken !== this.refreshToken) {
+						console.warn("Fetch request is stale. Aborted.");
+						calendarState.set({ status: "unchanged" });
+						return;
+					};
+
+					// [GUARD] If the old URL is different from the current one, the URL changed and we should drop the fetch
+					if (startUrl !== this.settings.remoteCalendarUrl) {
+						new Notice("URL changed during fetch. Please fetch again.");
+						console.warn("URL changed during fetch. Aborted.");
+						calendarState.set({ status: "unchanged" });
+						return;
+					};
 					
 					// Check if response has changed from calendarStore
 					if (detectFetchChange(response, contentHash)) {
