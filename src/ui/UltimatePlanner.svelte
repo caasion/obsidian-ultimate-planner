@@ -42,20 +42,31 @@
 		return events;
 	}
 
-	function getEventLabels(events: NormalizedEvent[]): string {
-		return events.map(event => getEventLabel(event)).join("\n");
+	function getEventLabels(events: NormalizedEvent[]): string[] {
+		return events.map(event => getEventLabel(event));
 	}
 
 	function getEventLabel(event: NormalizedEvent): string {
-		console.log("I'm getting the labels!!!")
 		if (event.allDay) {
 			return `${event.summary}`
 		} else {
-			return `${event.summary} @ ${event.start} `
+			const start = format(event.start, "HH:mm")
+			return `${event.summary} @ ${start} (${getDurationAsString(event.start, event.end)})`
 		}
 		
 	}
 
+	function getDurationAsString(start: Date, end: Date): string {
+		let diff: number = differenceInMinutes(end, start)
+		let units: string = "min";
+
+		if (diff % 60 == 0) {
+			diff /= 60;
+			units = "hr";
+		}
+
+		return `${diff} ${units}`
+	}
 
 	/* Create Action Item */
 
@@ -165,7 +176,7 @@
 		</div>
 		<div class="row">
 			{#each isoDates[w] as date}
-				<div class="date-label">{getEventLabels(getEvents(date)))}</div>
+				<div class="date-label">{getEventLabels(getEvents(date))}</div>
 			{/each}
 		</div>
 		{#each rows as rowID, i (rowID)}
