@@ -1,6 +1,5 @@
 import { Notice, requestUrl, type RequestUrlResponse } from "obsidian";
 import { calendarStore } from "src/state/calendarStore";
-import type { CalendarCache } from "src/types";
 import { get } from "svelte/store";
 
 export function shouldFetch(fetchInterval: number, lastFetched?: number, ): boolean {
