@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
-	import { format, parseISO } from "date-fns";
+	import { differenceInMinutes, format, parseISO } from "date-fns";
 	import { tick } from "svelte";
 	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
@@ -32,7 +32,7 @@
 	}
 
 	/* Reactive: getEvents */
-	export function getEvents(date: ISODate): NormalizedEvent[] {
+	function getEvents(date: ISODate): NormalizedEvent[] {
 		const calendar = $calendarStore;
 		const IDs = calendar.index[date] ?? [];
 		let events: NormalizedEvent[] = [];
@@ -40,7 +40,22 @@
 		IDs.forEach(id => events.push(calendar.eventsById[id]));
 
 		return events;
-}
+	}
+
+	function getEventLabels(events: NormalizedEvent[]): string {
+		return events.map(event => getEventLabel(event)).join("\n");
+	}
+
+	function getEventLabel(event: NormalizedEvent): string {
+		console.log("I'm getting the labels!!!")
+		if (event.allDay) {
+			return `${event.summary}`
+		} else {
+			return `${event.summary} @ ${event.start} `
+		}
+		
+	}
+
 
 	/* Create Action Item */
 
@@ -150,7 +165,7 @@
 		</div>
 		<div class="row">
 			{#each isoDates[w] as date}
-				<div class="date-label">{getEvents(date)}</div>
+				<div class="date-label">{getEventLabels(getEvents(date)))}</div>
 			{/each}
 		</div>
 		{#each rows as rowID, i (rowID)}
