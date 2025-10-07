@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS, EMPTY_PLANNER, type NormalizedEvent, type PluginData,
 import { calendarStore } from './state/calendarStore';
 import { fetchFromUrl, hashText, detectFetchChange, shouldFetch, stripICSVariance } from './actions/calendarFetch';
 import IcalExpander from 'ical-expander';
-import { normalizeEvent, normalizeOccurrenceEvent, parseICS } from './actions/calendarParse';
+import { buildEventDictionaries, getEvents, normalizeEvent, normalizeOccurrenceEvent, parseICS } from './actions/calendarParse';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
@@ -54,8 +54,17 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 				const allEvents = parseICS(response.text, "hi");
 
-				console.log(allEvents.map(e => `${e.start.toJSDate().toISOString()} - ${e.summary}`).join('\n'));
-				
+				console.log(allEvents);
+
+				const { index, eventsById } = buildEventDictionaries(allEvents);
+
+				calendarStore.update(cal => {
+					return {...cal, index, eventsById} 
+				})
+
+				console.log(getEvents("2025-10-13"));
+				console.log(getEvents("2025-10-14"));
+
 				if (await detectFetchChange(response)) {
 					console.log("hey! something changed... you should update the cache.")
 				}

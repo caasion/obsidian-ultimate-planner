@@ -48,3 +48,34 @@ export function normalizeOccurrenceEvent(occurance: occurrenceDetails, calendarI
         calendarId
     }
 }
+
+export function buildEventDictionaries(events: NormalizedEvent[]) {
+    const index: Record<ISODate, string[]> = {};
+
+    events.forEach(e => {
+        const date = format(e.start, "yyyy-MM-dd");
+        index[date] ??= []
+        index[date].push(e.id);
+    })
+
+    const eventsById: Record<string, NormalizedEvent> = {};
+
+    events.forEach(e => {
+        eventsById[e.id] = e;
+    })
+
+    return { index, eventsById };
+
+}
+
+export function getEvents(date: ISODate): NormalizedEvent[] {
+    const calendar = get(calendarStore);
+    
+    const IDs = calendar.index[date];
+
+    let events: NormalizedEvent[] = [];
+
+    IDs.forEach(id => events.push(calendar.eventsById[id]));
+
+    return events;
+}
