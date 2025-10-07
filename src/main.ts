@@ -65,6 +65,10 @@ export default class UltimatePlannerPlugin extends Plugin {
 					const response = await fetchFromUrl(this.settings.remoteCalendarUrl); 	
 
 					// Update lastFetched status in store
+					calendarStore.update(cache => {
+						return {...cache, lastFetched: Date.now()}
+					})
+
 					// Prepare contentHash for detectFetchChange
 					const contentHash = await hashText(stripICSVariance(response.text));
 					
@@ -79,10 +83,10 @@ export default class UltimatePlannerPlugin extends Plugin {
 							return {...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), events: allEvents, contentHash, index, eventsById}
 						}) // QUESTION: Do we really need to store allEvents? Can't we just discard it after indexing and sorting by id?
 
-						calendarState.update(state => { return { ...state, status: "updated" } });
+						calendarState.set({ status: "updated" });
 						
 					} else {
-						calendarState.update(state => { return { ...state, status: "unchanged" } });
+						calendarState.set({ status: "unchanged" });
 					}
 				} catch (error) {
 					calendarState.update(() => { return { status: "error", lastError: error } });
