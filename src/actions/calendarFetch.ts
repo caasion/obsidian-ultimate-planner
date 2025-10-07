@@ -2,7 +2,8 @@ import { Notice, requestUrl, type RequestUrlResponse } from "obsidian";
 import { calendarStore } from "src/state/calendarStore";
 import { get } from "svelte/store";
 
-export function shouldFetch(fetchInterval: number, lastFetched?: number, ): boolean {
+/** Checks whether if we should fetch based on a time-guard (fetchInterval). */
+export function shouldFetch(fetchInterval: number, lastFetched?: number): boolean {
     if (!lastFetched) return true;
 
     if (Date.now() - lastFetched > fetchInterval) return true;
@@ -10,6 +11,9 @@ export function shouldFetch(fetchInterval: number, lastFetched?: number, ): bool
     return false;
 }
 
+/** Using Obsidian's requestUrl(), attempt to fetch with headers.
+ * Throws errors, must be handled.
+ */
 export async function fetchFromUrl(url: string): Promise<RequestUrlResponse> {
     if (!url) {
         throw new Error("No URL to fetch");
@@ -26,10 +30,6 @@ export async function fetchFromUrl(url: string): Promise<RequestUrlResponse> {
             }
         });
 
-        calendarStore.update(cache => {
-            return {...cache, lastFetched: Date.now()}
-        })
-
         return response;
         
     } catch (error) {
@@ -37,29 +37,27 @@ export async function fetchFromUrl(url: string): Promise<RequestUrlResponse> {
     }
 }
 
+/** Based on headers (response.status) and contentHash (fallback), 
+ * determines if response has changed from calendarStore. */
 export function detectFetchChange(response: RequestUrlResponse, contentHash: string): boolean {
     const calendar = get(calendarStore)
     const contentChanged: boolean = contentHash != calendar.contentHash;
 
     if (response.status == 200 && contentChanged) {
-        // console.log("The calendar contents changed!");
-
         return true;
-        
     } else if (response.status == 304 || !contentChanged) {
-        // console.log("Nothing changed!")
-
         return false;
     } 
 
     return false;
 }
 
+/** Removes "DTSTAMP:..." from ICS. (Otherwise, the ICS varies every fetch and breaks detectFetchChange) */
 export function stripICSVariance(text: string): string {
-    // Remove "DTSTAMP:..." line because it breaks the hashing
     return text.replace(/DTSTAMP:.*\r\n/gm, ""); 
 }
 
+/** Hash a string using SHA-1. */
 export async function hashText(text: string): Promise<string> {
   const data = new TextEncoder().encode(text);
   const buf = await crypto.subtle.digest('SHA-1', data);

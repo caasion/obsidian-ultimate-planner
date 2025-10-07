@@ -6,6 +6,7 @@ import { calendarStore } from "src/state/calendarStore";
 import type { ISODate, NormalizedEvent } from "src/types";
 import { get } from "svelte/store";
 
+/** Converts an ICS string into a list of events with details. */
 export function parseICS(ics: string, calendarId: string): NormalizedEvent[] {
     const icalExpander = new IcalExpander({ics, maxIterations: 10})
     // TODO: Handle iterations
@@ -50,6 +51,7 @@ export function normalizeOccurrenceEvent(occurance: occurrenceDetails, calendarI
     }
 }
 
+/** Builds a record of Date-EventIDs and EventId-NormalizedEvent for quick look-up. O(1) */
 export function buildEventDictionaries(events: NormalizedEvent[]) {
     const index: Record<ISODate, string[]> = {};
 
@@ -69,6 +71,7 @@ export function buildEventDictionaries(events: NormalizedEvent[]) {
 
 }
 
+/** Reads from calendarStore and returns a list of events (with details) for a specific date. */
 export function getEvents(date: ISODate): NormalizedEvent[] {
     const calendar = get(calendarStore);
     const IDs = calendar.index[date] ?? [];
