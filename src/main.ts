@@ -27,8 +27,8 @@ export default class UltimatePlannerPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'debug-fetch-url-check',
-			name: 'Debug: Fetch URL & Check',
+			id: 'debug-fetch-url',
+			name: 'Debug: Fetch from URL, Conditionally Cache, Parse, Index',
 			callback: async () => {
 				const calendar = get(calendarStore);
 
@@ -39,34 +39,17 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 				
 				const response = await fetchFromUrl(this.settings.remoteCalendarUrl); // TODO: I probably need to catch this error now
+
+				const contentHash = await hashText(stripICSVariance(response.text));
 				
-				if (await detectFetchChange(response)) {
-					console.log("hey! something changed... you should update the cache.")
-				}
-		}
-		});
+				if (detectFetchChange(response, contentHash)) {
+					const allEvents = parseICS(response.text, "hi");
 
-		this.addCommand({
-			id: 'debug-fetch-url-parse',
-			name: 'Debug: Fetch URL & Parse',
-			callback: async () => {				
-				const response = await fetchFromUrl(this.settings.remoteCalendarUrl); // TODO: I probably need to catch this error now
+					const { index, eventsById } = buildEventDictionaries(allEvents);
 
-				const allEvents = parseICS(response.text, "hi");
-
-				console.log(allEvents);
-
-				const { index, eventsById } = buildEventDictionaries(allEvents);
-
-				calendarStore.update(cal => {
-					return {...cal, index, eventsById} 
-				})
-
-				console.log(getEvents("2025-10-13"));
-				console.log(getEvents("2025-10-14"));
-
-				if (await detectFetchChange(response)) {
-					console.log("hey! something changed... you should update the cache.")
+					calendarStore.update(cal => {
+						return {...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), contentHash, index, eventsById}
+					})
 				}
 		}
 		});

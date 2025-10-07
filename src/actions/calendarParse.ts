@@ -70,9 +70,7 @@ export function buildEventDictionaries(events: NormalizedEvent[]) {
 
 export function getEvents(date: ISODate): NormalizedEvent[] {
     const calendar = get(calendarStore);
-    
-    const IDs = calendar.index[date];
-
+    const IDs = calendar.index[date] ?? [];
     let events: NormalizedEvent[] = [];
 
     IDs.forEach(id => events.push(calendar.eventsById[id]));

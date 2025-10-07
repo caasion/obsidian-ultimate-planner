@@ -38,18 +38,12 @@ export async function fetchFromUrl(url: string): Promise<RequestUrlResponse> {
     }
 }
 
-export async function detectFetchChange(response: RequestUrlResponse): Promise<boolean> {
-    const contentHash = await hashText(stripICSVariance(response.text));
+export function detectFetchChange(response: RequestUrlResponse, contentHash: string): boolean {
     const calendar = get(calendarStore)
-
     const contentChanged: boolean = contentHash != calendar.contentHash;
 
     if (response.status == 200 && contentChanged) {
-        // console.log("The calendar contents changed! Updated cache!");
-
-        calendarStore.update(cache => {
-            return {...cache, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? "", contentHash: contentHash}
-        })
+        // console.log("The calendar contents changed!");
 
         return true;
         
