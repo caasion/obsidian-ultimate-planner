@@ -2,7 +2,6 @@
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
 	import { format, parseISO } from "date-fns";
-	import type { ISODate } from "../types/types";
 	import { tick } from "svelte";
 	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
@@ -10,18 +9,19 @@
 	import { setCell, getCell } from "../actions/cellActions";
 	import { newActionItem, openActionItemContextMenu, } from "src/actions/itemActions";
 	import { getISODate, generateID, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
-	import type { UltimatePlannerInnerSettings } from "../types/settings";
+	import type { ISODate, NormalizedEvent, PluginSettings } from "src/types";
+	import { calendarStore } from "src/state/calendarStore";
 
 	interface ViewProps {
 		app: App;
-		settings: UltimatePlannerInnerSettings;
+		settings: PluginSettings;
 	}
 
 	let { app, settings }: ViewProps = $props();
 
 	const DEFAULT_COLOR = "#cccccc";
 
-	/* Template Store Reactivity */
+	/* Reactive: templateStoreForDate */
 	function templateStoreForDate(date: ISODate) {
 		let best: ISODate | null = null;
 		const templates = $plannerStore.templates;
@@ -30,6 +30,17 @@
 		}
 		return best ? JSON.parse(JSON.stringify(templates[best])) : [];
 	}
+
+	/* Reactive: getEvents */
+	export function getEvents(date: ISODate): NormalizedEvent[] {
+		const calendar = $calendarStore;
+		const IDs = calendar.index[date] ?? [];
+		let events: NormalizedEvent[] = [];
+
+		IDs.forEach(id => events.push(calendar.eventsById[id]));
+
+		return events;
+}
 
 	/* Create Action Item */
 
@@ -135,6 +146,11 @@
 		<div class="row">
 			{#each isoDates[w] as date}
 				<div class="date-label">{format(parseISO(date), "dd")}</div>
+			{/each}
+		</div>
+		<div class="row">
+			{#each isoDates[w] as date}
+				<div class="date-label">{getEvents(date)}</div>
 			{/each}
 		</div>
 		{#each rows as rowID, i (rowID)}
