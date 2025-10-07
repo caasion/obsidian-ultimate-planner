@@ -176,7 +176,11 @@
 		</div>
 		<div class="row">
 			{#each isoDates[w] as date}
-				<div class="date-label">{getEventLabels(getEvents(date))}</div>
+				<div class="cell">
+					{#each getEventLabels(getEvents(date)) as label}
+						<p>{label}</p>
+					{/each}
+				</div>
 			{/each}
 		</div>
 		{#each rows as rowID, i (rowID)}
@@ -308,5 +312,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+	}
+
+	.cell p {
+		margin: 0px;
 	}
 </style>
