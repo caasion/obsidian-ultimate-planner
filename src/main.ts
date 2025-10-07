@@ -34,24 +34,43 @@ export default class UltimatePlannerPlugin extends Plugin {
 		this._calendarStateSubscription = calendarState.subscribe((state) => console.log(state));
 
 		this.addCommand({
-			id: 'debug-fetch-url',
-			name: 'Debug: Fetch from URL, Conditionally Cache, Parse, Index',
-			callback: async () => {
+			id: 'debug-should-fetch',
+			name: 'Debug: Test shouldFetch Function',
+			callback: () => {
 				const calendar = get(calendarStore);
 
-				if (!shouldFetch(this.settings.refreshRemoteMs, calendar.lastFetched ?? undefined)) {
+				if (!shouldFetch(this.settings.refreshRemoteMs, calendar.lastFetched)) {
 					console.log("wait a bit more bruh", (calendar.lastFetched ?? 0) - Date.now())
 					return;
 				}
+			}
+		})
 
-				calendarState.update(state => { return { ...state, status: "fetching" } });
+		this.addCommand({
+			id: 'debug-full-pipeline',
+			name: 'Debug: Full Pipeline - Manual',
+			callback: async () => {
+				const calendar = get(calendarStore);
+				const status = get(calendarState).status;
 
-				try {
-					const response = await fetchFromUrl(this.settings.remoteCalendarUrl); // TODO: I probably need to catch this error now
+				// Check if we should fetch; bail if currently fetching
+				if (status === "fetching") return; 
 
+				// Otherwise, set store to 'fetching' and clear lastError
+				calendarState.set({ status: "fetching" });
+
+				// We are not going to use the time-guarded shouldFetch for the manual fetching
+
+				try { // Wrap in try because fetchFromUrl throws Exception
+					const response = await fetchFromUrl(this.settings.remoteCalendarUrl); 	
+
+					// Update lastFetched status in store
+					// Prepare contentHash for detectFetchChange
 					const contentHash = await hashText(stripICSVariance(response.text));
-				
+					
+					// Check if response has changed from calendarStore
 					if (detectFetchChange(response, contentHash)) {
+						// Parse events, build dictionaries, update calendarStore, and update calendarState status
 						const allEvents = parseICS(response.text, "hi");
 
 						const { index, eventsById } = buildEventDictionaries(allEvents);
@@ -141,8 +160,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 				console.error("[UP] save FAILED", e);
 			}
 		}, 400);
-		};
-
+	}
 
 	private async flushSave() {
 		if (this.saveTimer) {
