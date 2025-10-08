@@ -11,10 +11,19 @@ export interface ActionItemMeta {
     active?: boolean;
 }
 
+export interface CalendarMeta {
+    label: string;
+    color: string;
+    url: string;
+}
+
 export interface PlannerState {
     actionItems: Record<ActionItemID, ActionItemMeta>;
+    calendars: Record<ActionItemID, CalendarMeta>;
     templates: Record<ISODate, ActionItemID[]>;
-    cells: Record<ISODate, Record<ActionItemID, string /* contents */>>; // Records are much more efficient objects for look-ups
+    // Records are much more efficient objects for look-ups
+    cells: Record<ISODate, Record<ActionItemID, string /* contents */>>; 
+    calendarCells: Record<ISODate, Record<ActionItemID, string /* contents */>>;
 }
 
 /* Data persistence */
@@ -80,5 +89,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 export const EMPTY_PLANNER: PlannerState = {
     actionItems: {},
     cells: {},
+    calendars: {},
+    calendarCells: {},
     templates: {}
 }
