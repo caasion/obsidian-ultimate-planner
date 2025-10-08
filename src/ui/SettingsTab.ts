@@ -71,18 +71,58 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
         //             })
         //     })
 
-        // new Setting(containerEl)
-        //     .setName('Remote Calendar Refresh Interval')
-        //     .addSlider(slider => 
-        //         slider
-        //             .setDynamicTooltip()
-        //             .setLimits(1, 10, 1)
-        //             .setValue(this.plugin.settings.settings.refreshRemote)
-        //             .onChange(async (value) => {
-        //                 this.plugin.settings.settings.refreshRemote = value;
-        //                 await this.plugin.saveSettings();
-        //             })
-        //     )
+        new Setting(containerEl)
+            .setName('Remote Calendar Refresh Interval (min)')
+            .addSlider(slider => 
+                slider
+                    .setDynamicTooltip()
+                    .setLimits(1, 10, 1)
+                    // Display as minutes by dividing when displaying and multiply when saving
+                    .setValue(this.plugin.settings.refreshRemoteMs / 60 / 1000)
+                    .onChange(async (value) => {
+                        this.plugin.settings.refreshRemoteMs = value * 60 * 1000;
+                        await this.plugin.queueSave();
+                    })
+            )
+
+        new Setting(containerEl)
+            .setName('Archive Past Events')
+            .addToggle(toggle => 
+                toggle
+                    .setValue(this.plugin.settings.archivePastEvents)
+                    .onChange(async (value) => {
+                        this.plugin.settings.archivePastEvents = value;
+                        await this.plugin.queueSave(); 
+                    })
+            )
+
+        new Setting(containerEl)
+            .setName('Grace Days')
+            .setDesc('The number of days back, from today, where remote events still update from fetches.')
+            .addSlider(slider => 
+                slider
+                    .setDynamicTooltip()
+                    .setLimits(0, 7, 1)
+                    .setValue(this.plugin.settings.graceDays)
+                    .onChange(async (value) => {
+                        this.plugin.settings.graceDays = value;
+                        await this.plugin.queueSave();
+                    })
+            )
+        
+            new Setting(containerEl)
+            .setName('Retention Months')
+            .setDesc('How far back (in months) remote events should be retained.')
+            .addSlider(slider => 
+                slider
+                    .setDynamicTooltip()
+                    .setLimits(1, 6, 1)
+                    .setValue(this.plugin.settings.retentionMonths)
+                    .onChange(async (value) => {
+                        this.plugin.settings.retentionMonths = value;
+                        await this.plugin.queueSave();
+                    })
+            )
     }
 
     hide(): void {
