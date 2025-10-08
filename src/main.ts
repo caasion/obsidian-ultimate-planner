@@ -3,12 +3,13 @@ import { PLANNER_VIEW_TYPE, PlannerView } from './ui/PlannerView';
 import { UltimatePlannerPluginTab } from './ui/SettingsTab';
 import { plannerStore } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
-import { DEFAULT_SETTINGS, EMPTY_PLANNER, type NormalizedEvent, type PluginData, type PluginSettings } from './types';
+import { DEFAULT_SETTINGS, EMPTY_PLANNER, type ActionItemID, type NormalizedEvent, type PluginData, type PluginSettings } from './types';
 import { calendarState, calendarStore } from './state/calendarStore';
 import { fetchFromUrl, hashText, detectFetchChange, shouldFetch, stripICSVariance } from './actions/calendarFetch';
 import IcalExpander from 'ical-expander';
-import { buildEventDictionaries, getEvents, normalizeEvent, normalizeOccurrenceEvent, parseICS } from './actions/calendarParse';
+import { buildEventDictionaries, getEvents, normalizeEvent, normalizeOccurrenceEvent, parseICS, parseICSBetween } from './actions/calendarParse';
 import { getEventLabels } from './actions/calendarFreeze';
+import { addDays } from 'date-fns';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
@@ -17,6 +18,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 	private calendarSubscription: Unsubscriber;
 	private refreshToken = 0;
 	private _calendarStateSubscription: Unsubscriber;
+	private _defaultCalendar: ActionItemID = "cal-abcdefji-fsdkj-fjdskl";
 
 	async onload() {
 		await this.loadPersisted();
@@ -133,11 +135,101 @@ export default class UltimatePlannerPlugin extends Plugin {
 							...store,
 							calendarCells: {
 								...get(plannerStore).calendarCells,
-								[date]: { ["cal-abcdefji-fsdkj-fjdskl"]: labels}
+								[date]: { [this._defaultCalendar]: labels}
 							}
 						}
 					})
 				})
+				
+			}
+		})
+
+		this.addCommand({
+			id: 'debug-fetch-freeze',
+			name: 'Debug: Fetch (Full Pipeline) and Freeze',
+			callback: async () => {
+				// Set up variables to check if we should fetch or continue to fetch
+				const status = get(calendarState).status;
+				const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
+				const startUrl = this.settings.remoteCalendarUrl;
+
+				// Check if we should fetch; bail if currently fetching
+				if (status === "fetching") return; 
+
+				// Otherwise, set store to 'fetching' and clear lastError
+				calendarState.set({ status: "fetching" });
+
+				// We are not going to use the time-guarded shouldFetch for the manual fetching
+
+				try { // Wrap in try because fetchFromUrl throws Exception
+					const response = await fetchFromUrl(this.settings.remoteCalendarUrl); 	
+
+					// Update lastFetched status in store
+					calendarStore.update(cache => {
+						return {...cache, lastFetched: Date.now()}
+					})
+
+					// Prepare contentHash for detectFetchChange
+					const contentHash = await hashText(stripICSVariance(response.text));
+
+					// [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
+					if (myToken !== this.refreshToken) {
+						console.warn("Fetch request is stale. Aborted.");
+						calendarState.set({ status: "unchanged" });
+						return;
+					};
+
+					// [GUARD] If the old URL is different from the current one, the URL changed and we should drop the fetch
+					if (startUrl !== this.settings.remoteCalendarUrl) {
+						new Notice("URL changed during fetch. Please fetch again.");
+						console.warn("URL changed during fetch. Aborted.");
+						calendarState.set({ status: "unchanged" });
+						return;
+					};
+					
+					// Check if response has changed from calendarStore
+					if (detectFetchChange(response, contentHash)) {
+						const after = addDays(Date.now(), -this.settings.graceDays)
+						const before = addDays(Date.now(), 60)
+						// TODO: Make this round to the nearest day, instead of caring bout time
+
+						// Parse ALL events, build dictionaries, and freeze
+						const allEvents = parseICS(response.text, this._defaultCalendar);
+
+						const { index, eventsById } = buildEventDictionaries(allEvents);
+
+						Object.keys(index).forEach(date => {
+							const labels = getEventLabels(getEvents(date));
+
+							plannerStore.update(store => {
+								return {
+									...store,
+									calendarCells: {
+										...get(plannerStore).calendarCells,
+										[date]: { [this._defaultCalendar]: labels}
+									}
+								}
+							})
+						})
+					
+						// Parse events (between dates), build dictionaries, update calendarStore, and update calendarState status
+						const allEventsBetween = parseICSBetween(response.text, this._defaultCalendar, after, before);
+
+						
+						calendarStore.update(cal => {
+							return {...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), events: allEvents, contentHash, index, eventsById}
+						}) // QUESTION: Do we really need to store allEvents? Can't we just discard it after indexing and sorting by id?
+
+						calendarState.set({ status: "updated" });
+						
+					} else {
+						calendarState.set({ status: "unchanged" });
+					}
+				} catch (error) {
+					calendarState.update(() => { return { status: "error", lastError: error } });
+					new Notice("An error occured while fetching. See console for details");
+					console.error("An error occured while fetching:", error.message)
+				}
 				
 			}
 		})
