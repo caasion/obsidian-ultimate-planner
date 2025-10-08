@@ -1,3 +1,6 @@
+import type { Day } from "date-fns";
+
+/* Plugin Data Types */
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
 
 export type ActionItemID = string;

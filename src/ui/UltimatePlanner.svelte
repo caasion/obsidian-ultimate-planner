@@ -1,8 +1,7 @@
 <script lang="ts">
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
-	import { format, parseISO } from "date-fns";
-	import type { ISODate } from "../types";
+	import { differenceInMinutes, format, parseISO } from "date-fns";
 	import { tick } from "svelte";
 	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
@@ -10,18 +9,19 @@
 	import { setCell, getCell } from "../actions/cellActions";
 	import { newActionItem, openActionItemContextMenu, } from "src/actions/itemActions";
 	import { getISODate, generateID, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
-	import type { UltimatePlannerInnerSettings } from "../settings";
+	import type { ISODate, NormalizedEvent, PluginSettings } from "src/types";
+	import { calendarStore } from "src/state/calendarStore";
 
 	interface ViewProps {
 		app: App;
-		settings: UltimatePlannerInnerSettings;
+		settings: PluginSettings;
 	}
 
 	let { app, settings }: ViewProps = $props();
 
 	const DEFAULT_COLOR = "#cccccc";
 
-	/* Template Store Reactivity */
+	/* Reactive: templateStoreForDate */
 	function templateStoreForDate(date: ISODate) {
 		let best: ISODate | null = null;
 		const templates = $plannerStore.templates;
@@ -29,6 +29,43 @@
 			if (key <= date && (best === null || key > best)) best = key;
 		}
 		return best ? JSON.parse(JSON.stringify(templates[best])) : [];
+	}
+
+	/* Reactive: getEvents */
+	function getEvents(date: ISODate): NormalizedEvent[] {
+		const calendar = $calendarStore;
+		const IDs = calendar.index[date] ?? [];
+		let events: NormalizedEvent[] = [];
+
+		IDs.forEach(id => events.push(calendar.eventsById[id]));
+
+		return events;
+	}
+
+	function getEventLabels(events: NormalizedEvent[]): string[] {
+		return events.map(event => getEventLabel(event));
+	}
+
+	function getEventLabel(event: NormalizedEvent): string {
+		if (event.allDay) {
+			return `${event.summary}`
+		} else {
+			const start = format(event.start, "HH:mm")
+			return `${event.summary} @ ${start} (${getDurationAsString(event.start, event.end)})`
+		}
+		
+	}
+
+	function getDurationAsString(start: Date, end: Date): string {
+		let diff: number = differenceInMinutes(end, start)
+		let units: string = "min";
+
+		if (diff % 60 == 0) {
+			diff /= 60;
+			units = "hr";
+		}
+
+		return `${diff} ${units}`
 	}
 
 	/* Create Action Item */
@@ -135,6 +172,15 @@
 		<div class="row">
 			{#each isoDates[w] as date}
 				<div class="date-label">{format(parseISO(date), "dd")}</div>
+			{/each}
+		</div>
+		<div class="row">
+			{#each isoDates[w] as date}
+				<div class="cell">
+					{#each getEventLabels(getEvents(date)) as label}
+						<p>{label}</p>
+					{/each}
+				</div>
 			{/each}
 		</div>
 		{#each rows as rowID, i (rowID)}
@@ -266,5 +312,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+	}
+
+	.cell p {
+		margin: 0px;
 	}
 </style>
