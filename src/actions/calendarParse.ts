@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import IcalExpander from "ical-expander";
 import ICAL from "ical.js";
 import type { occurrenceDetails } from "ical.js/dist/types/event";
-import { calendarStore } from "src/state/calendarStore";
+import { calendarStore } from "../state/calendarStore";
 import type { ISODate, NormalizedEvent } from "src/types";
 import { get } from "svelte/store";
 
