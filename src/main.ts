@@ -169,7 +169,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 	private snapshot(): PluginData {
 		return {
-			version: 1,
+			version: 2,
 			settings: this.settings,
 			planner: get(plannerStore),
 			calendar: get(calendarStore)
