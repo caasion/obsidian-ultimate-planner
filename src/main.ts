@@ -8,6 +8,7 @@ import { calendarState, calendarStore } from './state/calendarStore';
 import { fetchFromUrl, hashText, detectFetchChange, shouldFetch, stripICSVariance } from './actions/calendarFetch';
 import IcalExpander from 'ical-expander';
 import { buildEventDictionaries, getEvents, normalizeEvent, normalizeOccurrenceEvent, parseICS } from './actions/calendarParse';
+import { getEventLabels } from './actions/calendarFreeze';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
@@ -118,6 +119,28 @@ export default class UltimatePlannerPlugin extends Plugin {
 		}
 		});
 		
+		this.addCommand({
+			id: 'debug-freeze-cache',
+			name: 'Debug: Freeze Cache',
+			callback: () => {
+				const calendar = get(calendarStore);
+
+				Object.keys(calendar.index).forEach(date => {
+					const labels = getEventLabels(getEvents(date));
+
+					plannerStore.update(store => {
+						return {
+							...store,
+							calendarCells: {
+								...get(plannerStore).calendarCells,
+								[date]: { ["cal-abcdefji-fsdkj-fjdskl"]: labels}
+							}
+						}
+					})
+				})
+				
+			}
+		})
 		// Add Settings Tab using Obsidian's API
 		this.addSettingTab(new UltimatePlannerPluginTab(this.app, this));
 

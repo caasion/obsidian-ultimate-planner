@@ -23,7 +23,7 @@ export interface PlannerState {
     templates: Record<ISODate, ActionItemID[]>;
     // Records are much more efficient objects for look-ups
     cells: Record<ISODate, Record<ActionItemID, string /* contents */>>; 
-    calendarCells: Record<ISODate, Record<ActionItemID, string /* contents */>>;
+    calendarCells: Record<ISODate, Record<ActionItemID, string[] >>;
 }
 
 /* Data persistence */
@@ -89,7 +89,13 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 export const EMPTY_PLANNER: PlannerState = {
     actionItems: {},
     cells: {},
-    calendars: {},
+    calendars: {
+        "cal-abcdefji-fsdkj-fjdskl": {
+            label: "Test Calendar",
+            color: "#cccccc",
+            url: ""
+        }
+    },
     calendarCells: {},
     templates: {}
 }

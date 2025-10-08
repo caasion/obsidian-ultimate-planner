@@ -53,7 +53,6 @@
 			const start = format(event.start, "HH:mm")
 			return `${event.summary} @ ${start} (${getDurationAsString(event.start, event.end)})`
 		}
-		
 	}
 
 	function getDurationAsString(start: Date, end: Date): string {
