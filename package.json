@@ -5,6 +5,7 @@
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
+		"force_build": "node esbuild.config.mjs production",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
@@ -19,6 +20,7 @@
 		"builtin-modules": "3.3.0",
 		"esbuild": "^0.25.8",
 		"esbuild-svelte": "^0.9.3",
+		"ical.js": "^2.2.1",
 		"obsidian": "latest",
 		"svelte": "^5.38.0",
 		"svelte-check": "^4.3.1",
@@ -32,6 +34,7 @@
 		"@milkdown/preset-commonmark": "^7.15.3",
 		"@milkdown/prose": "^7.15.3",
 		"@milkdown/theme-nord": "^7.15.3",
-		"date-fns": "^4.1.0"
+		"date-fns": "^4.1.0",
+		"ical-expander": "^3.2.0"
 	}
 }
