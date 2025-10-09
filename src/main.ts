@@ -17,7 +17,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 	private plannerSubscription: Unsubscriber;
 	private calendarSubscription: Unsubscriber;
 	private refreshToken = 0;
-	private _calendarStateSubscription: Unsubscriber;
+	// private _calendarStateSubscription: Unsubscriber;
 	private _defaultCalendar: ActionItemID = "cal-abcdefji-fsdkj-fjdskl";
 
 	async onload() {
@@ -35,7 +35,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 			}
 		});
 
-		this._calendarStateSubscription = calendarState.subscribe((state) => console.log(state));
+		// this._calendarStateSubscription = calendarState.subscribe((state) => console.log(state));
 
 		this.addCommand({
 			id: 'debug-should-fetch',
@@ -196,11 +196,11 @@ export default class UltimatePlannerPlugin extends Plugin {
 						// Parse ALL events, build dictionaries, and freeze
 						const allEvents = parseICS(response.text, this._defaultCalendar);
 
-						const { index, eventsById } = buildEventDictionaries(allEvents);
+						const { index: frozenIndex } = buildEventDictionaries(allEvents);
 
-						Object.keys(index).forEach(date => {
+						Object.keys(frozenIndex).forEach(date => {
 							const labels = getEventLabels(getEvents(date));
-
+ 
 							plannerStore.update(store => {
 								return {
 									...store,
@@ -215,9 +215,13 @@ export default class UltimatePlannerPlugin extends Plugin {
 						// Parse events (between dates), build dictionaries, update calendarStore, and update calendarState status
 						const allEventsBetween = parseICSBetween(response.text, this._defaultCalendar, after, before);
 
+						console.log(allEventsBetween)
+
+						const { index, eventsById } = buildEventDictionaries(allEventsBetween)
+
 						
 						calendarStore.update(cal => {
-							return {...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), events: allEvents, contentHash, index, eventsById}
+							return {...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), events: allEventsBetween, contentHash, index, eventsById}
 						}) // QUESTION: Do we really need to store allEvents? Can't we just discard it after indexing and sorting by id?
 
 						calendarState.set({ status: "updated" });
@@ -253,7 +257,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 		// Unsubscribe to stores
 		this.plannerSubscription();
 		this.calendarSubscription();
-		this._calendarStateSubscription();
+		// this._calendarStateSubscription();
 
 		await this.flushSave(); // Save immediately
 	}

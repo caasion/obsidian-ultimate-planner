@@ -174,9 +174,26 @@
 			{/each}
 		</div>
 		<div class="row">
-			{#each isoDates[w] as date}
+			{#each isoDates[w] as date, j}
 				<div class="cell">
+					{#if (j == 0)}
+						<div class="row-label">Calendar Cache</div>
+					{/if}
+
 					{#each getEventLabels(getEvents(date)) as label}
+						<p>{label}</p>
+					{/each}
+				</div>
+			{/each}
+		</div>
+		<div class="row">
+			{#each isoDates[w] as date, j}
+				<div class="cell">
+					{#if (j == 0)}
+						<div class="row-label">Calendar Frozen Cells</div>
+					{/if}
+
+					{#each $plannerStore.calendarCells[date]?.["cal-abcdefji-fsdkj-fjdskl"] ?? [] as label}
 						<p>{label}</p>
 					{/each}
 				</div>
