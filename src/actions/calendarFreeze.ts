@@ -2,7 +2,7 @@ import { differenceInMinutes } from "date-fns";
 import { format } from "date-fns";
 import type { NormalizedEvent } from "src/types";
 
-/** Turns a list of normalized events into a list of labels. */
+/** PURE HELPER: Turns a list of normalized events into a list of labels. */
 export function getEventLabels(events: NormalizedEvent[]): string[] {
     return events.map(event => {
         if (event.allDay) {
@@ -14,6 +14,7 @@ export function getEventLabels(events: NormalizedEvent[]): string[] {
     })
 }
 
+/** PURE HELPER */
 function getDurationAsString(start: Date, end: Date): string {
 		let diff: number = differenceInMinutes(end, start)
 		let units: string = "min";

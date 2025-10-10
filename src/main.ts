@@ -196,10 +196,16 @@ export default class UltimatePlannerPlugin extends Plugin {
 						// Parse ALL events, build dictionaries, and freeze
 						const allEvents = parseICS(response.text, this._defaultCalendar);
 
-						const { index: frozenIndex } = buildEventDictionaries(allEvents);
+						const { index: frozenIndex, eventsById: frozenEventsById } = buildEventDictionaries(allEvents);
 
 						Object.keys(frozenIndex).forEach(date => {
-							const labels = getEventLabels(getEvents(date));
+							// Get events from frozenIndex and frozenEventsById
+							const IDs = frozenIndex[date];
+							const events: NormalizedEvent[] = [];
+
+							IDs.forEach(id => events.push(frozenEventsById[id]));
+
+							const labels = getEventLabels(events);
  
 							plannerStore.update(store => {
 								return {
@@ -211,6 +217,8 @@ export default class UltimatePlannerPlugin extends Plugin {
 								}
 							})
 						})
+
+						console.log("Freeze Events Succeeded")
 					
 						// Parse events (between dates), build dictionaries, update calendarStore, and update calendarState status
 						const allEventsBetween = parseICSBetween(response.text, this._defaultCalendar, after, before);
