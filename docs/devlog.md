@@ -7,6 +7,11 @@
     - Upon testing, it seems as if the frozen cells are taking from the previous cache.
 - I fixed it in commit 60ac691f927ecfbd7c3077732bee7cd197328c4e!
     - I found out that I was refencing the wrong objects because the functions I used relied on the cache, and not the current frozen index.
+- In the last three commits, 5da8943b5827ca47fc6339052cbcd172bada4775, fd4b8864f92c52a2bc9bd833adc24bff91c5ddad, 5d0436e7f435169b4c8facb293277c6fcf7d98a3
+    - I cleaned up and refactored the code for modularity and readability.
+    - There were also parts where I had to write more lines of code (i.e. two lines of code to update the calendarStore) because the two lines served different functions and belonged in different subroutines.
+- I decided to check if I can choose to freeze or not, and I'm glad I did it. There are always small little details that I forget that cause the code to not work as intended.
+    - Solved with commit 06f375e97238ffe33fb7609570f5d76f40cf6c00.
 
 
 ## 2025-09-23
