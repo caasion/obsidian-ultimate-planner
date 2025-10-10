@@ -5,6 +5,7 @@ import type { CalendarID, CalendarStatus, NormalizedEvent } from "src/types";
 import { buildEventDictionaries } from "./calendarParse";
 import { calendarState, calendarStore } from "src/state/calendarStore";
 
+/** Given a list of events, freeze them into the planner calendar cells. */
 export function freezeEvents(events: NormalizedEvent[], calendar: CalendarID) {
     const { index: frozenIndex, eventsById: frozenEventsById } = buildEventDictionaries(events);
     
@@ -29,6 +30,7 @@ export function freezeEvents(events: NormalizedEvent[], calendar: CalendarID) {
     })
 }
 
+/** Given a list of events, add them all to the cache. */
 export function cacheEvents(events: NormalizedEvent[], calendar: CalendarID) {
     const { index, eventsById } = buildEventDictionaries(events);
     

@@ -107,7 +107,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 				const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
 				const startUrl = this.settings.remoteCalendarUrl;
 
-				this.fetchPipeline(myToken, startUrl);
+				this.fetchPipeline(myToken, startUrl, true);
 			}
 		})
 		// Add Settings Tab using Obsidian's API
@@ -189,15 +189,12 @@ export default class UltimatePlannerPlugin extends Plugin {
 		await this.saveData(this.snapshot());
 	}
 
-	async fetchPipeline(myToken: number, startUrl: string) {
+	async fetchPipeline(myToken: number, startUrl: string, freeze: boolean = false) {
 		try { // Wrap in try because fetchFromUrl throws Exception
 			const response = await fetchFromUrl(this.settings.remoteCalendarUrl); 	
 
 			// Update lastFetched status in store
 			calendarStore.update(cache => ({...cache, lastFetched: Date.now()}));
-
-			// Prepare contentHash for detectFetchChange
-			const contentHash = await hashText(stripICSVariance(response.text));
 
 			// [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
 			if (myToken !== this.refreshToken) {
@@ -213,28 +210,33 @@ export default class UltimatePlannerPlugin extends Plugin {
 				setCalendarStatus("unchanged");
 				return;
 			};
-			
-			// Check if response has changed from calendarStore
-			if (detectFetchChange(response, contentHash)) {
-				// Update cache information 
-				calendarStore.update(cal => ({...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), contentHash}))
 
-				// Parse ALL events, build dictionaries, and freeze
+			// [CONDITION] If the calendar contents didn't change, don't bother updating freeze and cache.
+			const contentHash = await hashText(stripICSVariance(response.text));
+			if (!detectFetchChange(response, contentHash)) {
+				setCalendarStatus("unchanged");
+				return;
+			}
+			
+			// Update cache information 
+			calendarStore.update(cal => ({...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), contentHash}))
+
+			// [FREEZE] Parse ALL events, build dictionaries, and freeze
+			if (freeze) {
 				const allEvents = parseICS(response.text, this._defaultCalendar);
 				freezeEvents(allEvents, this._defaultCalendar);
-			
-				// Parse events (between dates), build dictionaries, update calendarStore, and update calendarState status
-				const after = addDays(Date.now(), -this.settings.graceDays)
-				const before = addDays(Date.now(), 60)
-				// TODO: Make this round to the nearest day, instead of caring bout time
-				
-				const allEventsBetween = parseICSBetween(response.text, this._defaultCalendar, after, before);
-				cacheEvents(allEventsBetween, this._defaultCalendar);
-
-				setCalendarStatus("updated");
-			} else {
-				setCalendarStatus("unchanged");
 			}
+			
+			// [CACHE] Parse events (between dates), build dictionaries, update calendarStore, and update calendarState status
+			const after = addDays(Date.now(), -this.settings.graceDays)
+			const before = addDays(Date.now(), 60)
+			// TODO: Make this round to the nearest day, instead of caring bout time
+			
+			const allEventsBetween = parseICSBetween(response.text, this._defaultCalendar, after, before);
+			cacheEvents(allEventsBetween, this._defaultCalendar);
+
+			setCalendarStatus("updated");
+			
 		} catch (error) {
 			calendarState.update(() => { return { status: "error", lastError: error } });
 			new Notice("An error occured while fetching. See console for details");
