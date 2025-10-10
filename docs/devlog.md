@@ -5,6 +5,8 @@
     - I implemented two separate streams for the calendar cache and calendar frozen cells.
     - However, the frozen calendar cache doesn't seem to be working properly.
     - Upon testing, it seems as if the frozen cells are taking from the previous cache.
+- I fixed it in commit 60ac691f927ecfbd7c3077732bee7cd197328c4e!
+    - I found out that I was refencing the wrong objects because the functions I used relied on the cache, and not the current frozen index.
 
 
 ## 2025-09-23
