@@ -11,6 +11,8 @@ export interface ActionItemMeta {
     active?: boolean;
 }
 
+export type CalendarID = string;
+
 export interface CalendarMeta {
     label: string;
     color: string;
@@ -56,8 +58,10 @@ export interface CalendarBlob {
     eventsById: Record<string, NormalizedEvent>
 }
 
+export type CalendarStatus = "idle" | "fetching" | "unchanged" | "updated" | "error";
+
 export interface CalendarState {
-    status: "idle" | "fetching" | "unchanged" | "updated" | "error";
+    status: CalendarStatus;
     lastError?: string;
 }
 
