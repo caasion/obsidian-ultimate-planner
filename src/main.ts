@@ -153,21 +153,17 @@ export default class UltimatePlannerPlugin extends Plugin {
 				const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
 				const startUrl = this.settings.remoteCalendarUrl;
 
-				// Check if we should fetch; bail if currently fetching
+				// Check if we should fetch. If we do fetch, set status.
 				if (status === "fetching") return; 
-
-				// Otherwise, set store to 'fetching' and clear lastError
 				calendarState.set({ status: "fetching" });
 
-				// We are not going to use the time-guarded shouldFetch for the manual fetching
+				// We are not using the time-guarded shouldFetch for the manual fetching
 
 				try { // Wrap in try because fetchFromUrl throws Exception
 					const response = await fetchFromUrl(this.settings.remoteCalendarUrl); 	
 
 					// Update lastFetched status in store
-					calendarStore.update(cache => {
-						return {...cache, lastFetched: Date.now()}
-					})
+					calendarStore.update(cache => ({...cache, lastFetched: Date.now()}));
 
 					// Prepare contentHash for detectFetchChange
 					const contentHash = await hashText(stripICSVariance(response.text));
@@ -189,10 +185,6 @@ export default class UltimatePlannerPlugin extends Plugin {
 					
 					// Check if response has changed from calendarStore
 					if (detectFetchChange(response, contentHash)) {
-						const after = addDays(Date.now(), -this.settings.graceDays)
-						const before = addDays(Date.now(), 60)
-						// TODO: Make this round to the nearest day, instead of caring bout time
-
 						// Parse ALL events, build dictionaries, and freeze
 						const allEvents = parseICS(response.text, this._defaultCalendar);
 
@@ -221,19 +213,17 @@ export default class UltimatePlannerPlugin extends Plugin {
 						console.log("Freeze Events Succeeded")
 					
 						// Parse events (between dates), build dictionaries, update calendarStore, and update calendarState status
+						const after = addDays(Date.now(), -this.settings.graceDays)
+						const before = addDays(Date.now(), 60)
+						// TODO: Make this round to the nearest day, instead of caring bout time
+						
 						const allEventsBetween = parseICSBetween(response.text, this._defaultCalendar, after, before);
-
-						console.log(allEventsBetween)
 
 						const { index, eventsById } = buildEventDictionaries(allEventsBetween)
 
-						
-						calendarStore.update(cal => {
-							return {...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), events: allEventsBetween, contentHash, index, eventsById}
-						}) // QUESTION: Do we really need to store allEvents? Can't we just discard it after indexing and sorting by id?
+						calendarStore.update(cal => ({...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), events: allEventsBetween, contentHash, index, eventsById})) // QUESTION: Do we really need to store allEvents? Can't we just discard it after indexing and sorting by id?
 
 						calendarState.set({ status: "updated" });
-						
 					} else {
 						calendarState.set({ status: "unchanged" });
 					}
