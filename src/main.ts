@@ -8,7 +8,7 @@ import { calendarState, calendarStore } from './state/calendarStore';
 import { fetchFromUrl, hashText, detectFetchChange, shouldFetch, stripICSVariance } from './actions/calendarFetch';
 import IcalExpander from 'ical-expander';
 import { buildEventDictionaries, getEvents, normalizeEvent, normalizeOccurrenceEvent, parseICS, parseICSBetween } from './actions/calendarParse';
-import { getEventLabels } from './actions/calendarFreeze';
+import { cacheEvents, freezeEvents, getEventLabels, setCalendarStatus } from './actions/calendarIndexFreeze';
 import { addDays } from 'date-fns';
 
 export default class UltimatePlannerPlugin extends Plugin {
@@ -54,70 +54,19 @@ export default class UltimatePlannerPlugin extends Plugin {
 			id: 'debug-full-pipeline',
 			name: 'Debug: Full Pipeline - Manual',
 			callback: async () => {
-				// Set up variables to check if we should fetch or continue to fetch
-				const status = get(calendarState).status;
-				const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
-				const startUrl = this.settings.remoteCalendarUrl;
-
-				console.log(startUrl);
-
 				// Check if we should fetch; bail if currently fetching
-				if (status === "fetching") return; 
+				if (get(calendarState).status === "fetching") return; 
 
 				// Otherwise, set store to 'fetching' and clear lastError
 				calendarState.set({ status: "fetching" });
 
 				// We are not going to use the time-guarded shouldFetch for the manual fetching
 
-				try { // Wrap in try because fetchFromUrl throws Exception
-					const response = await fetchFromUrl(this.settings.remoteCalendarUrl); 	
+				// Set up variables to check if we should fetch or continue to fetch
+				const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
+				const startUrl = this.settings.remoteCalendarUrl;
 
-					// Update lastFetched status in store
-					calendarStore.update(cache => {
-						return {...cache, lastFetched: Date.now()}
-					})
-
-					await new Promise(r => setTimeout(r, 5000))
-
-					// Prepare contentHash for detectFetchChange
-					const contentHash = await hashText(stripICSVariance(response.text));
-
-					// [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
-					if (myToken !== this.refreshToken) {
-						console.warn("Fetch request is stale. Aborted.");
-						calendarState.set({ status: "unchanged" });
-						return;
-					};
-
-					// [GUARD] If the old URL is different from the current one, the URL changed and we should drop the fetch
-					if (startUrl !== this.settings.remoteCalendarUrl) {
-						new Notice("URL changed during fetch. Please fetch again.");
-						console.warn("URL changed during fetch. Aborted.");
-						calendarState.set({ status: "unchanged" });
-						return;
-					};
-					
-					// Check if response has changed from calendarStore
-					if (detectFetchChange(response, contentHash)) {
-						// Parse events, build dictionaries, update calendarStore, and update calendarState status
-						const allEvents = parseICS(response.text, "hi");
-
-						const { index, eventsById } = buildEventDictionaries(allEvents);
-
-						calendarStore.update(cal => {
-							return {...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), events: allEvents, contentHash, index, eventsById}
-						}) // QUESTION: Do we really need to store allEvents? Can't we just discard it after indexing and sorting by id?
-
-						calendarState.set({ status: "updated" });
-						
-					} else {
-						calendarState.set({ status: "unchanged" });
-					}
-				} catch (error) {
-					calendarState.update(() => { return { status: "error", lastError: error } });
-					new Notice("An error occured while fetching. See console for details");
-					console.error("An error occured while fetching:", error.message)
-				}
+				this.fetchPipeline(myToken, startUrl);
 		}
 		});
 		
@@ -148,91 +97,17 @@ export default class UltimatePlannerPlugin extends Plugin {
 			id: 'debug-fetch-freeze',
 			name: 'Debug: Fetch (Full Pipeline) and Freeze',
 			callback: async () => {
-				// Set up variables to check if we should fetch or continue to fetch
-				const status = get(calendarState).status;
-				const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
-				const startUrl = this.settings.remoteCalendarUrl;
-
 				// Check if we should fetch. If we do fetch, set status.
-				if (status === "fetching") return; 
-				calendarState.set({ status: "fetching" });
+				if (get(calendarState).status === "fetching") return; 
+				setCalendarStatus("fetching");
 
 				// We are not using the time-guarded shouldFetch for the manual fetching
 
-				try { // Wrap in try because fetchFromUrl throws Exception
-					const response = await fetchFromUrl(this.settings.remoteCalendarUrl); 	
+				// Set up variables to check if we should fetch or continue to fetch
+				const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
+				const startUrl = this.settings.remoteCalendarUrl;
 
-					// Update lastFetched status in store
-					calendarStore.update(cache => ({...cache, lastFetched: Date.now()}));
-
-					// Prepare contentHash for detectFetchChange
-					const contentHash = await hashText(stripICSVariance(response.text));
-
-					// [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
-					if (myToken !== this.refreshToken) {
-						console.warn("Fetch request is stale. Aborted.");
-						calendarState.set({ status: "unchanged" });
-						return;
-					};
-
-					// [GUARD] If the old URL is different from the current one, the URL changed and we should drop the fetch
-					if (startUrl !== this.settings.remoteCalendarUrl) {
-						new Notice("URL changed during fetch. Please fetch again.");
-						console.warn("URL changed during fetch. Aborted.");
-						calendarState.set({ status: "unchanged" });
-						return;
-					};
-					
-					// Check if response has changed from calendarStore
-					if (detectFetchChange(response, contentHash)) {
-						// Parse ALL events, build dictionaries, and freeze
-						const allEvents = parseICS(response.text, this._defaultCalendar);
-
-						const { index: frozenIndex, eventsById: frozenEventsById } = buildEventDictionaries(allEvents);
-
-						Object.keys(frozenIndex).forEach(date => {
-							// Get events from frozenIndex and frozenEventsById
-							const IDs = frozenIndex[date];
-							const events: NormalizedEvent[] = [];
-
-							IDs.forEach(id => events.push(frozenEventsById[id]));
-
-							const labels = getEventLabels(events);
- 
-							plannerStore.update(store => {
-								return {
-									...store,
-									calendarCells: {
-										...get(plannerStore).calendarCells,
-										[date]: { [this._defaultCalendar]: labels}
-									}
-								}
-							})
-						})
-
-						console.log("Freeze Events Succeeded")
-					
-						// Parse events (between dates), build dictionaries, update calendarStore, and update calendarState status
-						const after = addDays(Date.now(), -this.settings.graceDays)
-						const before = addDays(Date.now(), 60)
-						// TODO: Make this round to the nearest day, instead of caring bout time
-						
-						const allEventsBetween = parseICSBetween(response.text, this._defaultCalendar, after, before);
-
-						const { index, eventsById } = buildEventDictionaries(allEventsBetween)
-
-						calendarStore.update(cal => ({...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), events: allEventsBetween, contentHash, index, eventsById})) // QUESTION: Do we really need to store allEvents? Can't we just discard it after indexing and sorting by id?
-
-						calendarState.set({ status: "updated" });
-					} else {
-						calendarState.set({ status: "unchanged" });
-					}
-				} catch (error) {
-					calendarState.update(() => { return { status: "error", lastError: error } });
-					new Notice("An error occured while fetching. See console for details");
-					console.error("An error occured while fetching:", error.message)
-				}
-				
+				this.fetchPipeline(myToken, startUrl);
 			}
 		})
 		// Add Settings Tab using Obsidian's API
@@ -293,7 +168,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 		}
 	}
 
-	public queueSave = () => {
+	public queueSave() {
 		if (this.saveTimer) window.clearTimeout(this.saveTimer);
 		this.saveTimer = window.setTimeout(async () => {
 			this.saveTimer = null;
@@ -312,5 +187,59 @@ export default class UltimatePlannerPlugin extends Plugin {
 		}
 
 		await this.saveData(this.snapshot());
+	}
+
+	async fetchPipeline(myToken: number, startUrl: string) {
+		try { // Wrap in try because fetchFromUrl throws Exception
+			const response = await fetchFromUrl(this.settings.remoteCalendarUrl); 	
+
+			// Update lastFetched status in store
+			calendarStore.update(cache => ({...cache, lastFetched: Date.now()}));
+
+			// Prepare contentHash for detectFetchChange
+			const contentHash = await hashText(stripICSVariance(response.text));
+
+			// [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
+			if (myToken !== this.refreshToken) {
+				console.warn("Fetch request is stale. Aborted.");
+				setCalendarStatus("unchanged");
+				return;
+			};
+
+			// [GUARD] If the old URL is different from the current one, the URL changed and we should drop the fetch
+			if (startUrl !== this.settings.remoteCalendarUrl) {
+				new Notice("URL changed during fetch. Please fetch again.");
+				console.warn("URL changed during fetch. Aborted.");
+				setCalendarStatus("unchanged");
+				return;
+			};
+			
+			// Check if response has changed from calendarStore
+			if (detectFetchChange(response, contentHash)) {
+				// Update cache information 
+				calendarStore.update(cal => ({...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), contentHash}))
+
+				// Parse ALL events, build dictionaries, and freeze
+				const allEvents = parseICS(response.text, this._defaultCalendar);
+				freezeEvents(allEvents, this._defaultCalendar);
+			
+				// Parse events (between dates), build dictionaries, update calendarStore, and update calendarState status
+				const after = addDays(Date.now(), -this.settings.graceDays)
+				const before = addDays(Date.now(), 60)
+				// TODO: Make this round to the nearest day, instead of caring bout time
+				
+				const allEventsBetween = parseICSBetween(response.text, this._defaultCalendar, after, before);
+				cacheEvents(allEventsBetween, this._defaultCalendar);
+
+				setCalendarStatus("updated");
+			} else {
+				setCalendarStatus("unchanged");
+			}
+		} catch (error) {
+			calendarState.update(() => { return { status: "error", lastError: error } });
+			new Notice("An error occured while fetching. See console for details");
+			console.error("An error occured while fetching:", error.message)
+		}
+				
 	}
 }

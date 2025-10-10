@@ -3,7 +3,7 @@ import IcalExpander from "ical-expander";
 import ICAL from "ical.js";
 import type { occurrenceDetails } from "ical.js/dist/types/event";
 import { calendarStore } from "../state/calendarStore";
-import type { ISODate, NormalizedEvent } from "src/types";
+import type { CalendarID, ISODate, NormalizedEvent } from "src/types";
 import { get } from "svelte/store";
 
 /** Converts an ICS string into a list of events with details. */
@@ -21,7 +21,7 @@ export function parseICS(ics: string, calendarId: string): NormalizedEvent[] {
 }
 
 /** Converts an ICS string into a list of events with details. */
-export function parseICSBetween(ics: string, calendarId: string, after: Date, before: Date): NormalizedEvent[] {
+export function parseICSBetween(ics: string, calendarId: CalendarID, after: Date, before: Date): NormalizedEvent[] {
     const icalExpander = new IcalExpander({ics})
     const results = icalExpander.between(after, before);
 
@@ -33,7 +33,7 @@ export function parseICSBetween(ics: string, calendarId: string, after: Date, be
 }
 
 //TODO: Overload one function instead
-export function normalizeEvent(event: ICAL.Event, calendarId: string) {
+export function normalizeEvent(event: ICAL.Event, calendarId: CalendarID) {
     return { 
         id: event.uid,
         start: event.startDate.toJSDate(), // Normalize dates to JS Date object instead of ical TIME object
