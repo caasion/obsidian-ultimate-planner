@@ -1,3 +1,12 @@
+## 2025-10-09
+- It's been a while since I've written a devlog because I pivoted to making a full documentation for Google Calendar Integration.
+- I am currently working on an enhancement for that: multiple remote calendars & freezing past events.
+- As of now (commit 0364779856255d8f3f7a078a234821f57a1692e0), 
+    - I implemented two separate streams for the calendar cache and calendar frozen cells.
+    - However, the frozen calendar cache doesn't seem to be working properly.
+    - Upon testing, it seems as if the frozen cells are taking from the previous cache.
+
+
 ## 2025-09-23
 - I hope to implement these features in the near future:
     - Google Calendar Integration
