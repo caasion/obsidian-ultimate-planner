@@ -1,7 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { PLANNER_VIEW_TYPE, PlannerView } from './ui/PlannerView';
 import { UltimatePlannerPluginTab } from './ui/SettingsTab';
-import { plannerStore } from './state/plannerStore';
+import { actionItems, calendarCells, calendars, cells, plannerStore, templates } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
 import { DEFAULT_SETTINGS, EMPTY_PLANNER, type ActionItemID, type NormalizedEvent, type PluginData, type PluginSettings } from './types';
 import { addDays } from 'date-fns';
@@ -10,7 +10,7 @@ import { fetchAllandFreeze, fetchPipelineInGracePeriod } from './actions/calenda
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
 	private saveTimer: number | null = null;
-	private plannerSubscription: Unsubscriber;
+	private storeSubscriptions: Unsubscriber[];
 	private _defaultCalendar: ActionItemID = "cal-abcdefji-fsdkj-fjdskl";
 
 	async onload() {
@@ -61,7 +61,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 	async onunload() {
 		// Unsubscribe to stores
-		this.plannerSubscription();
+		this.storeSubscriptions.forEach(unsub => unsub());
 
 		await this.flushSave(); // Save immediately
 	}
@@ -84,8 +84,13 @@ export default class UltimatePlannerPlugin extends Plugin {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings) // Populate Settings
 
 		// Initialize Stores, Subscribe, and assign unsubscribers
-		plannerStore.set(Object.assign({}, EMPTY_PLANNER, data.planner));
-		this.plannerSubscription = plannerStore.subscribe(() => this.queueSave());
+		this.storeSubscriptions = [
+			actionItems.subscribe(() => this.queueSave()),
+			cells.subscribe(() => this.queueSave()),
+			calendars.subscribe(() => this.queueSave()),
+			calendarCells.subscribe(() => this.queueSave()),
+			templates.subscribe(() => this.queueSave())
+		]
 	}
 
 	private snapshot(): PluginData {
