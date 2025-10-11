@@ -4,26 +4,23 @@ import { UltimatePlannerPluginTab } from './ui/SettingsTab';
 import { plannerStore } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
 import { DEFAULT_SETTINGS, EMPTY_PLANNER, type ActionItemID, type NormalizedEvent, type PluginData, type PluginSettings } from './types';
-import { calendarState } from './state/calendarStore';
+import { calendarState, fetchToken } from './state/calendarStore';
 import { fetchFromUrl, hashText, detectFetchChange, shouldFetch, stripICSVariance } from './actions/calendarFetch';
 import IcalExpander from 'ical-expander';
 import { buildEventDictionaries, getEvents, normalizeEvent, normalizeOccurrenceEvent, parseICS, parseICSBetween } from './actions/calendarParse';
 import { freezeEvents, getEventLabels, setCalendarStatus } from './actions/calendarIndexFreeze';
 import { addDays } from 'date-fns';
+import { fetchPipelineInGracePeriod } from './actions/calendarPipelines';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
 	private saveTimer: number | null = null;
 	private plannerSubscription: Unsubscriber;
-	private refreshToken = 0;
 	// private _calendarStateSubscription: Unsubscriber;
 	private _defaultCalendar: ActionItemID = "cal-abcdefji-fsdkj-fjdskl";
 
 	async onload() {
 		await this.loadPersisted();
-
-		// Set default Calendar State
-		calendarState.update(() => { return  });
 
 		// Add debug command
 		this.addCommand({
@@ -40,33 +37,25 @@ export default class UltimatePlannerPlugin extends Plugin {
 			id: 'debug-manual-fetch',
 			name: 'Debug: Manual Fetch in Grace Period',
 			callback: async () => {
-				// Check if we should fetch. If we do fetch, set status.
-				if (get(calendarState).status === "fetching") return; 
-				setCalendarStatus("fetching");
-
-				// Set up variables to check if we should fetch or continue to fetch
-				const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
-				const startUrl = this.settings.remoteCalendarUrl;
-
-				this.fetchPipelineGracePeriod(myToken, startUrl);
+				fetchPipelineInGracePeriod(get(plannerStore).calendars["cal-abcdefji-fsdkj-fjdskl"])
 			}
 		})
 
-		this.addCommand({
-			id: 'debug-manual-fetch-freeze',
-			name: 'Debug: Manual Fetch All & Freeze',
-			callback: async () => {
-				// Check if we should fetch. If we do fetch, set status.
-				if (get(calendarState).status === "fetching") return; 
-				setCalendarStatus("fetching");
+		// this.addCommand({
+		// 	id: 'debug-manual-fetch-freeze',
+		// 	name: 'Debug: Manual Fetch All & Freeze',
+		// 	callback: async () => {
+		// 		// Check if we should fetch. If we do fetch, set status.
+		// 		if (get(calendarState).status === "fetching") return; 
+		// 		setCalendarStatus("fetching");
 
-				// Set up variables to check if we should fetch or continue to fetch
-				const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
-				const startUrl = this.settings.remoteCalendarUrl;
+		// 		// Set up variables to check if we should fetch or continue to fetch
+		// 		const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
+		// 		const startUrl = this.settings.remoteCalendarUrl;
 
-				this.fetchPipelineFreeze(myToken, startUrl);
-			}
-		})
+		// 		this.fetchPipelineFreeze(myToken, startUrl);
+		// 	}
+		// })
 
 		// Add Settings Tab using Obsidian's API
 		this.addSettingTab(new UltimatePlannerPluginTab(this.app, this));
@@ -143,121 +132,50 @@ export default class UltimatePlannerPlugin extends Plugin {
 		await this.saveData(this.snapshot());
 	}
 
-	async fetchPipelineGracePeriod(myToken: number, startUrl: string) {
-		try { // Wrap in try because fetchFromUrl throws Exception
-			const response = await fetchFromUrl(this.settings.remoteCalendarUrl); 	
 
-			// Update lastFetched status in store
-			calendarStore.update(cache => ({...cache, lastFetched: Date.now()}));
+	// async fetchPipelineFreeze(myToken: number, startUrl: string) {
+	// 	try { // Wrap in try because fetchFromUrl throws Exception
+	// 		const response = await fetchFromUrl(this.settings.remoteCalendarUrl); 	
 
-			// [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
-			if (myToken !== this.refreshToken) {
-				console.warn("Fetch request is stale. Aborted.");
-				setCalendarStatus("unchanged");
-				return;
-			};
+	// 		// Update lastFetched status in store
+	// 		calendarStore.update(cache => ({...cache, lastFetched: Date.now()}));
 
-			// [GUARD] If the old URL is different from the current one, the URL changed and we should drop the fetch
-			if (startUrl !== this.settings.remoteCalendarUrl) {
-				new Notice("URL changed during fetch. Please fetch again.");
-				console.warn("URL changed during fetch. Aborted.");
-				setCalendarStatus("unchanged");
-				return;
-			};
+	// 		// [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
+	// 		if (myToken !== this.refreshToken) {
+	// 			console.warn("Fetch request is stale. Aborted.");
+	// 			setCalendarStatus("unchanged");
+	// 			return;
+	// 		};
 
-			// [PARSE] Parse the ICS within the grace period
-			const after = addDays(Date.now(), -this.settings.graceDays)
-			const before = addDays(Date.now(), 60)
-			// TODO: Make this round to the nearest day, instead of caring bout time
+	// 		// [GUARD] If the old URL is different from the current one, the URL changed and we should drop the fetch
+	// 		if (startUrl !== this.settings.remoteCalendarUrl) {
+	// 			new Notice("URL changed during fetch. Please fetch again.");
+	// 			console.warn("URL changed during fetch. Aborted.");
+	// 			setCalendarStatus("unchanged");
+	// 			return;
+	// 		};
 			
-			const events = parseICSBetween(response.text, this._defaultCalendar, after, before);
-
-			// [CONDITION] If the calendar contents didn't change, don't bother updating freeze and cache.
-			const contentHash = await hashText(JSON.stringify(events));
-			if (!detectFetchChange(response, contentHash)) {
-				setCalendarStatus("unchanged");
-				return;
-			}
+	// 		// [FREEZE] Parse ALL events, build dictionaries, and freeze
+	// 		const allEvents = parseICS(response.text, this._defaultCalendar);
+	// 		freezeEvents(allEvents, this._defaultCalendar);
 			
-			// Update cache information 
-			calendarStore.update(cal => ({...cal, contentHash}))
+	// 		// [HASH] Parse ICS within grace period and compute contentHash from it
+	// 		const after = addDays(Date.now(), -this.settings.graceDays)
+	// 		const before = addDays(Date.now(), 60)
+	// 		// TODO: Make this round to the nearest day, instead of caring bout time
 			
-			// [STORE] Build efficient event dictionaries and use those to write into  
-			const { index, eventsById } = buildEventDictionaries(events);
+	// 		const eventsBetween = parseICSBetween(response.text, this._defaultCalendar, after, before);
+	// 		const contentHash = await hashText(JSON.stringify(eventsBetween));
 
-			Object.keys(index).forEach(date => {
-				// Get events from frozenIndex and frozenEventsById
-				const IDs = index[date];
-				const events: NormalizedEvent[] = [];
+	// 		// [CACHE] Update calendar cache information 
+	// 		calendarStore.update(cal => ({...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), contentHash}))
 
-				IDs.forEach(id => events.push(eventsById[id]));
-
-				const labels = getEventLabels(events);
-
-				plannerStore.update(store => {
-					return {
-						...store,
-						calendarCells: {
-							...store.calendarCells,
-							[date]: { [this._defaultCalendar]: labels}
-						}
-					}
-				})
-			})
-
-
-			setCalendarStatus("updated");
+	// 		setCalendarStatus("updated");
 			
-		} catch (error) {
-			calendarState.update(() => { return { status: "error", lastError: error } });
-			new Notice("An error occured while fetching. See console for details");
-			console.error("An error occured while fetching:", error.message)
-		}
-	}
-
-	async fetchPipelineFreeze(myToken: number, startUrl: string) {
-		try { // Wrap in try because fetchFromUrl throws Exception
-			const response = await fetchFromUrl(this.settings.remoteCalendarUrl); 	
-
-			// Update lastFetched status in store
-			calendarStore.update(cache => ({...cache, lastFetched: Date.now()}));
-
-			// [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
-			if (myToken !== this.refreshToken) {
-				console.warn("Fetch request is stale. Aborted.");
-				setCalendarStatus("unchanged");
-				return;
-			};
-
-			// [GUARD] If the old URL is different from the current one, the URL changed and we should drop the fetch
-			if (startUrl !== this.settings.remoteCalendarUrl) {
-				new Notice("URL changed during fetch. Please fetch again.");
-				console.warn("URL changed during fetch. Aborted.");
-				setCalendarStatus("unchanged");
-				return;
-			};
-			
-			// [FREEZE] Parse ALL events, build dictionaries, and freeze
-			const allEvents = parseICS(response.text, this._defaultCalendar);
-			freezeEvents(allEvents, this._defaultCalendar);
-			
-			// [HASH] Parse ICS within grace period and compute contentHash from it
-			const after = addDays(Date.now(), -this.settings.graceDays)
-			const before = addDays(Date.now(), 60)
-			// TODO: Make this round to the nearest day, instead of caring bout time
-			
-			const eventsBetween = parseICSBetween(response.text, this._defaultCalendar, after, before);
-			const contentHash = await hashText(JSON.stringify(eventsBetween));
-
-			// [CACHE] Update calendar cache information 
-			calendarStore.update(cal => ({...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), contentHash}))
-
-			setCalendarStatus("updated");
-			
-		} catch (error) {
-			calendarState.update(() => { return { status: "error", lastError: error } });
-			new Notice("An error occured while fetching. See console for details");
-			console.error("An error occured while fetching:", error.message)
-		}
-	}
+	// 	} catch (error) {
+	// 		calendarState.update(() => { return { status: "error", lastError: error } });
+	// 		new Notice("An error occured while fetching. See console for details");
+	// 		console.error("An error occured while fetching:", error.message)
+	// 	}
+	// }
 }

@@ -14,6 +14,7 @@ export interface ActionItemMeta {
 export type CalendarID = string;
 
 export interface CalendarMeta {
+    id: ActionItemID;
     label: string;
     color: string;
     url: string;
@@ -85,6 +86,7 @@ export const EMPTY_PLANNER: PlannerState = {
     cells: {},
     calendars: {
         "cal-abcdefji-fsdkj-fjdskl": {
+            id: "cal-abcdefji-fsdkj-fjdskl",
             label: "Test Calendar",
             color: "#cccccc",
             url: ""
