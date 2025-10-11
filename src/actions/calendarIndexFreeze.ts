@@ -34,7 +34,7 @@ export function freezeEvents(events: NormalizedEvent[], calendar: CalendarID) {
 export function cacheEvents(events: NormalizedEvent[], calendar: CalendarID) {
     const { index, eventsById } = buildEventDictionaries(events);
     
-    calendarStore.update(cal => ({...cal, index, eventsById})) // QUESTION: Do we really need to store allEvents? Can't we just discard it after indexing and sorting by id?
+    calendarStore.update(cal => ({...cal, index, eventsById}))
 }
 
 /** HELPER: Set the statatus of calendarState */
