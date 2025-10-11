@@ -37,69 +37,8 @@ export default class UltimatePlannerPlugin extends Plugin {
 		// this._calendarStateSubscription = calendarState.subscribe((state) => console.log(state));
 
 		this.addCommand({
-			id: 'debug-full-pipeline',
-			name: 'Debug: Full Pipeline - Manual',
-			callback: async () => {
-				// Check if we should fetch; bail if currently fetching
-				if (get(calendarState).status === "fetching") return; 
-
-				// Otherwise, set store to 'fetching' and clear lastError
-				calendarState.set({ status: "fetching" });
-
-				// We are not going to use the time-guarded shouldFetch for the manual fetching
-
-				// Set up variables to check if we should fetch or continue to fetch
-				const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
-				const startUrl = this.settings.remoteCalendarUrl;
-
-				this.fetchPipeline(myToken, startUrl);
-		}
-		});
-		
-		this.addCommand({
-			id: 'debug-freeze-cache',
-			name: 'Debug: Freeze Cache',
-			callback: () => {
-				const calendar = get(calendarStore);
-
-				Object.keys(calendar.index).forEach(date => {
-					const labels = getEventLabels(getEvents(date));
-
-					plannerStore.update(store => {
-						return {
-							...store,
-							calendarCells: {
-								...get(plannerStore).calendarCells,
-								[date]: { [this._defaultCalendar]: labels}
-							}
-						}
-					})
-				})
-				
-			}
-		})
-
-		this.addCommand({
-			id: 'debug-fetch-freeze',
-			name: 'Debug: Fetch (Full Pipeline) and Freeze',
-			callback: async () => {
-				// Check if we should fetch. If we do fetch, set status.
-				if (get(calendarState).status === "fetching") return; 
-				setCalendarStatus("fetching");
-
-				// We are not using the time-guarded shouldFetch for the manual fetching
-
-				// Set up variables to check if we should fetch or continue to fetch
-				const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
-				const startUrl = this.settings.remoteCalendarUrl;
-
-				this.fetchPipeline(myToken, startUrl, true);
-			}
-		})
-
-		this.addCommand({
 			id: 'debug-manual-fetch',
-			name: 'Debug: Manual Fetch',
+			name: 'Debug: Manual Fetch in Grace Period',
 			callback: async () => {
 				// Check if we should fetch. If we do fetch, set status.
 				if (get(calendarState).status === "fetching") return; 
@@ -115,7 +54,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'debug-manual-fetch-freeze',
-			name: 'Debug: Manual Fetch & Freeze (for all events)',
+			name: 'Debug: Manual Fetch All & Freeze',
 			callback: async () => {
 				// Check if we should fetch. If we do fetch, set status.
 				if (get(calendarState).status === "fetching") return; 
