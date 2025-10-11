@@ -1,18 +1,4 @@
-## 2025-10-10
-- Today, I want to hopefully finish up the Google Calendar Enhancement. Here is what I need to do in order:
-    - (1) Implement dual-rendering of the calendar
-        - Render the frozen cells and cache into the same row
-    - (2) On render, update the frozen cells and cache
-        - We want to keep the grace days of the cache consistent
-    - (3) Implement multi-calendar cache
-        - Create appropriate data structures
-        - Implement functions to support multiple calendars
-    - (4) Integrate calendars into the planner
-        - Create appropriate data structure
-        - Implement rendering logic
-    - (5) Add Context Menu for Calendar Rows (to edit link)
-        - Editing the link will completely refetch and rebuild the calendar structure
-- (1) & (2) focuses on a single calendar while (3-5) works on multiple calendars
+Moved devlogs to individual documents.
 
 ## 2025-10-09
 - It's been a while since I've written a devlog because I pivoted to making a full documentation for Google Calendar Integration.
