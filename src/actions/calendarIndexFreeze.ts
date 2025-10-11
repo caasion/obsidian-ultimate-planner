@@ -1,34 +1,7 @@
 import { differenceInMinutes } from "date-fns";
 import { format } from "date-fns";
-import { plannerStore } from "src/state/plannerStore";
-import type { CalendarID, CalendarStatus, NormalizedEvent } from "src/types";
-import { buildEventDictionaries } from "./calendarParse";
+import type { CalendarStatus, NormalizedEvent } from "src/types";
 import { calendarState } from "src/state/calendarStore";
-
-/** Given a list of events, freeze them into the planner calendar cells. */
-export function freezeEvents(events: NormalizedEvent[], calendar: CalendarID) {
-    const { index: frozenIndex, eventsById: frozenEventsById } = buildEventDictionaries(events);
-    
-    Object.keys(frozenIndex).forEach(date => {
-        // Get events from frozenIndex and frozenEventsById
-        const IDs = frozenIndex[date];
-        const events: NormalizedEvent[] = [];
-
-        IDs.forEach(id => events.push(frozenEventsById[id]));
-
-        const labels = getEventLabels(events);
-
-        plannerStore.update(store => {
-            return {
-                ...store,
-                calendarCells: {
-                    ...store.calendarCells,
-                    [date]: { [calendar]: labels}
-                }
-            }
-        })
-    })
-}
 
 /** HELPER: Set the statatus of calendarState */
 export function setCalendarStatus(status: CalendarStatus) {
@@ -49,13 +22,13 @@ export function getEventLabels(events: NormalizedEvent[]): string[] {
 
 /** PURE HELPER */
 function getDurationAsString(start: Date, end: Date): string {
-		let diff: number = differenceInMinutes(end, start)
-		let units: string = "min";
+    let diff: number = differenceInMinutes(end, start)
+    let units: string = "min";
 
-		if (diff % 60 == 0) {
-			diff /= 60;
-			units = "hr";
-		}
+    if (diff % 60 == 0) {
+        diff /= 60;
+        units = "hr";
+    }
 
-		return `${diff} ${units}`
-	}
+    return `${diff} ${units}`
+}

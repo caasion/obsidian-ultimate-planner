@@ -47,11 +47,6 @@ export function detectFetchChange(response: RequestUrlResponse, contentHash: str
     return false;
 }
 
-/** Removes "DTSTAMP:..." from ICS. (Otherwise, the ICS varies every fetch and breaks detectFetchChange) */
-export function stripICSVariance(text: string): string {
-    return text.replace(/DTSTAMP:.*\r\n/gm, ""); 
-}
-
 /** Hash a string using SHA-1. */
 export async function hashText(text: string): Promise<string> {
   const data = new TextEncoder().encode(text);
