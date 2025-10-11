@@ -58,18 +58,6 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
             )
         
         new Setting(containerEl).setName('Remote Calendar').setHeading();
-                
-        new Setting(containerEl)
-            .setName('Remote Calendar Link')
-            .addText((text) => {
-                text
-                    .setPlaceholder('link')
-                    .setValue(this.plugin.settings.remoteCalendarUrl)
-                    .onChange(async (value) => {
-                        this.plugin.settings.remoteCalendarUrl = value;
-                        await this.plugin.queueSave();
-                    })
-            })
 
         new Setting(containerEl)
             .setName('Remote Calendar Refresh Interval (min)')
