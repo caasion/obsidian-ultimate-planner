@@ -4,7 +4,7 @@ import { calendarState, fetchToken } from "../state/calendarStore";
 import { plannerStore } from "src/state/plannerStore";
 import type { CalendarMeta, NormalizedEvent } from "../types";
 import { fetchFromUrl, hashText, detectFetchChange } from "./calendarFetch";
-import { setCalendarStatus, getEventLabels } from "./calendarIndexFreeze";
+import { setCalendarStatus, getEventLabels, populateCalendarCells } from "./calendarIndexFreeze";
 import { parseICSBetween, buildEventDictionaries, parseICS } from "./calendarParse";
 import { get } from "svelte/store";
 
@@ -66,28 +66,9 @@ export async function fetchPipelineInGracePeriod(calendar: CalendarMeta, after: 
             }}
         }))
         
-        // [STORE] Build efficient event dictionaries and use those to write into  store
+        // [STORE] Build efficient event dictionaries and use those to write into store
         const { index, eventsById } = buildEventDictionaries(events);
-
-        Object.keys(index).forEach(date => {
-            // Get events from frozenIndex and frozenEventsById
-            const IDs = index[date];
-            const events: NormalizedEvent[] = [];
-
-            IDs.forEach(id => events.push(eventsById[id]));
-
-            const labels = getEventLabels(events);
-
-            plannerStore.update(store => {
-                return {
-                    ...store,
-                    calendarCells: {
-                        ...store.calendarCells,
-                        [date]: { [calendar.id]: labels}
-                    }
-                }
-            })
-        })
+        populateCalendarCells(calendar.id, index, eventsById);
 
 
         setCalendarStatus("updated");
@@ -139,28 +120,8 @@ export async function fetchAllandFreeze(calendar: CalendarMeta, after: Date, bef
         
         // [FREEZE] Parse ALL events, build dictionaries, and freeze
         const allEvents = parseICS(response.text, this._defaultCalendar);
-
         const { index, eventsById } = buildEventDictionaries(allEvents);
-            
-            Object.keys(index).forEach(date => {
-                // Get events from frozenIndex and frozenEventsById
-                const IDs = index[date];
-                const events: NormalizedEvent[] = [];
-        
-                IDs.forEach(id => events.push(eventsById[id]));
-        
-                const labels = getEventLabels(events);
-        
-                plannerStore.update(store => {
-                    return {
-                        ...store,
-                        calendarCells: {
-                            ...store.calendarCells,
-                            [date]: { [calendar.id]: labels}
-                        }
-                    }
-                })
-            })
+        populateCalendarCells(calendar.id, index, eventsById);
         
         // [HASH] Parse ICS within grace period and compute contentHash from it
         const eventsBetween = parseICSBetween(response.text, this._defaultCalendar, after, before);

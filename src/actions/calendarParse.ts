@@ -3,7 +3,6 @@ import IcalExpander from "ical-expander";
 import ICAL from "ical.js";
 import type { occurrenceDetails } from "ical.js/dist/types/event";
 import type { CalendarID, ISODate, NormalizedEvent } from "src/types";
-import { get } from "svelte/store";
 
 /** Converts an ICS string into a list of events with details. */
 export function parseICS(ics: string, calendarId: string): NormalizedEvent[] {

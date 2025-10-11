@@ -1,11 +1,35 @@
 import { differenceInMinutes } from "date-fns";
 import { format } from "date-fns";
-import type { CalendarStatus, NormalizedEvent } from "src/types";
+import type { CalendarID, CalendarStatus, NormalizedEvent } from "src/types";
 import { calendarState } from "src/state/calendarStore";
+import { plannerStore } from "src/state/plannerStore";
 
 /** HELPER: Set the statatus of calendarState */
 export function setCalendarStatus(status: CalendarStatus) {
     calendarState.set({ status });
+}
+
+/** Write into calendarCells (store) with index and eventsById. */    
+export function populateCalendarCells(calendarId: CalendarID, index: Record<string, string[]>, eventsById: Record<string, NormalizedEvent>) {
+    Object.keys(index).forEach(date => {
+    // Get events from frozenIndex and frozenEventsById
+    const IDs = index[date];
+    const events: NormalizedEvent[] = [];
+
+    IDs.forEach(id => events.push(eventsById[id]));
+
+    const labels = getEventLabels(events);
+
+    plannerStore.update(store => {
+        return {
+            ...store,
+            calendarCells: {
+                ...store.calendarCells,
+                [date]: { [calendarId]: labels}
+            }
+        }
+    })
+})
 }
 
 /** PURE HELPER: Turns a list of normalized events into a list of labels. */
