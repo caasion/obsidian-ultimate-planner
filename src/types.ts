@@ -43,7 +43,6 @@ export interface PluginSettings {
     weekStartOn: Day;
     autosaveDebounceMs: number;
     weeksToRender: number;
-    remoteCalendarUrl: string;
     refreshRemoteMs: number;
     archivePastEvents: boolean;
     graceDays: number;
