@@ -4,18 +4,17 @@ import { UltimatePlannerPluginTab } from './ui/SettingsTab';
 import { plannerStore } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
 import { DEFAULT_SETTINGS, EMPTY_PLANNER, type ActionItemID, type NormalizedEvent, type PluginData, type PluginSettings } from './types';
-import { calendarState, calendarStore } from './state/calendarStore';
+import { calendarState } from './state/calendarStore';
 import { fetchFromUrl, hashText, detectFetchChange, shouldFetch, stripICSVariance } from './actions/calendarFetch';
 import IcalExpander from 'ical-expander';
 import { buildEventDictionaries, getEvents, normalizeEvent, normalizeOccurrenceEvent, parseICS, parseICSBetween } from './actions/calendarParse';
-import { cacheEvents, freezeEvents, getEventLabels, setCalendarStatus } from './actions/calendarIndexFreeze';
+import { freezeEvents, getEventLabels, setCalendarStatus } from './actions/calendarIndexFreeze';
 import { addDays } from 'date-fns';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
 	private saveTimer: number | null = null;
 	private plannerSubscription: Unsubscriber;
-	private calendarSubscription: Unsubscriber;
 	private refreshToken = 0;
 	// private _calendarStateSubscription: Unsubscriber;
 	private _defaultCalendar: ActionItemID = "cal-abcdefji-fsdkj-fjdskl";
@@ -36,19 +35,6 @@ export default class UltimatePlannerPlugin extends Plugin {
 		});
 
 		// this._calendarStateSubscription = calendarState.subscribe((state) => console.log(state));
-
-		this.addCommand({
-			id: 'debug-should-fetch',
-			name: 'Debug: Test shouldFetch Function',
-			callback: () => {
-				const calendar = get(calendarStore);
-
-				if (!shouldFetch(this.settings.refreshRemoteMs, calendar.lastFetched)) {
-					console.log("wait a bit more bruh", (calendar.lastFetched ?? 0) - Date.now())
-					return;
-				}
-			}
-		})
 
 		this.addCommand({
 			id: 'debug-full-pipeline',
@@ -162,7 +148,6 @@ export default class UltimatePlannerPlugin extends Plugin {
 	async onunload() {
 		// Unsubscribe to stores
 		this.plannerSubscription();
-		this.calendarSubscription();
 		// this._calendarStateSubscription();
 
 		await this.flushSave(); // Save immediately
@@ -187,17 +172,14 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 		// Initialize Stores, Subscribe, and assign unsubscribers
 		plannerStore.set(Object.assign({}, EMPTY_PLANNER, data.planner));
-		calendarStore.set(Object.assign({}, data.calendar));
 		this.plannerSubscription = plannerStore.subscribe(() => this.queueSave());
-		this.calendarSubscription = calendarStore.subscribe(() => this.queueSave())
 	}
 
 	private snapshot(): PluginData {
 		return {
-			version: 2,
+			version: 3,
 			settings: this.settings,
 			planner: get(plannerStore),
-			calendar: get(calendarStore)
 		}
 	}
 
@@ -220,61 +202,6 @@ export default class UltimatePlannerPlugin extends Plugin {
 		}
 
 		await this.saveData(this.snapshot());
-	}
-
-	async fetchPipeline(myToken: number, startUrl: string, freeze: boolean = false) {
-		try { // Wrap in try because fetchFromUrl throws Exception
-			const response = await fetchFromUrl(this.settings.remoteCalendarUrl); 	
-
-			// Update lastFetched status in store
-			calendarStore.update(cache => ({...cache, lastFetched: Date.now()}));
-
-			// [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
-			if (myToken !== this.refreshToken) {
-				console.warn("Fetch request is stale. Aborted.");
-				setCalendarStatus("unchanged");
-				return;
-			};
-
-			// [GUARD] If the old URL is different from the current one, the URL changed and we should drop the fetch
-			if (startUrl !== this.settings.remoteCalendarUrl) {
-				new Notice("URL changed during fetch. Please fetch again.");
-				console.warn("URL changed during fetch. Aborted.");
-				setCalendarStatus("unchanged");
-				return;
-			};
-
-			// [CONDITION] If the calendar contents didn't change, don't bother updating freeze and cache.
-			const contentHash = await hashText(stripICSVariance(response.text));
-			if (!detectFetchChange(response, contentHash)) {
-				setCalendarStatus("unchanged");
-				return;
-			}
-			
-			// Update cache information 
-			calendarStore.update(cal => ({...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), contentHash}))
-
-			// [FREEZE] Parse ALL events, build dictionaries, and freeze
-			if (freeze) {
-				const allEvents = parseICS(response.text, this._defaultCalendar);
-				freezeEvents(allEvents, this._defaultCalendar);
-			}
-			
-			// [CACHE] Parse events (between dates), build dictionaries, update calendarStore, and update calendarState status
-			const after = addDays(Date.now(), -this.settings.graceDays)
-			const before = addDays(Date.now(), 60)
-			// TODO: Make this round to the nearest day, instead of caring bout time
-			
-			const allEventsBetween = parseICSBetween(response.text, this._defaultCalendar, after, before);
-			cacheEvents(allEventsBetween, this._defaultCalendar);
-
-			setCalendarStatus("updated");
-			
-		} catch (error) {
-			calendarState.update(() => { return { status: "error", lastError: error } });
-			new Notice("An error occured while fetching. See console for details");
-			console.error("An error occured while fetching:", error.message)
-		}
 	}
 
 	async fetchPipelineGracePeriod(myToken: number, startUrl: string) {

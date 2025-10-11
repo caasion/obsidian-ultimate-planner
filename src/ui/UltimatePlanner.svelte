@@ -10,7 +10,6 @@
 	import { newActionItem, openActionItemContextMenu, } from "src/actions/itemActions";
 	import { getISODate, generateID, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
 	import type { ISODate, NormalizedEvent, PluginSettings } from "src/types";
-	import { calendarStore } from "src/state/calendarStore";
 
 	interface ViewProps {
 		app: App;
@@ -32,15 +31,6 @@
 	}
 
 	/* Reactive: getEvents */
-	function getEvents(date: ISODate): NormalizedEvent[] {
-		const calendar = $calendarStore;
-		const IDs = calendar.index[date] ?? [];
-		let events: NormalizedEvent[] = [];
-
-		IDs.forEach(id => events.push(calendar.eventsById[id]));
-
-		return events;
-	}
 
 	function getEventLabels(events: NormalizedEvent[]): string[] {
 		return events.map(event => getEventLabel(event));
@@ -171,19 +161,6 @@
 		<div class="row">
 			{#each isoDates[w] as date}
 				<div class="date-label">{format(parseISO(date), "dd")}</div>
-			{/each}
-		</div>
-		<div class="row">
-			{#each isoDates[w] as date, j}
-				<div class="cell">
-					{#if (j == 0)}
-						<div class="row-label">Calendar Cache</div>
-					{/if}
-
-					{#each getEventLabels(getEvents(date)) as label}
-						<p>{label}</p>
-					{/each}
-				</div>
 			{/each}
 		</div>
 		<div class="row">

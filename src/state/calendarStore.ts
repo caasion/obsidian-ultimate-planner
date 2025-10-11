@@ -1,6 +1,4 @@
 import { writable } from "svelte/store";
-import type { CalendarBlob, CalendarState } from "src/types";
-
-export const calendarStore = writable<CalendarBlob>();
+import type { CalendarState } from "src/types";
 
 export const calendarState = writable<CalendarState>();
