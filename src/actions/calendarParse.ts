@@ -80,14 +80,3 @@ export function buildEventDictionaries(events: NormalizedEvent[]) {
     return { index, eventsById };
 
 }
-
-/** Reads from calendarStore and returns a list of events (with details) for a specific date. */
-export function getEvents(date: ISODate): NormalizedEvent[] {
-    const calendar = get(calendarStore);
-    const IDs = calendar.index[date] ?? [];
-    let events: NormalizedEvent[] = [];
-
-    IDs.forEach(id => events.push(calendar.eventsById[id]));
-
-    return events;
-}

@@ -8,7 +8,7 @@ import { setCalendarStatus, getEventLabels } from "./calendarIndexFreeze";
 import { parseICSBetween, buildEventDictionaries } from "./calendarParse";
 import { get } from "svelte/store";
 
-export async function fetchPipelineInGracePeriod(calendar: CalendarMeta) {
+export async function fetchPipelineInGracePeriod(calendar: CalendarMeta, after: Date, before: Date) {
     // Check if we should fetch. If we do fetch, set status.
     if (get(calendarState).status === "fetching") return; 
     setCalendarStatus("fetching");
@@ -49,10 +49,6 @@ export async function fetchPipelineInGracePeriod(calendar: CalendarMeta) {
         };
 
         // [PARSE] Parse the ICS within the grace period
-        const after = addDays(Date.now(), -7)
-        const before = addDays(Date.now(), 60)
-        // TODO: Make this round to the nearest day, instead of caring bout time
-        
         const events = parseICSBetween(response.text, this._defaultCalendar, after, before);
 
         // [CONDITION] If the calendar contents didn't change, don't bother updating freeze and cache.

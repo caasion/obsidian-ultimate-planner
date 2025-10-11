@@ -37,8 +37,10 @@ export default class UltimatePlannerPlugin extends Plugin {
 			id: 'debug-manual-fetch',
 			name: 'Debug: Manual Fetch in Grace Period',
 			callback: async () => {
-				fetchPipelineInGracePeriod(get(plannerStore).calendars["cal-abcdefji-fsdkj-fjdskl"])
+				fetchPipelineInGracePeriod(get(plannerStore).calendars["cal-abcdefji-fsdkj-fjdskl"], addDays(Date.now(), -7), addDays(Date.now(), 60))
 			}
+
+			// TODO: Make this round to the nearest day, instead of caring bout time
 		})
 
 		// this.addCommand({
