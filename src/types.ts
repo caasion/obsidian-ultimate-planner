@@ -17,6 +17,10 @@ export interface CalendarMeta {
     label: string;
     color: string;
     url: string;
+    etag?: string;
+    lastFetched?: number;
+    lastModified?: string;
+    contentHash?: string;
 }
 
 export interface PlannerState {
@@ -33,7 +37,6 @@ export interface PluginData {
     version: number;
     settings: PluginSettings;
     planner: PlannerState;
-    calendar: CalendarBlob;
 }
 
 export interface PluginSettings {
@@ -47,19 +50,9 @@ export interface PluginSettings {
     retentionMonths: number;
 }
 
-export interface CalendarBlob {
-    url: string;
-    etag?: string;
-    lastFetched?: number;
-    lastModified?: string;
-    contentHash?: string;
-    events: NormalizedEvent[];
-    index: Record<ISODate, string[]> // Dictionary of ISODates and Event IDs
-    eventsById: Record<string, NormalizedEvent>
-}
-
 export type CalendarStatus = "idle" | "fetching" | "unchanged" | "updated" | "error";
 
+/* Calendar State */
 export interface CalendarState {
     status: CalendarStatus;
     lastError?: string;
@@ -75,7 +68,6 @@ export interface NormalizedEvent {
     location?: string;
     description?: string;
     calendarId: string;
-    sourceUrl?: string;
 }
 
 /* DEFAULT VALUES */
@@ -83,7 +75,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     weekStartOn: 0,
     autosaveDebounceMs: 200,
     weeksToRender: 1,
-    remoteCalendarUrl: "",
     refreshRemoteMs: 5 * 60 * 1000,
     archivePastEvents: true,
     graceDays: 7,
