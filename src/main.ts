@@ -314,7 +314,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 			}
 			
 			// Update cache information 
-			calendarStore.update(cal => ({...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), contentHash}))
+			calendarStore.update(cal => ({...cal, contentHash}))
 			
 			// [STORE] Build efficient event dictionaries and use those to write into  
 			const { index, eventsById } = buildEventDictionaries(events);
