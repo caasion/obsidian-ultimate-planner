@@ -23,7 +23,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 		await this.loadPersisted();
 
 		// Set default Calendar State
-		calendarState.update(() => { return { status: "idle" } });
+		calendarState.update(() => { return  });
 
 		// Add debug command
 		this.addCommand({
