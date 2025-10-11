@@ -43,21 +43,13 @@ export default class UltimatePlannerPlugin extends Plugin {
 			// TODO: Make this round to the nearest day, instead of caring bout time
 		})
 
-		// this.addCommand({
-		// 	id: 'debug-manual-fetch-freeze',
-		// 	name: 'Debug: Manual Fetch All & Freeze',
-		// 	callback: async () => {
-		// 		// Check if we should fetch. If we do fetch, set status.
-		// 		if (get(calendarState).status === "fetching") return; 
-		// 		setCalendarStatus("fetching");
-
-		// 		// Set up variables to check if we should fetch or continue to fetch
-		// 		const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
-		// 		const startUrl = this.settings.remoteCalendarUrl;
-
-		// 		this.fetchPipelineFreeze(myToken, startUrl);
-		// 	}
-		// })
+		this.addCommand({
+			id: 'debug-manual-fetch-freeze',
+			name: 'Debug: Manual Fetch All & Freeze',
+			callback: async () => {
+				fetchAllandFreeze(get(plannerStore).calendars["cal-abcdefji-fsdkj-fjdskl"], addDays(Date.now(), -7), addDays(Date.now(), 60))
+			}
+		})
 
 		// Add Settings Tab using Obsidian's API
 		this.addSettingTab(new UltimatePlannerPluginTab(this.app, this));
