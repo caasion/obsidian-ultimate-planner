@@ -127,6 +127,22 @@ export default class UltimatePlannerPlugin extends Plugin {
 			}
 		})
 
+		this.addCommand({
+			id: 'debug-manual-fetch-freeze',
+			name: 'Debug: Manual Fetch & Freeze (for all events)',
+			callback: async () => {
+				// Check if we should fetch. If we do fetch, set status.
+				if (get(calendarState).status === "fetching") return; 
+				setCalendarStatus("fetching");
+
+				// Set up variables to check if we should fetch or continue to fetch
+				const myToken = ++this.refreshToken; // Increment refreshToken, then assign to myToken
+				const startUrl = this.settings.remoteCalendarUrl;
+
+				this.fetchPipelineFreeze(myToken, startUrl);
+			}
+		})
+
 		// Add Settings Tab using Obsidian's API
 		this.addSettingTab(new UltimatePlannerPluginTab(this.app, this));
 
@@ -323,6 +339,52 @@ export default class UltimatePlannerPlugin extends Plugin {
 				})
 			})
 
+
+			setCalendarStatus("updated");
+			
+		} catch (error) {
+			calendarState.update(() => { return { status: "error", lastError: error } });
+			new Notice("An error occured while fetching. See console for details");
+			console.error("An error occured while fetching:", error.message)
+		}
+	}
+
+	async fetchPipelineFreeze(myToken: number, startUrl: string) {
+		try { // Wrap in try because fetchFromUrl throws Exception
+			const response = await fetchFromUrl(this.settings.remoteCalendarUrl); 	
+
+			// Update lastFetched status in store
+			calendarStore.update(cache => ({...cache, lastFetched: Date.now()}));
+
+			// [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
+			if (myToken !== this.refreshToken) {
+				console.warn("Fetch request is stale. Aborted.");
+				setCalendarStatus("unchanged");
+				return;
+			};
+
+			// [GUARD] If the old URL is different from the current one, the URL changed and we should drop the fetch
+			if (startUrl !== this.settings.remoteCalendarUrl) {
+				new Notice("URL changed during fetch. Please fetch again.");
+				console.warn("URL changed during fetch. Aborted.");
+				setCalendarStatus("unchanged");
+				return;
+			};
+			
+			// [FREEZE] Parse ALL events, build dictionaries, and freeze
+			const allEvents = parseICS(response.text, this._defaultCalendar);
+			freezeEvents(allEvents, this._defaultCalendar);
+			
+			// [HASH] Parse ICS within grace period and compute contentHash from it
+			const after = addDays(Date.now(), -this.settings.graceDays)
+			const before = addDays(Date.now(), 60)
+			// TODO: Make this round to the nearest day, instead of caring bout time
+			
+			const eventsBetween = parseICSBetween(response.text, this._defaultCalendar, after, before);
+			const contentHash = await hashText(JSON.stringify(eventsBetween));
+
+			// [CACHE] Update calendar cache information 
+			calendarStore.update(cal => ({...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), contentHash}))
 
 			setCalendarStatus("updated");
 			
