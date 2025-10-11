@@ -283,8 +283,15 @@ export default class UltimatePlannerPlugin extends Plugin {
 				return;
 			};
 
+			// [PARSE] Parse the ICS within the grace period
+			const after = addDays(Date.now(), -this.settings.graceDays)
+			const before = addDays(Date.now(), 60)
+			// TODO: Make this round to the nearest day, instead of caring bout time
+			
+			const events = parseICSBetween(response.text, this._defaultCalendar, after, before);
+
 			// [CONDITION] If the calendar contents didn't change, don't bother updating freeze and cache.
-			const contentHash = await hashText(stripICSVariance(response.text));
+			const contentHash = await hashText(JSON.stringify(events));
 			if (!detectFetchChange(response, contentHash)) {
 				setCalendarStatus("unchanged");
 				return;
@@ -293,13 +300,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 			// Update cache information 
 			calendarStore.update(cal => ({...cal, etag: response.headers.etag ?? "", lastModified: response.headers.lastModified ?? Date.now(), contentHash}))
 			
-			// [CACHE] Parse events (between dates), build dictionaries, update calendarStore, and update calendarState status
-			const after = addDays(Date.now(), -this.settings.graceDays)
-			const before = addDays(Date.now(), 60)
-			// TODO: Make this round to the nearest day, instead of caring bout time
-			
-			const events = parseICSBetween(response.text, this._defaultCalendar, after, before);
-
+			// [STORE] Build efficient event dictionaries and use those to write into  
 			const { index, eventsById } = buildEventDictionaries(events);
 
 			Object.keys(index).forEach(date => {
