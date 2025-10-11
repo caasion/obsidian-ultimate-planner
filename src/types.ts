@@ -13,8 +13,10 @@ export interface ActionItemMeta {
 
 export type CalendarID = string;
 
+export type RowID = ActionItemID | CalendarID;
+
 export interface CalendarMeta {
-    id: ActionItemID;
+    id: CalendarID;
     label: string;
     color: string;
     url: string;
@@ -26,11 +28,11 @@ export interface CalendarMeta {
 
 export interface PlannerState {
     actionItems: Record<ActionItemID, ActionItemMeta>;
-    calendars: Record<ActionItemID, CalendarMeta>;
-    templates: Record<ISODate, ActionItemID[]>;
+    calendars: Record<CalendarID, CalendarMeta>;
+    templates: Record<ISODate, RowID[]>;
     // Records are much more efficient objects for look-ups
-    cells: Record<ISODate, Record<ActionItemID, string /* contents */>>; 
-    calendarCells: Record<ISODate, Record<ActionItemID, string[] >>;
+    cells: Record<ISODate, Record<ActionItemID, string>>; 
+    calendarCells: Record<ISODate, Record<CalendarID, string[] >>;
 }
 
 /* Data persistence */
