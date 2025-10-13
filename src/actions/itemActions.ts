@@ -5,6 +5,7 @@ import { App, Menu, Notice } from 'obsidian';
 import { addDaysISO, idUsedInTemplates } from './helpers';
 import { NewActionItemModal, EditActionItemModal } from '../ui/ActionItemModals';
 import { EditCalendarModal, NewCalendarModal } from 'src/ui/CalendarModals';
+import { GenericNewModal } from 'src/ui/GenericNewModal';
 
 /* Template */
 /** [HELPER] Returns a deep copy of the template that should apply on `date`
@@ -250,14 +251,14 @@ export function newRowContextMenu(app: App, evt: MouseEvent) {
             i.setTitle("Create New Action Item")
             .setIcon("add")
             .onClick(() => {
-                new NewActionItemModal(app, (date, meta) => newActionItem(date, meta)).open();
+                new GenericNewModal(app, "actionItem", (date, meta) => newActionItem(date, meta)).open();
             })
         )
         .addItem((i) =>
             i.setTitle("Add New Remote Calendar")
             .setIcon("add")
             .onClick(() => {
-                new NewCalendarModal(app, (date, meta) => newCalendar(date, meta)).open();
+                new GenericNewModal(app, "calendar", (date, meta) => newCalendar(date, meta as CalendarMeta)).open();
             })
         )
 
