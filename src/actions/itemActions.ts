@@ -1,4 +1,4 @@
-import type { ISODate, ActionItemID, PlannerState } from '../types';
+import type { ISODate, ActionItemID, PlannerState, ActionItemMeta } from '../types';
 import { actionItems, addToTemplate, removeFromTemplate, removeItemFromPlanner, setTemplate, templates, updateActionItem } from '../state/plannerStore';
 import { get } from 'svelte/store';
 import { App, Menu, Notice } from 'obsidian';
@@ -21,11 +21,11 @@ export function templateForDate(date: ISODate): ActionItemID[] {
 
 /* Action Items */
 /** Registers a new action item in actionItems and adds it to a date's template. */
-export function newActionItem(date: ISODate, id: ActionItemID, label: string, color: string) {
-    updateActionItem(id, { label, color })
+export function newActionItem(date: ISODate, meta: ActionItemMeta) {
+    updateActionItem(meta.id, meta)
 
     const newTemplate: ActionItemID[] = templateForDate(date);
-    newTemplate.push(id);
+    newTemplate.push(meta.id);
     setTemplate(date, newTemplate)
 }
 
@@ -149,7 +149,7 @@ export function newRowContextMenu(app: App, evt: MouseEvent) {
             i.setTitle("Create New Action Item")
             .setIcon("add")
             .onClick(() => {
-                new NewActionItemModal(app, (date, {id, label, color}) => newActionItem(date, id, label, color)).open();
+                new NewActionItemModal(app, (date, meta) => newActionItem(date, meta)).open();
             })
         )
 

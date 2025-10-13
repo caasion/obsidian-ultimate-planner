@@ -27,14 +27,13 @@ export class EditActionItemModal extends Modal {
 }
 
 export class NewActionItemModal extends Modal {
-    constructor(app: App, onSubmit: (date: ISODate, meta: any) => void) {
+    constructor(app: App, onSubmit: (date: ISODate, meta: ActionItemMeta) => void) {
         super(app);
         
         const { contentEl } = this;
-        const id = generateID();
 
-        const meta = {
-            id: "",
+        const meta: ActionItemMeta = {
+            id: generateID(),
             label: "",
             color: "",
         }
@@ -48,7 +47,7 @@ export class NewActionItemModal extends Modal {
             .setName("ID")
             .addText((t) => {
                 t.setDisabled(true);
-                t.setValue(id);
+                t.setValue(meta.id);
             })
         new Setting(contentEl)
             .setName("Color: ")
