@@ -1,10 +1,10 @@
-import type { ISODate, ActionItemID, PlannerState, ActionItemMeta, CalendarMeta, RowID } from '../types';
-import { actionItems, addToTemplate, removeFromTemplate, removeItemFromPlanner, setTemplate, templates, updateActionItem, updateCalendar } from '../state/plannerStore';
+import type { ISODate, ActionItemID, PlannerState, ActionItemMeta, CalendarMeta, RowID, CalendarID } from '../types';
+import { actionItems, addToTemplate, calendars, removeFromTemplate, removeItemFromPlanner, setTemplate, templates, updateActionItem, updateCalendar } from '../state/plannerStore';
 import { get } from 'svelte/store';
 import { App, Menu, Notice } from 'obsidian';
 import { addDaysISO, idUsedInTemplates } from './helpers';
 import { NewActionItemModal, EditActionItemModal } from '../ui/ActionItemModals';
-import { NewCalendarModal } from 'src/ui/CalendarModals';
+import { EditCalendarModal, NewCalendarModal } from 'src/ui/CalendarModals';
 
 /* Template */
 /** [HELPER] Returns a deep copy of the template that should apply on `date`
@@ -78,6 +78,95 @@ export function openActionItemContextMenu(app: App, evt: MouseEvent, date: ISODa
             .setIcon("pencil")
             .onClick(() => {
                 new EditActionItemModal(app, get(actionItems)[id], (label: string, color: string) => updateActionItem(id, {label, color})).open();
+            })
+        )
+        .addItem((i) =>
+            i.setTitle("Extend until next template")
+            .setIcon("calendar-plus-2")
+            .onClick(() => {
+                addToTemplate(addDaysISO(date, 1), id);
+            })
+        )
+        .addItem((i) =>
+            i.setTitle("Extend until latest template")
+            .setIcon("calendar-plus")
+            .onClick(() => {
+                const dates = getDatesWithTemplatesAfterDate(date);
+
+                dates.forEach((date) => {        
+                    addToTemplate(addDaysISO(date, 1), id);
+                })
+            })
+        )
+        .addItem((i) =>
+            i.setTitle("Extend to previous template")
+            .setIcon("calendar-minus")
+            .onClick(() => {
+                addToTemplate(addDaysISO(date, -1), id);
+            })
+        )
+        .addItem((i) =>
+            i.setTitle("Remove from this date (until next template)")
+            .setIcon("calendar-x")
+            .onClick(() => {
+                removeFromTemplate(date, id)
+                if (!idUsedInTemplates(get(templates), id)) {
+                    removeItemFromPlanner(id);
+                }
+            })
+        ).addItem((i) =>
+            i.setTitle("Remove from this date (until latest templates)")
+            .setIcon("calendar-off")
+            .onClick(() => {
+                const dates = getDatesWithTemplatesAfterDate(date);
+
+                dates.forEach((date) => {        
+                    removeFromTemplate(date, id)
+                    if (!idUsedInTemplates(get(templates), id)) {
+                        removeItemFromPlanner(id);
+                    }
+                })
+            })
+        ).addItem((i) =>
+            i.setTitle("Move up")
+            .setIcon("chevron-up")
+            .onClick(() => {
+                const template = templateForDate(date);
+                const a = template.findIndex((value) => value == id);
+
+                setTemplate(date, swapArrayItems(template, a, a-1))
+            })
+        ).addItem((i) =>
+            i.setTitle("Move down")
+            .setIcon("chevron-down")
+            .onClick(() => {
+                const template = templateForDate(date);
+                const a = template.findIndex((value) => value == id);
+
+                setTemplate(date, swapArrayItems(template, a, a+1))
+            })
+        );
+        
+    menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
+}
+
+export function openCalendarContextMenu(app: App, evt: MouseEvent, date: ISODate, id: CalendarID) {
+    evt.preventDefault();
+    evt.stopPropagation();
+
+    const menu = new Menu();
+
+    menu
+        .addItem((i) =>
+            i.setTitle(`ID: ${id}`)
+            .setIcon("info")
+        )
+        .addSeparator()
+        .addItem((i) =>
+            i.setTitle("Edit")
+            .setIcon("pencil")
+            .onClick(() => {
+                new EditCalendarModal(app, get(calendars)[id], (meta) => updateCalendar(id, meta)).open();
             })
         )
         .addItem((i) =>
