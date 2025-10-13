@@ -1,11 +1,10 @@
-import { get } from "svelte/store";
 import { App, Menu } from "obsidian";
 import { addDaysISO, idUsedInTemplates } from "src/actions/helpers";
 import { getDatesWithTemplatesAfterDate, templateForDate, swapArrayItems } from "src/actions/itemActions";
 import { actionItems, updateActionItem, addToTemplate, removeFromTemplate, templates, removeItemFromPlanner, setTemplate, updateCalendar, calendars } from "src/state/plannerStore";
 import type { ISODate, ActionItemID, ActionItemMeta, CalendarMeta } from "src/types";
-import { EditActionItemModal } from "./ActionItemModals";
 import { GenericEditModal } from "./GenericEditModal";
+import { get } from "svelte/store";
 
 type RowType = "actionItem" | "calendar";
 
@@ -28,14 +27,14 @@ export function openRowContextMenu(app: App, evt: MouseEvent, type: RowType, dat
                 if (type === "actionItem") {
                     new GenericEditModal(
                         app, 
-                        get(calendars)[id], 
+                        get(actionItems)[id], 
                         'actionItem',
                         (meta: ActionItemMeta) => updateActionItem(id, meta)
                     ).open();
                 } else if (type === "calendar") {
                     new GenericEditModal(
                         app, 
-                        get(actionItems)[id], 
+                        get(calendars)[id], 
                         'calendar',
                         (meta: CalendarMeta) => updateCalendar(id, meta)
                     ).open();

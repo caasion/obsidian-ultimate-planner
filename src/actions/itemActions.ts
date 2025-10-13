@@ -3,8 +3,6 @@ import { actionItems, addToTemplate, calendars, removeFromTemplate, removeItemFr
 import { get } from 'svelte/store';
 import { App, Menu, Notice } from 'obsidian';
 import { addDaysISO, idUsedInTemplates } from './helpers';
-import { NewActionItemModal, EditActionItemModal } from '../ui/ActionItemModals';
-import { EditCalendarModal, NewCalendarModal } from 'src/ui/CalendarModals';
 import { GenericNewModal } from 'src/ui/GenericNewModal';
 
 /* Template */

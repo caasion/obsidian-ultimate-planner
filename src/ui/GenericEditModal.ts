@@ -10,10 +10,6 @@ export class GenericEditModal<T extends (ActionItemMeta | CalendarMeta)> extends
         const { contentEl } = this;
         let meta: T = { ...initial };
 
-        console.log(meta);
-
-        console.log(meta === initial)
-
         new Setting(contentEl)
             .setName("Name: ")
             .addText((t) => t.setValue(meta.label).onChange((v) => (meta.label = v)));
