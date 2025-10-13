@@ -5,11 +5,11 @@
 	import { tick } from "svelte";
 	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
-	import { plannerStore } from "src/state/plannerStore";
-	import { setCell, getCell } from "../actions/cellActions";
+	import { setCell, getCell } from "../state/plannerStore";
 	import { newActionItem, openActionItemContextMenu, } from "src/actions/itemActions";
 	import { getISODate, generateID, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
 	import type { ISODate, NormalizedEvent, PluginSettings } from "src/types";
+	import { actionItems, calendarCells, templates } from "src/state/plannerStore";
 
 	interface ViewProps {
 		app: App;
@@ -23,11 +23,10 @@
 	/* Reactive: templateStoreForDate */
 	function templateStoreForDate(date: ISODate) {
 		let best: ISODate | null = null;
-		const templates = $plannerStore.templates;
-		for (const key in templates) {
+		for (const key in $templates) {
 			if (key <= date && (best === null || key > best)) best = key;
 		}
-		return best ? JSON.parse(JSON.stringify(templates[best])) : [];
+		return best ? JSON.parse(JSON.stringify($templates[best])) : [];
 	}
 
 	/* Reactive: getEvents */
@@ -170,7 +169,7 @@
 						<div class="row-label">Calendar Frozen Cells</div>
 					{/if}
 
-					{#each $plannerStore.calendarCells[date]?.["cal-abcdefji-fsdkj-fjdskl"] ?? [] as label}
+					{#each $calendarCells[date]?.["cal-abcdefji-fsdkj-fjdskl"] ?? [] as label}
 						<p>{label}</p>
 					{/each}
 				</div>
@@ -183,11 +182,11 @@
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
 							class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
-							style={`color: ${$plannerStore.actionItems[rowID].color ?? ""}`}
+							style={`color: ${$actionItems[rowID].color ?? ""}`}
 							oncontextmenu={(e) => openActionItemContextMenu(app, e, date, rowID)}
 						>
-							{#if (j == 0 && $plannerStore.actionItems[rowID].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(rowID)}
-								<div class="row-label">{$plannerStore.actionItems[rowID].label ?? ""}</div>
+							{#if (j == 0 && $actionItems[rowID].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(rowID)}
+								<div class="row-label">{$actionItems[rowID].label ?? ""}</div>
 							{/if}
 							<InputCell {date} {rowID} {setCell} {getCell} row={i} col={j} {focusCell} />
 						</div>
