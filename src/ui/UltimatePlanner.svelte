@@ -1,14 +1,14 @@
 <script lang="ts">
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
-	import { differenceInMinutes, format, parseISO } from "date-fns";
+	import { format, parseISO } from "date-fns";
 	import { tick } from "svelte";
 	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
 	import { setCell, getCell } from "../state/plannerStore";
 	import { newActionItem, openActionItemContextMenu, } from "src/actions/itemActions";
 	import { getISODate, generateID, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
-	import type { ISODate, NormalizedEvent, PluginSettings } from "src/types";
+	import type { ISODate, PluginSettings } from "src/types";
 	import { actionItems, calendarCells, templates } from "src/state/plannerStore";
 
 	interface ViewProps {
@@ -17,8 +17,6 @@
 	}
 
 	let { app, settings }: ViewProps = $props();
-
-	const DEFAULT_COLOR = "#cccccc";
 
 	/* Reactive: templateStoreForDate */
 	function templateStoreForDate(date: ISODate) {
@@ -29,39 +27,11 @@
 		return best ? JSON.parse(JSON.stringify($templates[best])) : [];
 	}
 
-	/* Reactive: getEvents */
-
-	function getEventLabels(events: NormalizedEvent[]): string[] {
-		return events.map(event => getEventLabel(event));
-	}
-
-	function getEventLabel(event: NormalizedEvent): string {
-		if (event.allDay) {
-			return `${event.summary}`
-		} else {
-			const start = format(event.start, "HH:mm")
-			return `${event.summary} @ ${start} (${getDurationAsString(event.start, event.end)})`
-		}
-	}
-
-	function getDurationAsString(start: Date, end: Date): string {
-		let diff: number = differenceInMinutes(end, start)
-		let units: string = "min";
-
-		if (diff % 60 == 0) {
-			diff /= 60;
-			units = "hr";
-		}
-
-		return `${diff} ${units}`
-	}
-
 	/* Create Action Item */
-
 	let showNewRowPrompt = $state(false);
 	let newRowLabel = $state("");
 	let newRowDate = $state<ISODate>(getISODate(new Date()));
-	let newRowColor = $state(DEFAULT_COLOR);
+	let newRowColor = $state("#cccccc");
 
 	function submitNewRow(create: boolean) {
 		if (create) {
@@ -70,11 +40,10 @@
 
 		newRowLabel = "";
 		showNewRowPrompt = false;
-		newRowColor = DEFAULT_COLOR;
+		newRowColor = "#cccccc";
 	}
 
 	/* Table Rendering */
-
 	let weeksVisible = settings.weeksToRender;
 	let anchorDate = $state<ISODate>(getISODate(new Date()));
 	let isoDates = $derived<ISODate[][]>(getISODatesOfWeek(anchorDate, weeksVisible, settings.weekStartOn));
@@ -91,7 +60,6 @@
 	}
 
 	/* Table Navigation (Tab, Shift-tab, Enter) */
-
 	let focus: { row: number; col: number } = $state({ row: 0, col: 0 }); // Track focus to preserve focus at the same row
 
 	function focusCell(row: number, col: number, fromEditor = false): boolean {
@@ -118,8 +86,6 @@
 		await tick();
 		focusCell(focus.row, focus.col);
 	}
-
-	// TODO: Export to CSV or Markdown
 </script>
 
 <h1>The Ultimate Planner</h1>
@@ -200,23 +166,15 @@
 	
 </div>
 
-<!-- For debugging -->
-<!-- <pre>
-    {JSON.stringify($plannerStore, null, 2)}
-</pre> -->
-
 <style>
 	.header {
 		display: grid;
     grid-template-columns: 1fr 1fr 1fr;
 	}
 
-  .nav-buttons {
-  }
-
   .week {
     display: flex;
-    justify-content: center;   /* center inside parent */
+    justify-content: center; 
     position: relative;
   }
 
@@ -226,7 +184,7 @@
     text-align: center;
     padding: .25rem .5rem;
     display: inline-block;
-    pointer-events: none;      /* clicks pass through to input */
+    pointer-events: none;  
   }
 
   .week input[type="date"] {
@@ -249,7 +207,7 @@
   }
 
   .week input[type="date"]::-webkit-datetime-edit {
-    display: none; /* hides the editable text */
+    display: none;
   }
 
   .new-ai {
