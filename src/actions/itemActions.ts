@@ -1,9 +1,10 @@
-import type { ISODate, ActionItemID, PlannerState, ActionItemMeta } from '../types';
-import { actionItems, addToTemplate, removeFromTemplate, removeItemFromPlanner, setTemplate, templates, updateActionItem } from '../state/plannerStore';
+import type { ISODate, ActionItemID, PlannerState, ActionItemMeta, CalendarMeta, RowID } from '../types';
+import { actionItems, addToTemplate, removeFromTemplate, removeItemFromPlanner, setTemplate, templates, updateActionItem, updateCalendar } from '../state/plannerStore';
 import { get } from 'svelte/store';
 import { App, Menu, Notice } from 'obsidian';
 import { addDaysISO, idUsedInTemplates } from './helpers';
 import { NewActionItemModal, EditActionItemModal } from '../ui/ActionItemModals';
+import { NewCalendarModal } from 'src/ui/CalendarModals';
 
 /* Template */
 /** [HELPER] Returns a deep copy of the template that should apply on `date`
@@ -24,10 +25,21 @@ export function templateForDate(date: ISODate): ActionItemID[] {
 export function newActionItem(date: ISODate, meta: ActionItemMeta) {
     updateActionItem(meta.id, meta)
 
-    const newTemplate: ActionItemID[] = templateForDate(date);
+    const newTemplate: RowID[] = templateForDate(date);
     newTemplate.push(meta.id);
     setTemplate(date, newTemplate)
 }
+
+/* Calendars */
+/** Registers a new calendar in calendars and adds it to a date's template. */
+export function newCalendar(date: ISODate, meta: CalendarMeta) {
+    updateCalendar(meta.id, meta)
+
+    const newTemplate: RowID[] = templateForDate(date);
+    newTemplate.push(meta.id);
+    setTemplate(date, newTemplate)
+}
+
 
 /** [HELPER] Returns a list of dates that have a template, and are after the date provided */
 export function getDatesWithTemplatesAfterDate(date: ISODate): ISODate[] {
@@ -150,6 +162,13 @@ export function newRowContextMenu(app: App, evt: MouseEvent) {
             .setIcon("add")
             .onClick(() => {
                 new NewActionItemModal(app, (date, meta) => newActionItem(date, meta)).open();
+            })
+        )
+        .addItem((i) =>
+            i.setTitle("Add New Remote Calendar")
+            .setIcon("add")
+            .onClick(() => {
+                new NewCalendarModal(app, (date, meta) => newCalendar(date, meta)).open();
             })
         )
 
