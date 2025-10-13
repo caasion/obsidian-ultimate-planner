@@ -5,7 +5,7 @@
 	import { tick } from "svelte";
 	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
-	import { setCell, getCell } from "../state/plannerStore";
+	import { setCell, getCell, calendars } from "../state/plannerStore";
 	import { newActionItem, openActionItemContextMenu, } from "src/actions/itemActions";
 	import { getISODate, generateID, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
 	import type { ISODate, PluginSettings } from "src/types";
@@ -128,38 +128,47 @@
 				<div class="date-label">{format(parseISO(date), "dd")}</div>
 			{/each}
 		</div>
-		<div class="row">
-			{#each isoDates[w] as date, j}
-				<div class="cell">
-					{#if (j == 0)}
-						<div class="row-label">Calendar Frozen Cells</div>
-					{/if}
-
-					{#each $calendarCells[date]?.["cal-abcdefji-fsdkj-fjdskl"] ?? [] as label}
-						<p>{label}</p>
-					{/each}
-				</div>
-			{/each}
-		</div>
-		{#each rows as rowID, i (rowID)}
+		{#each rows as id, i (id)}
 			<div class="row">
 				{#each isoDates[w] as date, j (date)}
-					{#if templateStoreForDate(date).includes(rowID)}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div
-							class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
-							style={`color: ${$actionItems[rowID].color ?? ""}`}
-							oncontextmenu={(e) => openActionItemContextMenu(app, e, date, rowID)}
-						>
-							{#if (j == 0 && $actionItems[rowID].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(rowID)}
-								<div class="row-label">{$actionItems[rowID].label ?? ""}</div>
-							{/if}
-							<InputCell {date} {rowID} {setCell} {getCell} row={i} col={j} {focusCell} />
-						</div>
+					{#if Object.keys($calendars).includes(id)} <!-- Check if the calendars dictionary has the key -->
+						{#if templateStoreForDate(date).includes(id)}
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
+								style={`color: ${$calendars[id].color ?? ""}`}
+								oncontextmenu={(e) => openActionItemContextMenu(app, e, date, id)}
+							>
+								{#if (j == 0 && $calendars[id].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(id)}
+									<div class="row-label">{$calendars[id].label ?? ""}</div>
+								{/if}
+								{#each $calendarCells[date]?.[id] ?? [] as label}
+									<p>{label}</p>
+								{/each}
+							</div>
+						{:else}
+							<div class="cell empty">-</div>
+						{/if}
 					{:else}
-						<div class="cell empty">-</div>
+						
+							{#if templateStoreForDate(date).includes(id)}
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<div
+									class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
+									style={`color: ${$actionItems[id].color ?? ""}`}
+									oncontextmenu={(e) => openActionItemContextMenu(app, e, date, id)}
+								>
+									{#if (j == 0 && $actionItems[id].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(id)}
+										<div class="row-label">{$actionItems[id].label ?? ""}</div>
+									{/if}
+									<InputCell {date} rowID={id} {setCell} {getCell} row={i} col={j} {focusCell} />
+								</div>
+							{:else}
+								<div class="cell empty">-</div>
+							{/if}
+										
 					{/if}
-				{/each}
+				{/each}	
 			</div>
 		{/each}
 	{/each}
