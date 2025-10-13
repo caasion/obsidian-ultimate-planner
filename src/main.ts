@@ -6,6 +6,7 @@ import { get, type Unsubscriber } from 'svelte/store';
 import { DEFAULT_SETTINGS, EMPTY_PLANNER, type ActionItemID, type NormalizedEvent, type PluginData, type PluginSettings } from './types';
 import { addDays } from 'date-fns';
 import { fetchAllandFreeze, fetchPipelineInGracePeriod } from './actions/calendarPipelines';
+import { migrateToVersion4 } from './migration';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
@@ -57,6 +58,8 @@ export default class UltimatePlannerPlugin extends Plugin {
 				this.activateView(PLANNER_VIEW_TYPE);
 			}
 		});
+
+		migrateToVersion4();
 	}
 
 	async onunload() {
