@@ -1,5 +1,6 @@
 import { get, writable } from "svelte/store";
 import type { ActionItemID, ActionItemMeta, CalendarID, CalendarMeta, ISODate, PlannerState, RowID } from "src/types";
+import { templateForDate } from "src/actions/itemActions";
 
 export const actionItems = writable<Record<ActionItemID, ActionItemMeta>>({});
 export const calendars = writable<Record<CalendarID, CalendarMeta>>({});
@@ -18,7 +19,7 @@ export function setTemplate(date: ISODate, newTemplate: RowID[]) {
  * have it. Returns true if added to template and false if 
  * template already contains the item. */
 export function addToTemplate(date: ISODate, id: RowID): boolean {
-    if (get(templates)[date].contains(id)) return false;
+    if (templateForDate(date).contains(id)) return false;
 
     templates.update(templates => ({
         ...templates,
@@ -30,7 +31,7 @@ export function addToTemplate(date: ISODate, id: RowID): boolean {
 
 /** Removes an item from a template if the template has it. Returns false if template doesn't contain the item. */
 export function removeFromTemplate(date: ISODate, id: ActionItemID): boolean {
-    if (!get(templates)[date].contains(id)) return false;
+    if (!templateForDate(date).contains(id)) return false;
 
     const template = get(templates)[date].slice()
     const index = template.indexOf(id);
