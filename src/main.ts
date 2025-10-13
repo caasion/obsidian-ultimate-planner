@@ -1,7 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { PLANNER_VIEW_TYPE, PlannerView } from './ui/PlannerView';
 import { UltimatePlannerPluginTab } from './ui/SettingsTab';
-import { actionItems, calendarCells, calendars, cells, plannerStore, templates } from './state/plannerStore';
+import { actionItems, calendarCells, calendars, cells, templates } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
 import { DEFAULT_SETTINGS, EMPTY_PLANNER, type ActionItemID, type NormalizedEvent, type PluginData, type PluginSettings } from './types';
 import { addDays } from 'date-fns';
@@ -29,7 +29,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 			id: 'debug-manual-fetch',
 			name: 'Debug: Manual Fetch in Grace Period',
 			callback: async () => {
-				fetchPipelineInGracePeriod(get(plannerStore).calendars["cal-abcdefji-fsdkj-fjdskl"], addDays(Date.now(), -7), addDays(Date.now(), 60))
+				fetchPipelineInGracePeriod(get(calendars)["cal-abcdefji-fsdkj-fjdskl"], addDays(Date.now(), -7), addDays(Date.now(), 60))
 			}
 
 			// TODO: Make this round to the nearest day, instead of caring bout time
@@ -39,7 +39,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 			id: 'debug-manual-fetch-freeze',
 			name: 'Debug: Manual Fetch All & Freeze',
 			callback: async () => {
-				fetchAllandFreeze(get(plannerStore).calendars["cal-abcdefji-fsdkj-fjdskl"], addDays(Date.now(), -7), addDays(Date.now(), 60))
+				fetchAllandFreeze(get(calendars)["cal-abcdefji-fsdkj-fjdskl"], addDays(Date.now(), -7), addDays(Date.now(), 60))
 			}
 		})
 
@@ -97,7 +97,13 @@ export default class UltimatePlannerPlugin extends Plugin {
 		return {
 			version: 3,
 			settings: this.settings,
-			planner: get(plannerStore),
+			planner: {
+				actionItems: get(actionItems),
+				calendars: get(calendars),
+				templates: get(templates),
+				cells: get(cells),
+				calendarCells: get(calendarCells),
+			},
 		}
 	}
 
