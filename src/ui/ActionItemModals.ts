@@ -1,6 +1,7 @@
 import { Modal, Setting } from "obsidian";
 import type { App } from 'obsidian'
 import type { ActionItemMeta } from "../types";
+import { generateID } from "src/actions/helpers";
 
 export class EditActionItemModal extends Modal {
     constructor(app: App, initial: ActionItemMeta, onSubmit: (label: string, color: string) => void) {
@@ -23,5 +24,38 @@ export class EditActionItemModal extends Modal {
                 this.close(); }))
             .addButton((b) => b.setButtonText("Cancel").onClick(() => this.close()));
         }
+}
 
+export class NewActionItemModal extends Modal {
+    constructor(app: App, onSubmit: (meta: ActionItemMeta) => void) {
+        super(app);
+        
+        const { contentEl } = this;
+        const id = generateID();
+
+        const meta: ActionItemMeta = {
+            label: "",
+            color: "",
+        }
+
+        new Setting(contentEl)
+            .setName("Name: ")
+            .addText((t) => t.onChange((v) => (meta.label = v)));
+        new Setting(contentEl)
+            .setName("ID")
+            .addText((t) => {
+                t.setDisabled(true);
+                t.setValue(id);
+            })
+        new Setting(contentEl)
+            .setName("Color: ")
+            .addColorPicker(c => c  
+                .onChange((v) => meta.color = v)
+            );
+        new Setting(contentEl)
+            .addButton((b) => b.setButtonText("Save").setCta().onClick(() => { 
+                onSubmit(meta); 
+                this.close(); }))
+            .addButton((b) => b.setButtonText("Cancel").onClick(() => this.close()));
+        }
 }

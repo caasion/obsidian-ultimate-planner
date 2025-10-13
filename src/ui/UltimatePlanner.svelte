@@ -27,21 +27,7 @@
 		return best ? JSON.parse(JSON.stringify($templates[best])) : [];
 	}
 
-	/* Create Action Item */
-	let showNewRowPrompt = $state(false);
-	let newRowLabel = $state("");
-	let newRowDate = $state<ISODate>(getISODate(new Date()));
-	let newRowColor = $state("#cccccc");
-
-	function submitNewRow(create: boolean) {
-		if (create) {
-			newActionItem(newRowDate, generateID(), newRowLabel, newRowColor);
-		}
-
-		newRowLabel = "";
-		showNewRowPrompt = false;
-		newRowColor = "#cccccc";
-	}
+	
 
 	/* Table Rendering */
 	let weeksVisible = settings.weeksToRender;
@@ -101,20 +87,7 @@
 		<input type="date" bind:value={anchorDate} />
 	</div>
 
-	<div class="new-ai">
-		<button onclick={() => (showNewRowPrompt = true)}>+ Add</button>
-		{#if showNewRowPrompt}
-			<input
-				class="new-row-label"
-				placeholder="Enter a New Action item"
-				bind:value={newRowLabel}
-			/>
-			<input class="new-row-date" type="date" bind:value={newRowDate} />
-			<input type="color" bind:value={newRowColor} />
-			<button onclick={() => submitNewRow(true)}>✔</button>
-			<button onclick={() => submitNewRow(false)}>❌</button>
-		{/if}
-	</div>
+	
 </div>
 <div class="grid">
 	<div class="row">
