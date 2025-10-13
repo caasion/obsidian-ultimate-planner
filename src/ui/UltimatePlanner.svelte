@@ -10,6 +10,7 @@
 	import { getISODate, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
 	import type { ISODate, PluginSettings } from "src/types";
 	import { actionItems, calendarCells, templates } from "src/state/plannerStore";
+	import { openRowContextMenu } from './GenericContextMenu';
 
 	interface ViewProps {
 		app: App;
@@ -112,7 +113,7 @@
 							<div
 								class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
 								style={`color: ${$calendars[id].color ?? ""}`}
-								oncontextmenu={(e) => openActionItemContextMenu(app, e, date, id)}
+								oncontextmenu={(e) => openRowContextMenu(app, e, "calendar", date, id)}
 							>
 								{#if (j == 0 && $calendars[id].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(id)}
 									<div class="row-label">{$calendars[id].label ?? ""}</div>
@@ -131,7 +132,7 @@
 								<div
 									class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
 									style={`color: ${$actionItems[id].color ?? ""}`}
-									oncontextmenu={(e) => openActionItemContextMenu(app, e, date, id)}
+									oncontextmenu={(e) => openRowContextMenu(app, e, "actionItem", date, id)}
 								>
 									{#if (j == 0 && $actionItems[id].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(id)}
 										<div class="row-label">{$actionItems[id].label ?? ""}</div>
