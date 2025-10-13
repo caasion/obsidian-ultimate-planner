@@ -7,7 +7,7 @@
 	import type { App } from "obsidian";
 	import { setCell, getCell, calendars } from "../state/plannerStore";
 	import { newActionItem, newRowContextMenu, openActionItemContextMenu, } from "src/actions/itemActions";
-	import { getISODate, generateID, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
+	import { getISODate, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
 	import type { ISODate, PluginSettings } from "src/types";
 	import { actionItems, calendarCells, templates } from "src/state/plannerStore";
 

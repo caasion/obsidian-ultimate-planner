@@ -9,7 +9,7 @@ export class NewCalendarModal extends Modal {
         const { contentEl } = this;
 
         const meta: CalendarMeta = {
-            id: generateID(),
+            id: generateID("cal-"),
             label: "",
             color: "",
             url: "",

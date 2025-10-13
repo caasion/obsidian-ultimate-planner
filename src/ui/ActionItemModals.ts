@@ -33,7 +33,7 @@ export class NewActionItemModal extends Modal {
         const { contentEl } = this;
 
         const meta: ActionItemMeta = {
-            id: generateID(),
+            id: generateID("ai-"),
             label: "",
             color: "",
         }

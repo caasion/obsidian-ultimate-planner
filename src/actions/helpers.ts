@@ -2,8 +2,8 @@ import type { ISODate, ActionItemID, PlannerState, RowID } from '../types';
 /* Helper Functions */
 import { addDays, eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek, type Day } from 'date-fns';
 
-export function generateID() {
-    return "ai-" + crypto.randomUUID();
+export function generateID(prefix: string) {
+    return prefix + crypto.randomUUID();
 }
 
 // Date Helpers
