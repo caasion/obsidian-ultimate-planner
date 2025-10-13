@@ -4,7 +4,7 @@ import { get } from "svelte/store";
 import { actionItems, updateActionItem } from "./state/plannerStore";
 
 export function migrateToVersion4() {
-    for (const key in Object.keys(get(actionItems))) {
+    for (const key of Object.keys(get(actionItems))) {
         updateActionItem(key, {id: key});
     }
 }

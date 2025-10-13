@@ -58,8 +58,6 @@ export default class UltimatePlannerPlugin extends Plugin {
 				this.activateView(PLANNER_VIEW_TYPE);
 			}
 		});
-
-		migrateToVersion4();
 	}
 
 	async onunload() {
