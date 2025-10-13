@@ -107,7 +107,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 	private snapshot(): PluginData {
 		return {
-			version: 3,
+			version: 4,
 			settings: this.settings,
 			planner: {
 				actionItems: get(actionItems),

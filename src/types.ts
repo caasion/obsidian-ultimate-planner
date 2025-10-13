@@ -6,9 +6,9 @@ export type ISODate = string; // Create date type for dates in ISO 8601 for simp
 export type ActionItemID = string;
 
 export interface ActionItemMeta {
-    label: string;    // e.g. "FITNESS ★"
-    color: string;   // cosmetic only (optional)
-    active?: boolean;
+    id: ActionItemID;
+    label: string;
+    color: string;
 }
 
 export type CalendarID = string;
