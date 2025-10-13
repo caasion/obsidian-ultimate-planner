@@ -2,7 +2,7 @@ import { differenceInMinutes } from "date-fns";
 import { format } from "date-fns";
 import type { CalendarID, CalendarStatus, NormalizedEvent } from "src/types";
 import { calendarState } from "src/state/calendarStore";
-import { plannerStore } from "src/state/plannerStore";
+import { setCalendarCell } from "src/state/plannerStore";
 
 /** HELPER: Set the statatus of calendarState */
 export function setCalendarStatus(status: CalendarStatus) {
@@ -20,15 +20,7 @@ export function populateCalendarCells(calendarId: CalendarID, index: Record<stri
 
     const labels = getEventLabels(events);
 
-    plannerStore.update(store => {
-        return {
-            ...store,
-            calendarCells: {
-                ...store.calendarCells,
-                [date]: { [calendarId]: labels}
-            }
-        }
-    })
+    setCalendarCell(date, calendarId, labels);
 })
 }
 

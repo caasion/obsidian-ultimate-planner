@@ -1,8 +1,6 @@
-import type { ISODate, ActionItemID, PlannerState } from '../types';
-import { plannerStore } from '../state/plannerStore';
+import type { ISODate, ActionItemID, PlannerState, RowID } from '../types';
 /* Helper Functions */
 import { addDays, eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek, type Day } from 'date-fns';
-import { get } from 'svelte/store';
 
 export function generateID() {
     return "ai-" + crypto.randomUUID();
@@ -51,14 +49,10 @@ export function getLabelFromDateRange(firstDate: ISODate, lastDate: ISODate) {
 }
 
 // Templates helpers
-export function idIsUsedAnywhere(state: PlannerState, rowID: ActionItemID): boolean {
+export function idUsedInTemplates(templates: Record<ISODate, RowID[]>, rowID: ActionItemID): boolean {
     // Check all template arrays
-    for (const arr of Object.values(state.templates)) {
+    for (const arr of Object.values(templates)) {
         if (arr.includes(rowID)) return true;
-    }
-    // Also check cells (optional, but usually right)
-    for (const cellMap of Object.values(state.cells)) {
-        if (rowID in cellMap) return true;
     }
     return false;
 }

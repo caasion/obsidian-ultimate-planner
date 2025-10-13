@@ -1,7 +1,7 @@
 import { addDays } from "date-fns";
 import { Notice } from "obsidian";
 import { calendarState, fetchToken } from "../state/calendarStore";
-import { plannerStore } from "src/state/plannerStore";
+import { updateCalendar } from "src/state/plannerStore";
 import type { CalendarMeta, NormalizedEvent } from "../types";
 import { fetchFromUrl, hashText, detectFetchChange } from "./calendarFetch";
 import { setCalendarStatus, getEventLabels, populateCalendarCells } from "./calendarIndexFreeze";
@@ -26,12 +26,7 @@ export async function fetchPipelineInGracePeriod(calendar: CalendarMeta, after: 
         const response = await fetchFromUrl(calendar.url, calendar.etag, calendar.lastModified); 	
 
         // [STORE] Update lastFetched status in store
-        plannerStore.update(store => ({
-            ...store,
-            calendars: { ...store.calendars, [calendar.id]: { 
-                ...store.calendars[calendar.id], lastFetched: Date.now() 
-            }}
-        }))
+        updateCalendar(calendar.id, { lastFetched: Date.now() });
 
         // [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
         if (myToken !== get(fetchToken)) {
@@ -59,12 +54,7 @@ export async function fetchPipelineInGracePeriod(calendar: CalendarMeta, after: 
         }
         
         // [STORE] Update cache information 
-        plannerStore.update(store => ({
-            ...store,
-            calendars: { ...store.calendars, [calendar.id]: { 
-                ...store.calendars[calendar.id], contentHash 
-            }}
-        }))
+        updateCalendar(calendar.id, { contentHash })
         
         // [STORE] Build efficient event dictionaries and use those to write into store
         const { index, eventsById } = buildEventDictionaries(events);
@@ -96,12 +86,7 @@ export async function fetchAllandFreeze(calendar: CalendarMeta, after: Date, bef
         const response = await fetchFromUrl(calendar.url, calendar.etag, calendar.lastModified); 	
 
         // [STORE] Update lastFetched status in store
-        plannerStore.update(store => ({
-            ...store,
-            calendars: { ...store.calendars, [calendar.id]: { 
-                ...store.calendars[calendar.id], lastFetched: Date.now() 
-            }}
-        }))
+        updateCalendar(calendar.id, { lastFetched: Date.now() })
 
         // [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
         if (myToken !== get(fetchToken)) {
@@ -128,12 +113,7 @@ export async function fetchAllandFreeze(calendar: CalendarMeta, after: Date, bef
         const contentHash = await hashText(JSON.stringify(eventsBetween));
 
         // [STORE] Update cache information 
-        plannerStore.update(store => ({
-            ...store,
-            calendars: { ...store.calendars, [calendar.id]: { 
-                ...store.calendars[calendar.id], contentHash 
-            }}
-        }))
+        updateCalendar(calendar.id, { contentHash })
 
         setCalendarStatus("updated");
         

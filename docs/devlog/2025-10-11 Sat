@@ -1,0 +1,24 @@
+# 2025-10-11 Sat 
+## The Plan 
+- Continuing on from yesterday's next steps:
+    - (3) Create an independent pipeline for fetch all and freeze
+    - (A) Create a new type `CalendarID` instead of using `ActionItemID`
+    - (B) Break `plannerStore` into smaller stores
+    - (4) Hook up UPV to `calendars` in `planner`
+    - (5) Implement context menu for calendars
+    - (2) On render, update the frozen cells and cache
+
+## (3) Create an independent pipeline for fetch all and freeze
+- What does success look like?
+    - Running the pipeline (1) populates ALL the cells in the calendar and (2) updates the contentHash if things have changed within the grace period
+    - Success! Implemented in 3c711eb.
+
+## (A) Create a new type `CalendarID` instead of using `ActionItemID`
+- Very simple: 33606ea.
+
+## (B) Break `plannerStore` into smaller stores
+- I don't know if it is a better idea to break it down into smaller stores or to still use one store and have helper functions to update the store.
+- Okay, I honestly don't know, so I asked ClaudeAI for advice. I've realized that having one single store also means that my planner updates every single time something has changed (even when lastFetched has changed). I don't think that is very performant.
+- I'm going to use multiple stores AND have helper functions to help update the store. I hope this makes my code a lot cleaner.
+- In 867340c, i implemented multiple storse and helper functions to update each of these stores. This includes setting up subscriptions in `main.ts`
+- Now the annoying job is to incorporate these functions throughout my codebase.
