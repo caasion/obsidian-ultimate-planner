@@ -86,14 +86,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 		
 		// Initialize Stores, Subscribe, and assign unsubscribers
 		actionItems.set(Object.assign({}, {}, data.planner.actionItems));
-		calendars.set(Object.assign({}, {
-			"cal-abcdefji-fsdkj-fjdskl": {
-				id: "cal-abcdefji-fsdkj-fjdskl",
-				label: "Test Calendar",
-				color: "#cccccc",
-				url: ""
-			}
-		}, data.planner.calendars));
+		calendars.set(Object.assign({}, {}, data.planner.calendars));
 		templates.set(Object.assign({}, {}, data.planner.templates));
 		cells.set(Object.assign({}, {}, data.planner.cells));
 		calendarCells.set(Object.assign({}, {}, data.planner.calendarCells));
