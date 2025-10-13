@@ -6,7 +6,7 @@
 	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
 	import { setCell, getCell, calendars } from "../state/plannerStore";
-	import { newActionItem, openActionItemContextMenu, } from "src/actions/itemActions";
+	import { newActionItem, newRowContextMenu, openActionItemContextMenu, } from "src/actions/itemActions";
 	import { getISODate, generateID, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
 	import type { ISODate, PluginSettings } from "src/types";
 	import { actionItems, calendarCells, templates } from "src/state/plannerStore";
@@ -86,7 +86,9 @@
 		<span class="week-label">{getLabelFromDateRange(isoDates[0][0], isoDates[isoDates.length - 1][6])}</span>
 		<input type="date" bind:value={anchorDate} />
 	</div>
-
+	<div class="new-ai">
+		<button onclick={(evt) => newRowContextMenu(app, evt)}>+ Add</button>
+	</div>
 	
 </div>
 <div class="grid">

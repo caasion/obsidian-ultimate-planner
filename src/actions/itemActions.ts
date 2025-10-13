@@ -3,7 +3,7 @@ import { actionItems, addToTemplate, removeFromTemplate, removeItemFromPlanner, 
 import { get } from 'svelte/store';
 import { App, Menu, Notice } from 'obsidian';
 import { addDaysISO, idUsedInTemplates } from './helpers';
-import { RenameActionItemModal } from '../ui/ActionItemModals';
+import { NewActionItemModal, EditActionItemModal } from '../ui/ActionItemModals';
 
 /* Template */
 /** [HELPER] Returns a deep copy of the template that should apply on `date`
@@ -65,7 +65,7 @@ export function openActionItemContextMenu(app: App, evt: MouseEvent, date: ISODa
             i.setTitle("Edit")
             .setIcon("pencil")
             .onClick(() => {
-                new RenameActionItemModal(app, get(actionItems)[id], (label: string, color: string) => updateActionItem(id, {label, color})).open();
+                new EditActionItemModal(app, get(actionItems)[id], (label: string, color: string) => updateActionItem(id, {label, color})).open();
             })
         )
         .addItem((i) =>
@@ -135,7 +135,23 @@ export function openActionItemContextMenu(app: App, evt: MouseEvent, date: ISODa
             })
         );
         
-        
+    menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
+}
+
+export function newRowContextMenu(app: App, evt: MouseEvent) {
+    evt.preventDefault();
+    evt.stopPropagation();
+
+    const menu = new Menu();
+
+    menu
+        .addItem((i) =>
+            i.setTitle("Create New Action Item")
+            .setIcon("add")
+            .onClick(() => {
+                new NewActionItemModal(app, (date, {id, label, color}) => newActionItem(date, id, label, color)).open();
+            })
+        )
 
     menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
 }

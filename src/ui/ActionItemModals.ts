@@ -1,6 +1,6 @@
 import { Modal, Setting } from "obsidian";
 import type { App } from 'obsidian'
-import type { ActionItemMeta } from "../types";
+import type { ActionItemMeta, ISODate } from "../types";
 import { generateID } from "src/actions/helpers";
 
 export class EditActionItemModal extends Modal {
@@ -27,16 +27,19 @@ export class EditActionItemModal extends Modal {
 }
 
 export class NewActionItemModal extends Modal {
-    constructor(app: App, onSubmit: (meta: ActionItemMeta) => void) {
+    constructor(app: App, onSubmit: (date: ISODate, meta: any) => void) {
         super(app);
         
         const { contentEl } = this;
         const id = generateID();
 
-        const meta: ActionItemMeta = {
+        const meta = {
+            id: "",
             label: "",
             color: "",
         }
+
+        const date = "2025-10-13"
 
         new Setting(contentEl)
             .setName("Name: ")
@@ -54,7 +57,7 @@ export class NewActionItemModal extends Modal {
             );
         new Setting(contentEl)
             .addButton((b) => b.setButtonText("Save").setCta().onClick(() => { 
-                onSubmit(meta); 
+                onSubmit(date, meta); 
                 this.close(); }))
             .addButton((b) => b.setButtonText("Cancel").onClick(() => this.close()));
         }
