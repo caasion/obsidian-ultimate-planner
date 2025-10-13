@@ -2,14 +2,7 @@ import { get, writable } from "svelte/store";
 import type { ActionItemID, ActionItemMeta, CalendarID, CalendarMeta, ISODate, PlannerState, RowID } from "src/types";
 
 export const actionItems = writable<Record<ActionItemID, ActionItemMeta>>({});
-export const calendars = writable<Record<CalendarID, CalendarMeta>>({
-        "cal-abcdefji-fsdkj-fjdskl": {
-            id: "cal-abcdefji-fsdkj-fjdskl",
-            label: "Test Calendar",
-            color: "#cccccc",
-            url: ""
-        }
-    });
+export const calendars = writable<Record<CalendarID, CalendarMeta>>({});
 export const templates = writable<Record<ISODate, RowID[]>>({});
 export const cells = writable<Record<ISODate, Record<ActionItemID, string>>>({});
 export const calendarCells = writable<Record<ISODate, Record<CalendarID, string[]>>>({});

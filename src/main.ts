@@ -82,8 +82,20 @@ export default class UltimatePlannerPlugin extends Plugin {
 	async loadPersisted() {
 		const data: PluginData = await this.loadData() ?? {};
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings) // Populate Settings
-
+		
 		// Initialize Stores, Subscribe, and assign unsubscribers
+		actionItems.set(Object.assign({}, {}, data.planner.actionItems));
+		calendars.set(Object.assign({}, {
+			"cal-abcdefji-fsdkj-fjdskl": {
+				id: "cal-abcdefji-fsdkj-fjdskl",
+				label: "Test Calendar",
+				color: "#cccccc",
+				url: ""
+			}
+		}, data.planner.calendars));
+		templates.set(Object.assign({}, {}, data.planner.templates));
+		cells.set(Object.assign({}, {}, data.planner.cells));
+		calendarCells.set(Object.assign({}, {}, data.planner.calendarCells));
 		this.storeSubscriptions = [
 			actionItems.subscribe(() => this.queueSave()),
 			cells.subscribe(() => this.queueSave()),
