@@ -6,7 +6,7 @@
 	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
 	import { setCell, getCell, calendars } from "../state/plannerStore";
-	import { newRowContextMenu } from "src/actions/itemActions";
+	import { newRowContextMenu } from "src/ui/NewRowContextMenu";
 	import { getISODate, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
 	import type { ISODate, PluginSettings } from "src/types";
 	import { actionItems, calendarCells, templates } from "src/state/plannerStore";
