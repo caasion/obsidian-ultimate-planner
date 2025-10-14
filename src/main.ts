@@ -4,7 +4,7 @@ import { UltimatePlannerPluginTab } from './ui/SettingsTab';
 import { actionItems, calendarCells, calendars, cells, templates } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
 import { DEFAULT_SETTINGS, EMPTY_PLANNER, type ActionItemID, type NormalizedEvent, type PluginData, type PluginSettings } from './types';
-import { addDays } from 'date-fns';
+import { addDays, startOfDay } from 'date-fns';
 import { fetchAllandFreeze, fetchPipelineInGracePeriod } from './actions/calendarPipelines';
 import { migrateToVersion4 } from './migration';
 
@@ -30,7 +30,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 			id: 'debug-manual-fetch',
 			name: 'Debug: Manual Fetch in Grace Period',
 			callback: async () => {
-				fetchPipelineInGracePeriod(get(calendars)["cal-abcdefji-fsdkj-fjdskl"], addDays(Date.now(), -7), addDays(Date.now(), 60))
+				fetchPipelineInGracePeriod(get(calendars)["cal-abcdefji-fsdkj-fjdskl"], addDays(startOfDay(Date.now()), -7), addDays(startOfDay(Date.now()), 60))
 			}
 
 			// TODO: Make this round to the nearest day, instead of caring bout time

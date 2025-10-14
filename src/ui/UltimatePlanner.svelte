@@ -1,8 +1,8 @@
 <script lang="ts">
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
-	import { format, parseISO } from "date-fns";
-	import { tick } from "svelte";
+	import { addDays, format, parseISO } from "date-fns";
+	import { onMount, tick } from "svelte";
 	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
 	import { setCell, getCell, calendars } from "../state/plannerStore";
@@ -11,6 +11,7 @@
 	import type { ISODate, PluginSettings } from "src/types";
 	import { actionItems, calendarCells, templates } from "src/state/plannerStore";
 	import { openRowContextMenu } from './GenericContextMenu';
+	import { fetchPipelineInGracePeriod } from "src/actions/calendarPipelines";
 
 	interface ViewProps {
 		app: App;
@@ -28,7 +29,18 @@
 		return best ? JSON.parse(JSON.stringify($templates[best])) : [];
 	}
 
-	
+
+	// Fetch in grace period for current calendars
+	onMount(() => {
+		const today = getISODate(new Date());
+
+        rows.forEach(id => {
+            if (id.split("-", 1)[0] === "cal") {
+                console.log("Fetching for", id)
+                fetchPipelineInGracePeriod($calendars[id], addDays(today, -7), addDays(today, 60))
+            }
+        })
+	})
 
 	/* Table Rendering */
 	let weeksVisible = settings.weeksToRender;

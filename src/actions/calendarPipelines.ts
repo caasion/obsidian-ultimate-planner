@@ -1,4 +1,3 @@
-import { addDays } from "date-fns";
 import { Notice } from "obsidian";
 import { calendarState, fetchToken } from "../state/calendarStore";
 import { updateCalendar } from "src/state/plannerStore";
