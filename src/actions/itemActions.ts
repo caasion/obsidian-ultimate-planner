@@ -1,16 +1,15 @@
-import type { ISODate, ActionItemID, PlannerState, ActionItemMeta, CalendarMeta, RowID, CalendarID } from '../types';
-import { actionItems, addToTemplate, calendars, removeFromTemplate, removeItemFromPlanner, setTemplate, templates, updateActionItem, updateCalendar } from '../state/plannerStore';
+import type { ISODate, ActionItemMeta, CalendarMeta, RowID } from '../types';
+import { calendars, setTemplate, templates, updateActionItem, updateCalendar } from '../state/plannerStore';
 import { get } from 'svelte/store';
-import { App, Menu, Notice } from 'obsidian';
-import { addDaysISO, idUsedInTemplates } from './helpers';
-import { GenericNewModal } from 'src/ui/GenericNewModal';
+import { fetchAllandFreeze } from './calendarPipelines';
+import { addDays, parseISO, startOfDay } from 'date-fns';
 
 /* Template */
 /** [HELPER] Returns a deep copy of the template that should apply on `date`
  *  Loops through all the keys (which are dates) in templates and compares them with the date provided.
  *  If no template exists at or before `date`, it return an empty array
  */
-export function templateForDate(date: ISODate): ActionItemID[] {
+export function templateForDate(date: ISODate): RowID[] {
     let best: ISODate | null = null;
     for (const key in get(templates)) {
         if (key <= date && (best === null || key > best)) best = key;
@@ -30,15 +29,16 @@ export function newActionItem(date: ISODate, meta: ActionItemMeta) {
 }
 
 /* Calendars */
-/** Registers a new calendar in calendars and adds it to a date's template. */
+/** Registers a new calendar in calendars, adds it to a date's template, and fetches all + freezes. */
 export function newCalendar(date: ISODate, meta: CalendarMeta) {
     updateCalendar(meta.id, meta)
 
     const newTemplate: RowID[] = templateForDate(date);
     newTemplate.push(meta.id);
     setTemplate(date, newTemplate)
-}
 
+    fetchAllandFreeze(get(calendars)[meta.id], parseISO(date), addDays(startOfDay(Date.now()), 60))
+}
 
 /** [HELPER] Returns a sorted list of dates that have a template, and are after the date provided */
 export function getTemplateDatesAfter(date: ISODate): ISODate[] {
