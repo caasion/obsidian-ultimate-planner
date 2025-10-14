@@ -81,9 +81,7 @@ export function openRowContextMenu(app: App, evt: MouseEvent, type: RowType, dat
             i.setTitle("Remove from this date (until next template)")
             .setIcon("calendar-x")
             .onClick(() => {
-                const nextDate = getNextTemplateDate(date);
-                if (nextDate) removeFromTemplate(date, id)
-                else new Notice("No next template found.");
+                removeFromTemplate(date, id);
 
                 if (!idUsedInTemplates(get(templates), id)) {
                     removeItemFromPlanner(id);
@@ -93,6 +91,8 @@ export function openRowContextMenu(app: App, evt: MouseEvent, type: RowType, dat
             i.setTitle("Remove from this date (until latest templates)")
             .setIcon("calendar-off")
             .onClick(() => {
+                removeFromTemplate(date, id);
+
                 const dates = getTemplateDatesAfter(date);
 
                 dates.forEach((date) => {        
