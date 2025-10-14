@@ -1,6 +1,6 @@
-import { App, Menu } from "obsidian";
+import { App, Menu, Notice } from "obsidian";
 import { addDaysISO, idUsedInTemplates } from "src/actions/helpers";
-import { getDatesWithTemplatesAfterDate, templateForDate, swapArrayItems } from "src/actions/itemActions";
+import { getTemplateDatesAfter, templateForDate, swapArrayItems, getNextTemplateDate, getPreviousTemplateDate } from "src/actions/itemActions";
 import { actionItems, updateActionItem, addToTemplate, removeFromTemplate, templates, removeItemFromPlanner, setTemplate, updateCalendar, calendars } from "src/state/plannerStore";
 import type { ISODate, ActionItemID, ActionItemMeta, CalendarMeta } from "src/types";
 import { GenericEditModal } from "./GenericEditModal";
@@ -43,20 +43,25 @@ export function openRowContextMenu(app: App, evt: MouseEvent, type: RowType, dat
             })
         )
         .addItem((i) =>
-            i.setTitle("Extend until next template")
+            i.setTitle("Extend to next template")
             .setIcon("calendar-plus-2")
             .onClick(() => {
-                addToTemplate(addDaysISO(date, 1), id);
+                const nextDate = getNextTemplateDate(date);
+                if (nextDate) {
+                    const success = addToTemplate(nextDate, id);
+                    if (!success) new Notice("Item already exists in template.")
+                }
+                else new Notice("No next template found.");
             })
         )
         .addItem((i) =>
-            i.setTitle("Extend until latest template")
+            i.setTitle("Extend to latest template")
             .setIcon("calendar-plus")
             .onClick(() => {
-                const dates = getDatesWithTemplatesAfterDate(date);
+                const dates = getTemplateDatesAfter(date);
 
-                dates.forEach((date) => {        
-                    addToTemplate(addDaysISO(date, 1), id);
+                dates.forEach((date) => { 
+                    addToTemplate(date, id);
                 })
             })
         )
@@ -64,14 +69,22 @@ export function openRowContextMenu(app: App, evt: MouseEvent, type: RowType, dat
             i.setTitle("Extend to previous template")
             .setIcon("calendar-minus")
             .onClick(() => {
-                addToTemplate(addDaysISO(date, -1), id);
+                const prevDate = getPreviousTemplateDate(date);
+                if (prevDate) {
+                    const success = addToTemplate(prevDate, id);
+                    if (!success) new Notice("Item already exists in template.")
+                }
+                else new Notice("No previous template found.")
             })
         )
         .addItem((i) =>
             i.setTitle("Remove from this date (until next template)")
             .setIcon("calendar-x")
             .onClick(() => {
-                removeFromTemplate(date, id)
+                const nextDate = getNextTemplateDate(date);
+                if (nextDate) removeFromTemplate(date, id)
+                else new Notice("No next template found.");
+
                 if (!idUsedInTemplates(get(templates), id)) {
                     removeItemFromPlanner(id);
                 }
@@ -80,10 +93,11 @@ export function openRowContextMenu(app: App, evt: MouseEvent, type: RowType, dat
             i.setTitle("Remove from this date (until latest templates)")
             .setIcon("calendar-off")
             .onClick(() => {
-                const dates = getDatesWithTemplatesAfterDate(date);
+                const dates = getTemplateDatesAfter(date);
 
                 dates.forEach((date) => {        
                     removeFromTemplate(date, id)
+
                     if (!idUsedInTemplates(get(templates), id)) {
                         removeItemFromPlanner(id);
                     }

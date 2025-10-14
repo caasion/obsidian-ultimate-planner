@@ -40,13 +40,21 @@ export function newCalendar(date: ISODate, meta: CalendarMeta) {
 }
 
 
-/** [HELPER] Returns a list of dates that have a template, and are after the date provided */
-export function getDatesWithTemplatesAfterDate(date: ISODate): ISODate[] {
-    let dates: ISODate[] = [];
-    for (const key in get(templates)) {
-        if (key >= date) dates.push(key);
-    }
-    return dates;
+/** [HELPER] Returns a sorted list of dates that have a template, and are after the date provided */
+export function getTemplateDatesAfter(date: ISODate): ISODate[] {
+    return Object.keys(get(templates)).filter(d => d > date).sort();
+}
+
+/** [HELPER] Returns the date of the next template given a date. */
+export function getNextTemplateDate(date: ISODate): ISODate | null {
+    const templateDates = getTemplateDatesAfter(date);
+    return templateDates.length > 0 ? templateDates[0] : null;
+}
+
+/** [HELPER] Returns the date of the previous template given a date. */
+export function getPreviousTemplateDate(date: ISODate): ISODate | null {
+    const templateDates = Object.keys(get(templates)).filter(d => d < date).sort();
+    return templateDates.length > 0 ? templateDates[templateDates.length - 1] : null;
 }
 
 /** [PURE HELPER] Takes in an array, swaps two items, and returns a new array. Returns the same array if swapping causes an item to go beyond the array. */

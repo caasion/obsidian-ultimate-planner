@@ -17,21 +17,24 @@ export function setTemplate(date: ISODate, newTemplate: RowID[]) {
 
 /** Adds an item to a template if the template doesn't already 
  * have it. Returns true if added to template and false if 
- * template already contains the item. */
+ * template already includes the item. */
 export function addToTemplate(date: ISODate, id: RowID): boolean {
-    if (templateForDate(date).contains(id)) return false;
+    if (templateForDate(date).includes(id)) return false;
+
+    console.log("Adding to template.")
 
     templates.update(templates => ({
         ...templates,
-        [date]: [...templates.date, id]
+        [date]: [...templates[date], id]
     }))
+    console.log("Finished the add!")
     return true;
  
 }
 
 /** Removes an item from a template if the template has it. Returns false if template doesn't contain the item. */
 export function removeFromTemplate(date: ISODate, id: ActionItemID): boolean {
-    if (!templateForDate(date).contains(id)) return false;
+    if (!templateForDate(date).includes(id)) return false;
 
     const template = get(templates)[date].slice()
     const index = template.indexOf(id);
