@@ -21,13 +21,10 @@ export function setTemplate(date: ISODate, newTemplate: RowID[]) {
 export function addToTemplate(date: ISODate, id: RowID): boolean {
     if (templateForDate(date).includes(id)) return false;
 
-    console.log("Adding to template.")
-
     templates.update(templates => ({
         ...templates,
         [date]: [...templates[date], id]
     }))
-    console.log("Finished the add!")
     return true;
  
 }
