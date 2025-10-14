@@ -1,18 +1,16 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Plugin } from 'obsidian';
 import { PLANNER_VIEW_TYPE, PlannerView } from './ui/PlannerView';
 import { UltimatePlannerPluginTab } from './ui/SettingsTab';
 import { actionItems, calendarCells, calendars, cells, templates } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
-import { DEFAULT_SETTINGS, EMPTY_PLANNER, type ActionItemID, type NormalizedEvent, type PluginData, type PluginSettings } from './types';
+import { DEFAULT_SETTINGS, type ActionItemID, type PluginData, type PluginSettings } from './types';
 import { addDays, startOfDay } from 'date-fns';
 import { fetchAllandFreeze, fetchPipelineInGracePeriod } from './actions/calendarPipelines';
-import { migrateToVersion4 } from './migration';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
 	private saveTimer: number | null = null;
 	private storeSubscriptions: Unsubscriber[];
-	private _defaultCalendar: ActionItemID = "cal-abcdefji-fsdkj-fjdskl";
 
 	async onload() {
 		await this.loadPersisted();
@@ -32,8 +30,6 @@ export default class UltimatePlannerPlugin extends Plugin {
 			callback: async () => {
 				fetchPipelineInGracePeriod(get(calendars)["cal-abcdefji-fsdkj-fjdskl"], addDays(startOfDay(Date.now()), -7), addDays(startOfDay(Date.now()), 60))
 			}
-
-			// TODO: Make this round to the nearest day, instead of caring bout time
 		})
 
 		this.addCommand({

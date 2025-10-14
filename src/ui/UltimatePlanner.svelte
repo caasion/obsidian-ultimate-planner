@@ -36,7 +36,6 @@
 
         rows.forEach(id => {
             if (id.split("-", 1)[0] === "cal") {
-                console.log("Fetching for", id)
                 fetchPipelineInGracePeriod($calendars[id], addDays(today, -7), addDays(today, 60))
             }
         })

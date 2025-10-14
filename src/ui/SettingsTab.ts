@@ -1,6 +1,5 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, Setting } from 'obsidian';
 import UltimatePlannerPlugin from '../main';
-import type { PlannerState } from '../types';
 import type { Day } from 'date-fns';
 
 

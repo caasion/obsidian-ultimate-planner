@@ -1,4 +1,4 @@
-import { Notice, requestUrl, type RequestUrlResponse } from "obsidian";
+import { requestUrl, type RequestUrlResponse } from "obsidian";
 
 /** Checks whether if we should fetch based on a time-guard (fetchInterval). */
 export function shouldFetch(fetchInterval: number, lastFetched?: number): boolean {
@@ -47,9 +47,3 @@ export function detectFetchChange(response: RequestUrlResponse, contentHash: str
     return false;
 }
 
-/** Hash a string using SHA-1. */
-export async function hashText(text: string): Promise<string> {
-  const data = new TextEncoder().encode(text);
-  const buf = await crypto.subtle.digest('SHA-1', data);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}

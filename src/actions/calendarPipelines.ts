@@ -1,11 +1,12 @@
 import { Notice } from "obsidian";
 import { calendarState, fetchToken } from "../state/calendarStore";
 import { updateCalendar } from "src/state/plannerStore";
-import type { CalendarMeta, NormalizedEvent } from "../types";
-import { fetchFromUrl, hashText, detectFetchChange } from "./calendarFetch";
-import { setCalendarStatus, getEventLabels, populateCalendarCells } from "./calendarIndexFreeze";
+import type { CalendarMeta } from "../types";
+import { fetchFromUrl, detectFetchChange } from "./calendarFetch";
+import { setCalendarStatus, populateCalendarCells } from "./calendarIndexFreeze";
 import { parseICSBetween, buildEventDictionaries, parseICS } from "./calendarParse";
 import { get } from "svelte/store";
+import { hashText } from "./helpers";
 
 export async function fetchPipelineInGracePeriod(calendar: CalendarMeta, after: Date, before: Date) {
     // Check if we should fetch. If we do fetch, set status.
@@ -18,8 +19,6 @@ export async function fetchPipelineInGracePeriod(calendar: CalendarMeta, after: 
 
     // [SETUP] startUrl for GUARD later
     const startUrl = calendar.url;
-
-    console.log(calendar);
 
     try { // Wrap in try because fetchFromUrl throws Exception
         const response = await fetchFromUrl(calendar.url, calendar.etag, calendar.lastModified); 	

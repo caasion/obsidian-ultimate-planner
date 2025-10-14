@@ -1,5 +1,5 @@
 import { App, Menu, Notice } from "obsidian";
-import { addDaysISO, idUsedInTemplates } from "src/actions/helpers";
+import { idUsedInTemplates } from "src/actions/helpers";
 import { getTemplateDatesAfter, templateForDate, swapArrayItems, getNextTemplateDate, getPreviousTemplateDate } from "src/actions/itemActions";
 import { actionItems, updateActionItem, addToTemplate, removeFromTemplate, templates, removeItemFromPlanner, setTemplate, updateCalendar, calendars } from "src/state/plannerStore";
 import type { ISODate, ActionItemID, ActionItemMeta, CalendarMeta } from "src/types";

@@ -1,5 +1,5 @@
 import { get, writable } from "svelte/store";
-import type { ActionItemID, ActionItemMeta, CalendarID, CalendarMeta, ISODate, PlannerState, RowID } from "src/types";
+import type { ActionItemID, ActionItemMeta, CalendarID, CalendarMeta, ISODate, RowID } from "src/types";
 import { templateForDate } from "src/actions/itemActions";
 
 export const actionItems = writable<Record<ActionItemID, ActionItemMeta>>({});
