@@ -1,14 +1,16 @@
 import { App, Menu, Notice } from "obsidian";
-import { idUsedInTemplates } from "src/actions/helpers";
+import { getISODate, idUsedInTemplates } from "src/actions/helpers";
 import { getTemplateDatesAfter, templateForDate, swapArrayItems, getNextTemplateDate, getPreviousTemplateDate } from "src/actions/itemActions";
 import { actionItems, updateActionItem, addToTemplate, removeFromTemplate, templates, removeItemFromPlanner, setTemplate, updateCalendar, calendars } from "src/state/plannerStore";
-import type { ISODate, ActionItemID, ActionItemMeta, CalendarMeta } from "src/types";
+import type { ISODate, ActionItemMeta, CalendarMeta, RowID } from "src/types";
 import { GenericEditModal } from "./GenericEditModal";
 import { get } from "svelte/store";
+import { fetchAllandFreeze, fetchPipelineInGracePeriod } from "src/actions/calendarPipelines";
+import { addDays, parseISO, startOfDay } from "date-fns";
 
 type RowType = "actionItem" | "calendar";
 
-export function openRowContextMenu(app: App, evt: MouseEvent, type: RowType, date: ISODate, id: ActionItemID) {
+export function openRowContextMenu(app: App, evt: MouseEvent, type: RowType, date: ISODate, id: RowID) {
     evt.preventDefault();
     evt.stopPropagation();
 
@@ -42,6 +44,29 @@ export function openRowContextMenu(app: App, evt: MouseEvent, type: RowType, dat
                 
             })
         )
+    if (type === "calendar") {
+        menu.addItem((i) => {
+            i.setTitle("Fetch from Remote Calendar")
+            .setIcon("calendar")
+            .onClick(() => {
+                const today = getISODate(new Date());
+                
+                fetchPipelineInGracePeriod(get(calendars)[id], addDays(today, -7), addDays(today, 60))
+            })
+        })
+        .addItem((i) => {
+            i.setTitle("Fetch All from Remote Calendar")
+            .setIcon("calendar")
+            .onClick(() => {
+                const today = getISODate(new Date());
+                
+                fetchAllandFreeze(get(calendars)[id], parseISO(date), addDays(startOfDay(Date.now()), 60))
+                //TODO: Turn "parseISo(date" into first occurance of the actionItem in the template...
+            })
+        })
+    }
+    
+    menu
         .addItem((i) =>
             i.setTitle("Extend to next template")
             .setIcon("calendar-plus-2")
