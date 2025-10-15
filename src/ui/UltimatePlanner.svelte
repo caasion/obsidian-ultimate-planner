@@ -13,6 +13,7 @@
 	import { openRowContextMenu } from './GenericContextMenu';
 	import { fetchPipelineInGracePeriod } from "src/actions/calendarPipelines";
 	import ActionItemCell from "./ActionItemCell.svelte";
+	import CalendarCell from "./CalendarCell.svelte";
 
 	interface ViewProps {
 		app: App;
@@ -44,22 +45,26 @@
 		ids: RowID[];
 	}
 
-	let renderMeta: BlockMeta[] = [];
+	let renderMeta: BlockMeta[] = $derived.by(() => {
+		let renderMeta = [];
 
-	for (let i = 0; i < blocks; i++) {
-		let dates: ISODate[] = [];
+		for (let i = 0; i < blocks; i++) {
+			let dates: ISODate[] = [];
 
-		if (weekFormat) dates = getDatesOfWeek(anchor, settings.weekStartOn);
-		else dates = getDatesOfBlock(anchor, columns);
+			if (weekFormat) dates = getDatesOfWeek(anchor, settings.weekStartOn);
+			else dates = getDatesOfBlock(anchor, columns);
 
-		const blockMeta: BlockMeta = {
-			dates,
-			ids: getIds(dates),
+			const blockMeta: BlockMeta = {
+				dates,
+				ids: getIds(dates),
+			}
+
+			renderMeta.push(blockMeta)
 		}
 
-		renderMeta.push(blockMeta)
-	}
-	
+		return renderMeta;
+	});
+
 	function getIds(dates: ISODate[]): RowID[] {
 		const first = dates[0];
 		const last = dates[dates.length - 1];
@@ -142,9 +147,25 @@
 		 	<div class="row">
 				{#each blockMeta.dates as date, col} <!-- Create a column for each date -->
 					{#if id.split("-", 1)[0] === "cal"}
-						<CalendarCell />
+						<CalendarCell
+							{date}
+							{id}
+							label={$actionItems[id].label}
+							color={$actionItems[id].color}
+							{col}
+							contextMenu={(e) => openRowContextMenu(app, e, "calendar", date, id)}
+						/>
 					{:else}
-						<ActionItemCell />
+						<ActionItemCell
+							{date}
+							{id}
+							label={$actionItems[id].label}
+							color={$actionItems[id].color}
+							{row}
+							{col}
+							contextMenu={(e) => openRowContextMenu(app, e, "actionItem", date, id)}
+							{focusCell}
+						/>
 					{/if}
 				{/each}
 			</div>
