@@ -1,0 +1,23 @@
+# 2025-10-15 Wed
+Today will be the last big block of time I dedicate to adding new features.
+
+I've realized the importance of showing deep system architecture in my work, so I will transition to that in the future.
+
+Today, I intend to quickly pump out a bunch of features. I won't worry about edge cases or small bugs for now (though I will note it down in the code). Instead, I will implement the features, then work on the architecture, and circle back. I think having the proper architecture will solve a lot of problems.
+
+## Todo for Today
+- Calendar Integration Enhancements
+    - Add Option to Fetch All & Fetch in Grace Period in Calendar Menu [Done in 6d2287c]
+    - Connect to Settings of "Grace Days" [Implement after Template Management Enhancement]
+        - Only look back for X Grace Days or when the template exists, whichever is smaller
+    - Add Settings of "Look Ahead Limit" -- How far to look ahead in events [Implement after Template Management Enhancement]
+    - Fetch on Mount OUTSIDE of UPV instead (for performance) [Implement after Calendar Class]
+    - Add Option to NOT archive past events and keep it live retrieval [Implement Afterwards]
+- Template Management Enhancement
+    - Exigence: Right now, it is quite difficult to work with templates. Not only are there a bijillion commands in the context menus, but also templates are a pain to work with.
+    - How might I improve this? Instead of giving so much flexibility to the user (which also makes it hard to give a good UX experience), I make templates more rigid.
+    - I decided to create a new issue #13 to keep track of this! It will probably be another branch and another pull request.
+
+## Optimization Problem
+- I was going to work on features, but I realized that the planner was just getting laggier and laggier. I need to optimize the rendering of the table if I want to continue implementing more features and make the planner more usable.
+- I am currently targeting the `templateForDate()` function in UPV, which is ran like 100000 (just a lot of times) on render or week change. I think that is what is causing the lag.
