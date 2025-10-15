@@ -1,14 +1,14 @@
 <script lang="ts">
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
-	import { addDays, format, parseISO } from "date-fns";
+	import { addDays, eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek, type Day } from "date-fns";
 	import { onMount, tick } from "svelte";
 	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
 	import { setCell, getCell, calendars } from "../state/plannerStore";
 	import { newRowContextMenu } from "src/ui/NewRowContextMenu";
 	import { getISODate, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
-	import type { ISODate, PluginSettings } from "src/types";
+	import type { ISODate, PluginSettings, RowID } from "src/types";
 	import { actionItems, calendarCells, templates } from "src/state/plannerStore";
 	import { openRowContextMenu } from './GenericContextMenu';
 	import { fetchPipelineInGracePeriod } from "src/actions/calendarPipelines";
@@ -19,16 +19,6 @@
 	}
 
 	let { app, settings }: ViewProps = $props();
-
-	/* Reactive: templateStoreForDate */
-	function templateStoreForDate(date: ISODate) {
-		let best: ISODate | null = null;
-		for (const key in $templates) {
-			if (key <= date && (best === null || key > best)) best = key;
-		}
-		return best ? JSON.parse(JSON.stringify($templates[best])) : [];
-	}
-
 
 	// Fetch in grace period for current calendars
 	onMount(() => {
@@ -42,39 +32,71 @@
 	})
 
 	/* Table Rendering */
-	let weeksVisible = settings.weeksToRender;
-	let anchorDate = $state<ISODate>(getISODate(new Date()));
-	let isoDates = $derived<ISODate[][]>(getISODatesOfWeek(anchorDate, weeksVisible, settings.weekStartOn));
-	
-	const colCount = 7;
-	let rows = $derived(rowsToRender(isoDates[0]));
+	const weekFormat = true;
+	const blocks = 1;
+	const columns = 7;
 
-	function rowsToRender(dates: ISODate[]): string[] {
-		const actionItemIDs = dates.flatMap((date) =>
-			templateStoreForDate(date),
-		);
+	let anchor = $state<ISODate>(getISODate(new Date()));
 
-		return Array.from(new Set(actionItemIDs));
+	interface BlockMeta {
+		dates: ISODate[];
+		ids: RowID[];
 	}
 
-	/* Table Navigation (Tab, Shift-tab, Enter) */
-	let focus: { row: number; col: number } = $state({ row: 0, col: 0 }); // Track focus to preserve focus at the same row
+	let renderMeta: BlockMeta[] = [];
 
-	function focusCell(row: number, col: number, fromEditor = false): boolean {
-		const rowCount = rows.length;
+	for (let i = 0; i < blocks; i++) {
+		let dates: ISODate[] = [];
 
-		if (row > rowCount - 1 || row < 0 || col > colCount - 1 || col < 0) {
-			console.warn("Attempted to focus on cell out of table bounds");
-			return false; // Informs the caller whether if the focus actually worked
+		if (weekFormat) dates = getDatesOfWeek(anchor, settings.weekStartOn);
+		else dates = getDatesOfBlock(anchor, columns);
+
+		const blockMeta: BlockMeta = {
+			dates,
+			ids: getIds(dates),
 		}
 
-		if (!fromEditor) {
-			const cell = document.getElementById(`cell-${row}-${col}`);
-			cell?.querySelector<HTMLElement>(".ProseMirror")?.focus();
+		renderMeta.push(blockMeta)
+	}
+	
+	function getIds(dates: ISODate[]): RowID[] {
+		const first = dates[0];
+		const last = dates[dates.length - 1];
+
+		let ids: RowID[] = [];
+
+		for (const ai of Object.values($actionItems)) {
+			if (first > ai.start || last < ai.end) {
+				ids.push(ai.id)
+			}
 		}
 
-		focus = { row, col };
-		return true;
+		return ids;
+	}
+
+	function getDatesOfWeek(anchor: ISODate, weekStartsOn: Day): ISODate[] {
+		const date = parseISO(anchor);
+
+		const start = startOfWeek(date, { weekStartsOn });
+        const end = startOfWeek(date, { weekStartsOn });
+
+        const dates = eachDayOfInterval({ start, end });
+
+        return dates.map(d => getISODate(d));
+	}
+
+	function getDatesOfBlock(anchor: ISODate, days: number): ISODate[] {
+		const date = parseISO(anchor);
+
+		const dates = eachDayOfInterval({ start: date, end: addDays(date, days)})
+
+		return dates.map(d => getISODate(d));
+	}
+
+	// TODO: Each block should have their own "rowsToRender"
+
+	function focusCell() {
+		// TODO: Re-implement row and column navigation.
 	}
 
 	// Currently doesn't work
@@ -82,7 +104,7 @@
 		/* Maintain focus when switching weeks */
 		anchorDate = newDate;
 		await tick();
-		focusCell(focus.row, focus.col);
+		// focusCell(focus.row, focus.col);
 	}
 </script>
 
@@ -118,8 +140,8 @@
 		{#each rows as id, i (id)}
 			<div class="row">
 				{#each isoDates[w] as date, j (date)}
-					{#if Object.keys($calendars).includes(id)} <!-- Check if the calendars dictionary has the key -->
-						{#if templateStoreForDate(date).includes(id)}
+					{#if id.split("-", 1)[0] === "cal"}
+						{#if $actionItems[id]}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
 								class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
