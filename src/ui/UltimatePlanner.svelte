@@ -13,7 +13,7 @@
 	import { openRowContextMenu } from './GenericContextMenu';
 	import { fetchPipelineInGracePeriod } from "src/actions/calendarPipelines";
 	import ActionItemCell from "./ActionItemCell.svelte";
-	import CalendarCell from "./CalendarCell.svelte";
+	import CalendarCell from "./GenericCell.svelte";
 
 	interface ViewProps {
 		app: App;
@@ -23,15 +23,15 @@
 	let { app, settings }: ViewProps = $props();
 
 	// Fetch in grace period for current calendars
-	onMount(() => {
-		const today = getISODate(new Date());
+	// onMount(() => {
+	// 	const today = getISODate(new Date());
 
-        rows.forEach(id => {
-            if (id.split("-", 1)[0] === "cal") {
-                fetchPipelineInGracePeriod($calendars[id], addDays(today, -7), addDays(today, 60))
-            }
-        })
-	})
+    //     rows.forEach(id => {
+    //         if (id.split("-", 1)[0] === "cal") {
+    //             fetchPipelineInGracePeriod($calendars[id], addDays(today, -7), addDays(today, 60))
+    //         }
+    //     })
+	// })
 
 	/* Table Rendering */
 	const weekFormat = true;
@@ -123,7 +123,7 @@
 		<button onclick={() => goTo(addDaysISO(anchor, 7))}>&gt;</button>
 	</div>
 	<div class="week">
-		<span class="week-label">{getLabelFromDateRange(isoDates[0][0], isoDates[isoDates.length - 1][6])}</span>
+		<span class="week-label">{getLabelFromDateRange(renderMeta[0].dates[0], renderMeta[renderMeta.length - 1].dates[renderMeta[renderMeta.length - 1].dates.length - 1])}</span>
 		<input type="date" bind:value={anchor} />
 	</div>
 	<div class="new-ai">
@@ -133,7 +133,7 @@
 </div>
 <div class="grid">
 	<div class="row">
-		{#each isoDates[0] as date}
+		{#each renderMeta[0].dates as date}
 			<div class="dow-label">{format(parseISO(date), "E")}</div>
 		{/each}
 	</div>
@@ -150,8 +150,9 @@
 						<CalendarCell
 							{date}
 							{id}
-							label={$actionItems[id].label}
-							color={$actionItems[id].color}
+							label={$calendars[id].label}
+							color={$calendars[id].color}
+							start={$calendars[id].start}
 							{col}
 							contextMenu={(e) => openRowContextMenu(app, e, "calendar", date, id)}
 						/>
@@ -161,6 +162,7 @@
 							{id}
 							label={$actionItems[id].label}
 							color={$actionItems[id].color}
+							start={$calendars[id].start}
 							{row}
 							{col}
 							contextMenu={(e) => openRowContextMenu(app, e, "actionItem", date, id)}
