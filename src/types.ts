@@ -31,7 +31,7 @@ export interface PlannerState {
     calendars: Record<CalendarID, CalendarMeta>;
     cells: Record<ISODate, Record<ActionItemID, string>>; 
     calendarCells: Record<ISODate, Record<CalendarID, string[] >>;
-    templateOrders: Record<ISODate, RowID[]>;
+    templates: Record<ISODate, RowID[]>;
     globalRowOrder: RowID[];
 }
 
