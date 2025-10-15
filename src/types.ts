@@ -4,16 +4,16 @@ import type { Day } from "date-fns";
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
 
 export type ActionItemID = string;
+export type CalendarID = string;
+export type RowID = ActionItemID | CalendarID;
 
 export interface ActionItemMeta {
     id: ActionItemID;
     label: string;
     color: string;
+    start: ISODate;
+    end: ISODate;
 }
-
-export type CalendarID = string;
-
-export type RowID = ActionItemID | CalendarID;
 
 export interface CalendarMeta {
     id: CalendarID;
@@ -29,10 +29,10 @@ export interface CalendarMeta {
 export interface PlannerState {
     actionItems: Record<ActionItemID, ActionItemMeta>;
     calendars: Record<CalendarID, CalendarMeta>;
-    templates: Record<ISODate, RowID[]>;
-    // Records are much more efficient objects for look-ups
     cells: Record<ISODate, Record<ActionItemID, string>>; 
     calendarCells: Record<ISODate, Record<CalendarID, string[] >>;
+    templateOrders: Record<ISODate, RowID[]>;
+    globalRowOrder: RowID[];
 }
 
 /* Data persistence */
