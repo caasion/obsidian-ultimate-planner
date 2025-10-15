@@ -12,8 +12,7 @@
 	import { actionItems, calendarCells, templates } from "src/state/plannerStore";
 	import { openRowContextMenu } from './GenericContextMenu';
 	import { fetchPipelineInGracePeriod } from "src/actions/calendarPipelines";
-	import ActionItemCell from "./ActionItemCell.svelte";
-	import CalendarCell from "./GenericCell.svelte";
+	import GenericCell from "./GenericCell.svelte";
 
 	interface ViewProps {
 		app: App;
@@ -147,25 +146,27 @@
 		 	<div class="row">
 				{#each blockMeta.dates as date, col} <!-- Create a column for each date -->
 					{#if id.split("-", 1)[0] === "cal"}
-						<CalendarCell
+						<GenericCell
 							{date}
 							{id}
+							type={"calendar"}
 							label={$calendars[id].label}
 							color={$calendars[id].color}
 							start={$calendars[id].start}
 							{col}
-							contextMenu={(e) => openRowContextMenu(app, e, "calendar", date, id)}
+							contextMenu={(e: MouseEvent) => openRowContextMenu(app, e, "calendar", date, id)}
 						/>
 					{:else}
-						<ActionItemCell
+						<GenericCell
 							{date}
 							{id}
+							type={"actionItem"}
 							label={$actionItems[id].label}
 							color={$actionItems[id].color}
 							start={$calendars[id].start}
 							{row}
 							{col}
-							contextMenu={(e) => openRowContextMenu(app, e, "actionItem", date, id)}
+							contextMenu={(e: MouseEvent) => openRowContextMenu(app, e, "actionItem", date, id)}
 							{focusCell}
 						/>
 					{/if}
@@ -245,35 +246,11 @@
 		display: contents;
 	}
 
-	.row-label {
-		font-style: italic;
-		font-size: x-small;
-		padding: 4px 0px;
-	}
-
 	.grid > .row > div {
 		padding: 4px;
 		border: 1px solid #ccc;
 
 	}
 
-  .cell {
-    border-top-style: dashed;
-    border-bottom-style: dashed;
-  }
 
-	.cell.inactive {
-		background-color: #2f2f2f !important;
-	}
-
-	.cell.empty {
-		background-color: #3b3b3b;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.cell p {
-		margin: 0px;
-	}
 </style>
