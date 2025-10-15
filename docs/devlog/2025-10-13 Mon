@@ -1,0 +1,63 @@
+# 2025-10-13 Mon
+I'm going to continue with what I set out to do on Friday.
+- (4) Hook up UPV to `calendars` in `planner`
+- (5) Implement context menu for calendars
+- (2) On render, update the frozen cells and cache
+
+## Cont of (B) Break `plannerStore` into smaller stores
+- I need to test out the features to ensure that the plugin works properly after refactoring. I will perform all of these actions, and test for (1) reactivity and (2) data persistence.
+    - Edit Action Item
+    - Extend
+    - Remove
+    - Move Up/Move Down
+    - Add new action item
+- Editing, Moving up/down, and adding a new item is reactive and persists
+- However, extending and removing from templates gives an error. These two features are currently broken, but I'm going to fix it later because it really isn't a high priority feature. I'm going to just make an issue. #11
+
+## (4) Hook up UPV to `calendars` in `planner`
+- I need to break this feature down: 
+    - (4A) Rendering a calendar row
+    - (4B) Menu for adding a calendar item
+    - (4C) Context menu for calendar item
+- I cleaned up UPV in 16eb4d9.
+- Implemented rendering logic in e6d8a27.
+- I removed an unused modal in c16a07d.
+- In dcb2b7c and 216859a, I switched from the previous inline reactive prompt to create a new action item to use Obsidian's built-in Modal for action item creation.
+    - I did this to prepare for the option to create new action item and to add a remote calendar. It is a lot cleaner to use a context menu and Obsidian Modal (and it makes the code more readable).
+- In the process, I realized that my `ActionItemMeta` type doesn't inherently contain and id, while `CalendarMeta` does. I think it should internally contain and id because it makes it a lot easier to work with. As I result, I introduced a breaking change in 648832b to update the types. 
+- Migration is a lot simpler than I thought. Implemented in 44831f0 and f75684a. (I made a small oopsie with for...in vs for...of.)
+- Done! Although I took a detour in hooking up UPV, I believe that implementing this data type change throughout my code will make it more robust and easier to work with. (426bb5c) I can now continue working on (4B).
+
+### (4B) Menu for adding a calendar item
+- The previous code changes set me up for success. It was very easy to implement the "Add New Remote Calendar" feature in b094ae4 and f5a1e31.
+
+### (4C) Context menu for calendar item
+- Now I need to think about what I want to do with calendar rows. While action items change across time, do remote calendars really change as often as action items? Would I just not fetch from a remote calendar if it only exists for 3 days in a template? I would have to change the fetch logic according to this.
+- Through a series of commits (f3abba6, 48f354b, b86a86a, 1e750cc, fe85f13, 5407b77), I not only implemented the context menu for calendar items, but I also made the modals and context menus generic, so I can change both of them at once. The code is also a LOT cleaner now.
+- I realized that I also implemented (5) by doing this!! Horray!!
+
+### Debug: Fix Context Menu Actions
+"Extending and removing from templates gives an error. These two features are currently broken, but I'm going to fix it later because it really isn't a high priority feature. I'm going to just make an issue. #11"
+- Fixed in b2d941d. I had hard-coded the correct logic to the "add to template" function, but I'm making things more modular, so that part got lost. In addition, I coded the "addToTemplate" function wrong... I used abc.abc instead of abc[abc], which is needed for a dictionary.
+
+### (2) On render, update the frozen cells and cache
+- Finally!!! The last feature I need to implement!!!
+- I want to fetch all and freeze (after the first occurance of the calendar) and cache everytime I launch the view.
+- Implemented the latter in a9ba8b4 and the former in 86fe717.
+- I also did some refactoring!
+
+I'm done for the day.
+
+Next Steps:
+- Calendar Integration Enhancements
+    - Add Option to Fetch All & Fetch in Grace Period in Calendar Menu
+    - Connect to Settings of "Grace Days"
+        - Only look back for X Grace Days or when the template exists, whichever is smaller
+    - Add Settings of "Look Ahead Limit" -- How far to look ahead in events
+    - Fetch on Mount OUTSIDE of UPV instead (for performance)
+    - Add Option to NOT archive past events and keep it live retrieval
+- Template Management Enhancement
+    - Exigence: Right now, it is quite difficult to work with templates. Not only are there a bijillion commands in the context menus, but also templates are a pain to work with.
+    - How might I improve this? Instead of giving so much flexibility to the user (which also makes it hard to give a good UX experience), I make templates more rigid.
+    - I decided to create a new issue #13 to keep track of this! It will probably be another branch and another pull request.
+

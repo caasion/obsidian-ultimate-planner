@@ -1,11 +1,9 @@
-import type { ISODate, ActionItemID, PlannerState } from '../types';
-import { plannerStore } from '../state/plannerStore';
+import type { ISODate, RowID } from '../types';
 /* Helper Functions */
 import { addDays, eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek, type Day } from 'date-fns';
-import { get } from 'svelte/store';
 
-export function generateID() {
-    return "ai-" + crypto.randomUUID();
+export function generateID(prefix: string) {
+    return prefix + crypto.randomUUID();
 }
 
 // Date Helpers
@@ -51,14 +49,17 @@ export function getLabelFromDateRange(firstDate: ISODate, lastDate: ISODate) {
 }
 
 // Templates helpers
-export function idIsUsedAnywhere(state: PlannerState, rowID: ActionItemID): boolean {
+export function idUsedInTemplates(templates: Record<ISODate, RowID[]>, rowID: RowID): boolean {
     // Check all template arrays
-    for (const arr of Object.values(state.templates)) {
+    for (const arr of Object.values(templates)) {
         if (arr.includes(rowID)) return true;
     }
-    // Also check cells (optional, but usually right)
-    for (const cellMap of Object.values(state.cells)) {
-        if (rowID in cellMap) return true;
-    }
     return false;
+}
+
+/** [PURE HELPER] Hash a string using SHA-1. */
+export async function hashText(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-1', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }

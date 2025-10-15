@@ -6,15 +6,33 @@ export type ISODate = string; // Create date type for dates in ISO 8601 for simp
 export type ActionItemID = string;
 
 export interface ActionItemMeta {
-    label: string;    // e.g. "FITNESS ★"
-    color: string;   // cosmetic only (optional)
-    active?: boolean;
+    id: ActionItemID;
+    label: string;
+    color: string;
+}
+
+export type CalendarID = string;
+
+export type RowID = ActionItemID | CalendarID;
+
+export interface CalendarMeta {
+    id: CalendarID;
+    label: string;
+    color: string;
+    url: string;
+    etag?: string;
+    lastFetched?: number;
+    lastModified?: string;
+    contentHash?: string;
 }
 
 export interface PlannerState {
     actionItems: Record<ActionItemID, ActionItemMeta>;
-    templates: Record<ISODate, ActionItemID[]>;
-    cells: Record<ISODate, Record<ActionItemID, string /* contents */>>; // Records are much more efficient objects for look-ups
+    calendars: Record<CalendarID, CalendarMeta>;
+    templates: Record<ISODate, RowID[]>;
+    // Records are much more efficient objects for look-ups
+    cells: Record<ISODate, Record<ActionItemID, string>>; 
+    calendarCells: Record<ISODate, Record<CalendarID, string[] >>;
 }
 
 /* Data persistence */
@@ -22,33 +40,23 @@ export interface PluginData {
     version: number;
     settings: PluginSettings;
     planner: PlannerState;
-    calendar: CalendarBlob;
 }
 
 export interface PluginSettings {
     weekStartOn: Day;
     autosaveDebounceMs: number;
     weeksToRender: number;
-    remoteCalendarUrl: string;
     refreshRemoteMs: number;
     archivePastEvents: boolean;
     graceDays: number;
     retentionMonths: number;
 }
 
-export interface CalendarBlob {
-    url: string;
-    etag?: string;
-    lastFetched?: number;
-    lastModified?: string;
-    contentHash?: string;
-    events: NormalizedEvent[];
-    index: Record<ISODate, string[]> // Dictionary of ISODates and Event IDs
-    eventsById: Record<string, NormalizedEvent>
-}
+export type CalendarStatus = "idle" | "fetching" | "unchanged" | "updated" | "error";
 
+/* Calendar State */
 export interface CalendarState {
-    status: "idle" | "fetching" | "unchanged" | "updated" | "error";
+    status: CalendarStatus;
     lastError?: string;
 }
 
@@ -62,7 +70,6 @@ export interface NormalizedEvent {
     location?: string;
     description?: string;
     calendarId: string;
-    sourceUrl?: string;
 }
 
 /* DEFAULT VALUES */
@@ -70,15 +77,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     weekStartOn: 0,
     autosaveDebounceMs: 200,
     weeksToRender: 1,
-    remoteCalendarUrl: "",
     refreshRemoteMs: 5 * 60 * 1000,
     archivePastEvents: true,
     graceDays: 7,
     retentionMonths: 0, // STALE OPTION
-}
-
-export const EMPTY_PLANNER: PlannerState = {
-    actionItems: {},
-    cells: {},
-    templates: {}
 }

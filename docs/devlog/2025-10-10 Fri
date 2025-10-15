@@ -1,0 +1,62 @@
+# 2025-10-10
+## The Plan
+- Today, I want to hopefully finish up the Google Calendar Enhancement. Here is what I need to do in order:
+    - (1) Implement dual-rendering of the calendar
+        - Render the frozen cells and cache into the same row
+    - (2) On render, update the frozen cells and cache
+        - We want to keep the grace days of the cache consistent
+    - (3) Implement multi-calendar cache
+        - Create appropriate data structures
+        - Implement functions to support multiple calendars
+    - (4) Integrate calendars into the planner
+        - Create appropriate data structure
+        - Implement rendering logic
+    - (5) Add Context Menu for Calendar Rows (to edit link)
+        - Editing the link will completely refetch and rebuild the calendar structure
+- (1) & (2) focuses on a single calendar while (3-5) works on multiple calendars
+
+### Implementation of (1)
+- I've lost track of why I even need the cache in the first place... I could technically just synchronize my calendarCells to the cache and avoid a cache altogether.
+    - Ah, wait! If I don't keep a cache, then it is very hard to compare whether if my contentHash is still the same. I should still keep a cache to easily compare changes for my calendars. Perhaps I don't actually need the cache, but just the contentHash.
+- However, I can actually simply render from my frozen cells because the frozen cells are also synchronized and influenced by the cache.
+- Here is the thing, when rendering a new calendar, I only want to freeze the cells once and keep a few grace days. However, for efficiency, we don't actually need to store the cache. (Though it will be harder to visualize what is happening without the cache.)
+- The test that should pass: When we edit an event on google calendar and refetch the calendar, it should update both the cache and the frozen cells. However, when we edit an event that is past the grace days, nothing should change.
+- I actually don't know the best way to implement this. I'm going to ask Claude for advice.
+
+- After talking to Claude, I realized that I still want to have the cache structure, but I just don't want to *persist* it to `data.json`. 
+
+[attach before and after pipelines]
+
+- In commit 1a3040e, I implemented the new manual fetch pipeline (according to the flow diagram above).
+    - I tested the command by changing an event and running the command. The cache (that I currently have) should be different from the actual cell contents.
+    - I have yet to clear out the old functions yet since I don't know if I will ever want to revert back yet, so I am keeping them for now, and am going to clean it up before I merge this branch.
+- Most of the work in implementing (1) is in the scruntinizing and thinking. I ended up completely rethinking and changing how I process data, and how what I do affects the data efficiency.
+    - I realized that the fetch grace days and fetch all & freeze serve different purposes in the planner's life cycle.
+- Oops! I missed a small detail about what to hash (the parsedICS instead of the whole response). I fixed it in 3b14b4d.
+- In commit 3dd1cb0, I implemented the fetch all and freeze pipeline (according to the flow diagram).
+    - I tested the command by changing an event outside of the grace period and seeing if it updated it.
+- As if now (all of these commits above), I no longer rely on the calendar cache anymore. I also set myself up for success in implementing (2) because I simply have to run these pipelines on launch or calendar url change.
+- I found out that fetchingAll updated lastModified of the cache even though nothing about the calendar has changed, so I fixed it in d60436f.
+
+### Implementation of (2)
+- I may want to implement this after the multi-calendar because I rely on the multi-calenar structure in order to run this logic (i.e. calendar url change).
+
+### Implementation of (3) & (4)ish
+- I already have the data structures for one calendar. I just need to expand it to an array of the one calenar.
+- I implemented the data structure in 610c6aa.
+- I cleaned up everything related to the cache and calendarStore in 569f249.
+- I did some miscelleanous cleaning in 05a1a46, 9d428e2, and 3c944a4.
+- Now I realized that i am attempting to implement (3) and (4) at the same time, and it is perhaps most efficient to do so. Because when I integrate the fetching and URL storage to within the cells, I also need to move the fetching pipelines away from `main.ts` since we should be able to call these functions anywhere.
+- I am working on an implementation of the fetch in grace period pipeline that doesn't run in the main plugin body.
+    - What does success look like? The pipeline can read from the store the URL of the calendar and then fetch events successfully, while updating the fetch information in the calendars.
+    - After a few rounds of testing, it worked! Committing in 94cd618.
+    - I also forgot to add a grace period specification. Added in 609c425
+- I've noticed that I often have many nested objects when I attempt to update a store. I think I could have the bigger planner structure, but I should probably process each part of the plannerStore into smaller stores.
+
+Next steps:
+- (3) Create an independent pipeline for fetch all and freeze
+- (4) Hook up UPV to `calendars` in `planner`
+- Create a new type `CalendarID` instead of using `ActionItemID`
+- Break `plannerStore` into smaller stores
+- (5) Implement context menu for calendars
+- (2) On render, update the frozen cells and cache

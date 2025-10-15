@@ -1,6 +1,5 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, Setting } from 'obsidian';
 import UltimatePlannerPlugin from '../main';
-import type { PlannerState } from '../types';
 import type { Day } from 'date-fns';
 
 
@@ -58,18 +57,6 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
             )
         
         new Setting(containerEl).setName('Remote Calendar').setHeading();
-                
-        new Setting(containerEl)
-            .setName('Remote Calendar Link')
-            .addText((text) => {
-                text
-                    .setPlaceholder('link')
-                    .setValue(this.plugin.settings.remoteCalendarUrl)
-                    .onChange(async (value) => {
-                        this.plugin.settings.remoteCalendarUrl = value;
-                        await this.plugin.queueSave();
-                    })
-            })
 
         new Setting(containerEl)
             .setName('Remote Calendar Refresh Interval (min)')

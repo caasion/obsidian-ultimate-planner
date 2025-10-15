@@ -1,16 +1,17 @@
 <script lang="ts">
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
-	import { differenceInMinutes, format, parseISO } from "date-fns";
-	import { tick } from "svelte";
+	import { addDays, format, parseISO } from "date-fns";
+	import { onMount, tick } from "svelte";
 	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
-	import { plannerStore } from "src/state/plannerStore";
-	import { setCell, getCell } from "../actions/cellActions";
-	import { newActionItem, openActionItemContextMenu, } from "src/actions/itemActions";
-	import { getISODate, generateID, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
-	import type { ISODate, NormalizedEvent, PluginSettings } from "src/types";
-	import { calendarStore } from "src/state/calendarStore";
+	import { setCell, getCell, calendars } from "../state/plannerStore";
+	import { newRowContextMenu } from "src/ui/NewRowContextMenu";
+	import { getISODate, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
+	import type { ISODate, PluginSettings } from "src/types";
+	import { actionItems, calendarCells, templates } from "src/state/plannerStore";
+	import { openRowContextMenu } from './GenericContextMenu';
+	import { fetchPipelineInGracePeriod } from "src/actions/calendarPipelines";
 
 	interface ViewProps {
 		app: App;
@@ -19,74 +20,28 @@
 
 	let { app, settings }: ViewProps = $props();
 
-	const DEFAULT_COLOR = "#cccccc";
-
 	/* Reactive: templateStoreForDate */
 	function templateStoreForDate(date: ISODate) {
 		let best: ISODate | null = null;
-		const templates = $plannerStore.templates;
-		for (const key in templates) {
+		for (const key in $templates) {
 			if (key <= date && (best === null || key > best)) best = key;
 		}
-		return best ? JSON.parse(JSON.stringify(templates[best])) : [];
+		return best ? JSON.parse(JSON.stringify($templates[best])) : [];
 	}
 
-	/* Reactive: getEvents */
-	function getEvents(date: ISODate): NormalizedEvent[] {
-		const calendar = $calendarStore;
-		const IDs = calendar.index[date] ?? [];
-		let events: NormalizedEvent[] = [];
 
-		IDs.forEach(id => events.push(calendar.eventsById[id]));
+	// Fetch in grace period for current calendars
+	onMount(() => {
+		const today = getISODate(new Date());
 
-		return events;
-	}
-
-	function getEventLabels(events: NormalizedEvent[]): string[] {
-		return events.map(event => getEventLabel(event));
-	}
-
-	function getEventLabel(event: NormalizedEvent): string {
-		if (event.allDay) {
-			return `${event.summary}`
-		} else {
-			const start = format(event.start, "HH:mm")
-			return `${event.summary} @ ${start} (${getDurationAsString(event.start, event.end)})`
-		}
-		
-	}
-
-	function getDurationAsString(start: Date, end: Date): string {
-		let diff: number = differenceInMinutes(end, start)
-		let units: string = "min";
-
-		if (diff % 60 == 0) {
-			diff /= 60;
-			units = "hr";
-		}
-
-		return `${diff} ${units}`
-	}
-
-	/* Create Action Item */
-
-	let showNewRowPrompt = $state(false);
-	let newRowLabel = $state("");
-	let newRowDate = $state<ISODate>(getISODate(new Date()));
-	let newRowColor = $state(DEFAULT_COLOR);
-
-	function submitNewRow(create: boolean) {
-		if (create) {
-			newActionItem(newRowDate, generateID(), newRowLabel, newRowColor);
-		}
-
-		newRowLabel = "";
-		showNewRowPrompt = false;
-		newRowColor = DEFAULT_COLOR;
-	}
+        rows.forEach(id => {
+            if (id.split("-", 1)[0] === "cal") {
+                fetchPipelineInGracePeriod($calendars[id], addDays(today, -7), addDays(today, 60))
+            }
+        })
+	})
 
 	/* Table Rendering */
-
 	let weeksVisible = settings.weeksToRender;
 	let anchorDate = $state<ISODate>(getISODate(new Date()));
 	let isoDates = $derived<ISODate[][]>(getISODatesOfWeek(anchorDate, weeksVisible, settings.weekStartOn));
@@ -103,7 +58,6 @@
 	}
 
 	/* Table Navigation (Tab, Shift-tab, Enter) */
-
 	let focus: { row: number; col: number } = $state({ row: 0, col: 0 }); // Track focus to preserve focus at the same row
 
 	function focusCell(row: number, col: number, fromEditor = false): boolean {
@@ -130,8 +84,6 @@
 		await tick();
 		focusCell(focus.row, focus.col);
 	}
-
-	// TODO: Export to CSV or Markdown
 </script>
 
 <h1>The Ultimate Planner</h1>
@@ -146,21 +98,10 @@
 		<span class="week-label">{getLabelFromDateRange(isoDates[0][0], isoDates[isoDates.length - 1][6])}</span>
 		<input type="date" bind:value={anchorDate} />
 	</div>
-
 	<div class="new-ai">
-		<button onclick={() => (showNewRowPrompt = true)}>+ Add</button>
-		{#if showNewRowPrompt}
-			<input
-				class="new-row-label"
-				placeholder="Enter a New Action item"
-				bind:value={newRowLabel}
-			/>
-			<input class="new-row-date" type="date" bind:value={newRowDate} />
-			<input type="color" bind:value={newRowColor} />
-			<button onclick={() => submitNewRow(true)}>✔</button>
-			<button onclick={() => submitNewRow(false)}>❌</button>
-		{/if}
+		<button onclick={(evt) => newRowContextMenu(app, evt)}>+ Add</button>
 	</div>
+	
 </div>
 <div class="grid">
 	<div class="row">
@@ -174,44 +115,52 @@
 				<div class="date-label">{format(parseISO(date), "dd")}</div>
 			{/each}
 		</div>
-		<div class="row">
-			{#each isoDates[w] as date}
-				<div class="cell">
-					{#each getEventLabels(getEvents(date)) as label}
-						<p>{label}</p>
-					{/each}
-				</div>
-			{/each}
-		</div>
-		{#each rows as rowID, i (rowID)}
+		{#each rows as id, i (id)}
 			<div class="row">
 				{#each isoDates[w] as date, j (date)}
-					{#if templateStoreForDate(date).includes(rowID)}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div
-							class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
-							style={`color: ${$plannerStore.actionItems[rowID].color ?? ""}`}
-							oncontextmenu={(e) => openActionItemContextMenu(app, e, date, rowID)}
-						>
-							{#if (j == 0 && $plannerStore.actionItems[rowID].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(rowID)}
-								<div class="row-label">{$plannerStore.actionItems[rowID].label ?? ""}</div>
-							{/if}
-							<InputCell {date} {rowID} {setCell} {getCell} row={i} col={j} {focusCell} />
-						</div>
+					{#if Object.keys($calendars).includes(id)} <!-- Check if the calendars dictionary has the key -->
+						{#if templateStoreForDate(date).includes(id)}
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
+								style={`color: ${$calendars[id].color ?? ""}`}
+								oncontextmenu={(e) => openRowContextMenu(app, e, "calendar", date, id)}
+							>
+								{#if (j == 0 && $calendars[id].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(id)}
+									<div class="row-label">{$calendars[id].label ?? ""}</div>
+								{/if}
+								{#each $calendarCells[date]?.[id] ?? [] as label}
+									<p>{label}</p>
+								{/each}
+							</div>
+						{:else}
+							<div class="cell empty">-</div>
+						{/if}
 					{:else}
-						<div class="cell empty">-</div>
+						
+							{#if templateStoreForDate(date).includes(id)}
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<div
+									class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
+									style={`color: ${$actionItems[id].color ?? ""}`}
+									oncontextmenu={(e) => openRowContextMenu(app, e, "actionItem", date, id)}
+								>
+									{#if (j == 0 && $actionItems[id].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(id)}
+										<div class="row-label">{$actionItems[id].label ?? ""}</div>
+									{/if}
+									<InputCell {date} rowID={id} {setCell} {getCell} row={i} col={j} {focusCell} />
+								</div>
+							{:else}
+								<div class="cell empty">-</div>
+							{/if}
+										
 					{/if}
-				{/each}
+				{/each}	
 			</div>
 		{/each}
 	{/each}
 	
 </div>
-
-<!-- For debugging -->
-<!-- <pre>
-    {JSON.stringify($plannerStore, null, 2)}
-</pre> -->
 
 <style>
 	.header {
@@ -219,12 +168,9 @@
     grid-template-columns: 1fr 1fr 1fr;
 	}
 
-  .nav-buttons {
-  }
-
   .week {
     display: flex;
-    justify-content: center;   /* center inside parent */
+    justify-content: center; 
     position: relative;
   }
 
@@ -234,7 +180,7 @@
     text-align: center;
     padding: .25rem .5rem;
     display: inline-block;
-    pointer-events: none;      /* clicks pass through to input */
+    pointer-events: none;  
   }
 
   .week input[type="date"] {
@@ -257,7 +203,7 @@
   }
 
   .week input[type="date"]::-webkit-datetime-edit {
-    display: none; /* hides the editable text */
+    display: none;
   }
 
   .new-ai {

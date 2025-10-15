@@ -21,3 +21,4 @@ data.json
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
 data copy.json
+data empty cal.json

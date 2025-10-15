@@ -1,0 +1,16 @@
+# 2025-10-12 Sun
+I couldn't finish what I was doing yesterday, so I just continued where I left off. It's quite late, so I can probably only finish this refactor.
+
+## Cont of (B) Break `plannerStore` into smaller stores
+...
+- Now the annoying job is to incorporate these functions throughout my codebase.
+- I committed the changes in 115a99e.
+- However, I realize that I need to do some rigorous app testing to make sure the refactoring hasn't broken anything or made anything do something unintended. I need to test:
+    - Edit Action Item
+    - Extend
+    - Remove
+    - Move Up/Move Down
+    - Add new action item
+- But before that, I had to fix `main.ts` to use the new stores (a996ef6). I also had to fix UPV's references (631ab3c).
+- Most importantly, I caught a critial data persistence error (I forgot to initialize from `data.json`), and fixed it (f86db11).
+- That's it for today. I'm going to test tomorrow.
