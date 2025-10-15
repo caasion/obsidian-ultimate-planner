@@ -12,6 +12,7 @@
 	import { actionItems, calendarCells, templates } from "src/state/plannerStore";
 	import { openRowContextMenu } from './GenericContextMenu';
 	import { fetchPipelineInGracePeriod } from "src/actions/calendarPipelines";
+	import ActionItemCell from "./ActionItemCell.svelte";
 
 	interface ViewProps {
 		app: App;
@@ -102,7 +103,7 @@
 	// Currently doesn't work
 	async function goTo(newDate: ISODate) {
 		/* Maintain focus when switching weeks */
-		anchorDate = newDate;
+		anchor = newDate;
 		await tick();
 		// focusCell(focus.row, focus.col);
 	}
@@ -113,12 +114,12 @@
 <div class="header">
 	<div class="nav-buttons">
 		<button onclick={() => goTo(getISODate(new Date()))}>Today</button>
-    <button onclick={() => goTo(addDaysISO(anchorDate, -7))}>&lt;</button>
-		<button onclick={() => goTo(addDaysISO(anchorDate, 7))}>&gt;</button>
+    <button onclick={() => goTo(addDaysISO(anchor, -7))}>&lt;</button>
+		<button onclick={() => goTo(addDaysISO(anchor, 7))}>&gt;</button>
 	</div>
 	<div class="week">
 		<span class="week-label">{getLabelFromDateRange(isoDates[0][0], isoDates[isoDates.length - 1][6])}</span>
-		<input type="date" bind:value={anchorDate} />
+		<input type="date" bind:value={anchor} />
 	</div>
 	<div class="new-ai">
 		<button onclick={(evt) => newRowContextMenu(app, evt)}>+ Add</button>
@@ -131,57 +132,24 @@
 			<div class="dow-label">{format(parseISO(date), "E")}</div>
 		{/each}
 	</div>
-	{#each isoDates as week, w (week)}
-		<div class="row">
-			{#each isoDates[w] as date}
+	{#each renderMeta as blockMeta, block} <!-- Create a new block for each block -->
+		 <div class="row"> <!-- Set-up the rows for the date labels -->
+			{#each blockMeta.dates as date} <!-- Create a column for each date -->
 				<div class="date-label">{format(parseISO(date), "dd")}</div>
 			{/each}
-		</div>
-		{#each rows as id, i (id)}
-			<div class="row">
-				{#each isoDates[w] as date, j (date)}
+		 </div>
+		 {#each blockMeta.ids as id, row} <!-- Create a row for each ID-->
+		 	<div class="row">
+				{#each blockMeta.dates as date, col} <!-- Create a column for each date -->
 					{#if id.split("-", 1)[0] === "cal"}
-						{#if $actionItems[id]}
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<div
-								class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
-								style={`color: ${$calendars[id].color ?? ""}`}
-								oncontextmenu={(e) => openRowContextMenu(app, e, "calendar", date, id)}
-							>
-								{#if (j == 0 && $calendars[id].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(id)}
-									<div class="row-label">{$calendars[id].label ?? ""}</div>
-								{/if}
-								{#each $calendarCells[date]?.[id] ?? [] as label}
-									<p>{label}</p>
-								{/each}
-							</div>
-						{:else}
-							<div class="cell empty">-</div>
-						{/if}
+						<CalendarCell />
 					{:else}
-						
-							{#if templateStoreForDate(date).includes(id)}
-								<!-- svelte-ignore a11y_no_static_element_interactions -->
-								<div
-									class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
-									style={`color: ${$actionItems[id].color ?? ""}`}
-									oncontextmenu={(e) => openRowContextMenu(app, e, "actionItem", date, id)}
-								>
-									{#if (j == 0 && $actionItems[id].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(id)}
-										<div class="row-label">{$actionItems[id].label ?? ""}</div>
-									{/if}
-									<InputCell {date} rowID={id} {setCell} {getCell} row={i} col={j} {focusCell} />
-								</div>
-							{:else}
-								<div class="cell empty">-</div>
-							{/if}
-										
+						<ActionItemCell />
 					{/if}
-				{/each}	
+				{/each}
 			</div>
-		{/each}
+		 {/each}
 	{/each}
-	
 </div>
 
 <style>
