@@ -5,8 +5,8 @@ export type ISODate = string; // Create date type for dates in ISO 8601 for simp
 
 export type ActionItemID = string;
 export type CalendarID = string;
-export type RowID = ActionItemID | CalendarID;
-export type RowMeta = ActionItemMeta | CalendarMeta;
+export type ItemID = ActionItemID | CalendarID;
+export type ItemMeta = ActionItemMeta | CalendarMeta;
 
 export interface ActionItemMeta {
     id: ActionItemID;
@@ -29,10 +29,15 @@ export interface CalendarMeta {
     contentHash?: string;
 }
 
+export interface DayData {
+    date: ISODate;
+    cells: Record<ItemID, string>;
+}
+  
+
 export interface PlannerState {
-    cells: Record<ISODate, Record<ActionItemID, string>>; 
-    calendarCells: Record<ISODate, Record<CalendarID, string[] >>;
-    templates: Record<ISODate, Record<RowID, RowMeta>>;
+    dayData: Record<ISODate, DayData>;
+    templates: Record<ISODate, Record<ItemID, ItemMeta>>;
 }
 
 /* Data persistence */

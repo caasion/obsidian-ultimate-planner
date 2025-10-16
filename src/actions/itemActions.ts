@@ -4,20 +4,6 @@ import { get } from 'svelte/store';
 import { fetchAllandFreeze } from './calendarPipelines';
 import { addDays, parseISO, startOfDay } from 'date-fns';
 
-/* Template */
-/** [HELPER] Returns a deep copy of the template that should apply on `date`
- *  Loops through all the keys (which are dates) in templates and compares them with the date provided.
- *  If no template exists at or before `date`, it return an empty array
- */
-export function templateForDate(date: ISODate): RowID[] {
-    let best: ISODate | null = null;
-    for (const key in get(templates)) {
-        if (key <= date && (best === null || key > best)) best = key;
-    }
-    // return best ? templates[best] : [];
-    return best ? JSON.parse(JSON.stringify(get(templates)[best])) : [];
-}
-
 /* Action Items */
 /** Registers a new action item in actionItems and adds it to a date's template. */
 export function newActionItem(date: ISODate, meta: ActionItemMeta) {
