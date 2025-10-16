@@ -29,14 +29,8 @@ export interface CalendarMeta {
     contentHash?: string;
 }
 
-export interface DayData {
-    date: ISODate;
-    cells: Record<ItemID, string>;
-}
-  
-
 export interface PlannerState {
-    dayData: Record<ISODate, DayData>;
+    dayData: Record<ISODate, Record<ItemID, string>>;
     templates: Record<ISODate, Record<ItemID, ItemMeta>>;
 }
 

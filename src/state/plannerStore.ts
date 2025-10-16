@@ -1,9 +1,8 @@
 import { get, writable } from "svelte/store";
-import type { ActionItemID, DayData, ISODate, ItemID, ItemMeta } from "src/types";
+import type { ActionItemID, ISODate, ItemID, ItemMeta } from "src/types";
 
+export const dayData = writable<Record<ISODate, Record<ItemID, string>>>({});
 export const templates = writable<Record<ISODate, Record<ItemID, ItemMeta>>>({});
-export const dayData = writable<Record<ISODate, DayData>>({});
-
 
 /** Sets the template for a date.
  * Primarily used for initializing templates.
@@ -77,10 +76,7 @@ export function setCell(date: ISODate, id: ItemID, value: string) {
         ...data,
         [date]: {
             ...data[date],
-            cells: {
-                ...data[date].cells,
-                [id]: value
-            }
+            [id]: value
         }
     }))
 }
@@ -91,7 +87,7 @@ export function setCell(date: ISODate, id: ItemID, value: string) {
 export function getCell(date: ISODate, id: ItemID) {
     const data = get(dayData);
 
-    if (!data[date] || !data[date].cells[id]) return "";
+    if (!data[date] || !data[date][id]) return "";
 
-    return data[date].cells[id];
+    return data[date][id];
 }
