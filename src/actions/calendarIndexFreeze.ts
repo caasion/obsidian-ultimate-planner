@@ -1,6 +1,6 @@
 import { differenceInMinutes } from "date-fns";
 import { format } from "date-fns";
-import type { CalendarID, CalendarStatus, NormalizedEvent } from "src/types";
+import type { CalendarID, CalendarStatus, ISODate, ItemID, NormalizedEvent } from "src/types";
 import { calendarState } from "src/state/calendarStore";
 
 /** HELPER: Set the statatus of calendarState */
@@ -9,18 +9,22 @@ export function setCalendarStatus(status: CalendarStatus) {
 }
 
 /** Write into calendarCells (store) with index and eventsById. */    
-export function populateCalendarCells(calendarId: CalendarID, index: Record<string, string[]>, eventsById: Record<string, NormalizedEvent>) {
+export function populateCalendarCells(
+    setCell: (date: ISODate, id: ItemID, value: string) => void;
+    calendarId: CalendarID, 
+    index: Record<string, string[]>, 
+    eventsById: Record<string, NormalizedEvent>) {
     Object.keys(index).forEach(date => {
-    // Get events from frozenIndex and frozenEventsById
-    const IDs = index[date];
-    const events: NormalizedEvent[] = [];
+        // Get events from frozenIndex and frozenEventsById
+        const IDs = index[date];
+        const events: NormalizedEvent[] = [];
 
-    IDs.forEach(id => events.push(eventsById[id]));
+        IDs.forEach(id => events.push(eventsById[id]));
 
-    const labels = getEventLabels(events);
+        const labels = getEventLabels(events);
 
-    setCalendarCell(date, calendarId, labels);
-})
+        setCell(date, calendarId, labels);
+    })
 }
 
 /** PURE HELPER: Turns a list of normalized events into a list of labels. */
@@ -35,7 +39,7 @@ export function getEventLabels(events: NormalizedEvent[]): string[] {
     })
 }
 
-/** PURE HELPER */
+/** [PURE HELPER] */
 function getDurationAsString(start: Date, end: Date): string {
     let diff: number = differenceInMinutes(end, start)
     let units: string = "min";
