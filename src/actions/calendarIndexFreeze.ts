@@ -22,16 +22,21 @@ export function populateCalendarCells(
     })
 }
 
-/** PURE HELPER: Turns a list of normalized events into a list of labels. */
-export function getEventLabels(events: NormalizedEvent[]): string[] {
-    return events.map(event => {
+/** [PURE HELPER] Turns a list of normalized events into a label with \n indicators. */
+export function getEventLabels(events: NormalizedEvent[]): string {
+    let value: string = "";
+
+    events.forEach(event => {
         if (event.allDay) {
-            return `${event.summary}`
+            value += `${event.summary}`
         } else {
             const start = format(event.start, "HH:mm")
-            return `${event.summary} @ ${start} (${getDurationAsString(event.start, event.end)})`
+            value += `${event.summary} @ ${start} (${getDurationAsString(event.start, event.end)})`
         }
+        value += " \n";
     })
+
+    return value;
 }
 
 /** [PURE HELPER] */
