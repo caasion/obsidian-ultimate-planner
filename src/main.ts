@@ -1,9 +1,9 @@
 import { Plugin } from 'obsidian';
 import { PLANNER_VIEW_TYPE, PlannerView } from './ui/PlannerView';
 import { UltimatePlannerPluginTab } from './ui/SettingsTab';
-import { actionItems, calendarCells, calendars, cells, templates } from './state/plannerStore';
+import { dayData, templates } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
-import { DEFAULT_SETTINGS, type ActionItemID, type PluginData, type PluginSettings } from './types';
+import { DEFAULT_SETTINGS, type PluginData, type PluginSettings } from './types';
 import { addDays, startOfDay } from 'date-fns';
 import { fetchAllandFreeze, fetchPipelineInGracePeriod } from './actions/calendarPipelines';
 
@@ -24,21 +24,21 @@ export default class UltimatePlannerPlugin extends Plugin {
 			}
 		});
 
-		this.addCommand({
-			id: 'debug-manual-fetch',
-			name: 'Debug: Manual Fetch in Grace Period',
-			callback: async () => {
-				fetchPipelineInGracePeriod(get(calendars)["cal-abcdefji-fsdkj-fjdskl"], addDays(startOfDay(Date.now()), -7), addDays(startOfDay(Date.now()), 60))
-			}
-		})
+		// this.addCommand({
+		// 	id: 'debug-manual-fetch',
+		// 	name: 'Debug: Manual Fetch in Grace Period',
+		// 	callback: async () => {
+		// 		fetchPipelineInGracePeriod(get(calendars)["cal-abcdefji-fsdkj-fjdskl"], addDays(startOfDay(Date.now()), -7), addDays(startOfDay(Date.now()), 60))
+		// 	}
+		// })
 
-		this.addCommand({
-			id: 'debug-manual-fetch-freeze',
-			name: 'Debug: Manual Fetch All & Freeze',
-			callback: async () => {
-				fetchAllandFreeze(get(calendars)["cal-abcdefji-fsdkj-fjdskl"], addDays(Date.now(), -7), addDays(Date.now(), 60))
-			}
-		})
+		// this.addCommand({
+		// 	id: 'debug-manual-fetch-freeze',
+		// 	name: 'Debug: Manual Fetch All & Freeze',
+		// 	callback: async () => {
+		// 		fetchAllandFreeze(get(calendars)["cal-abcdefji-fsdkj-fjdskl"], addDays(Date.now(), -7), addDays(Date.now(), 60))
+		// 	}
+		// })
 
 		// Add Settings Tab using Obsidian's API
 		this.addSettingTab(new UltimatePlannerPluginTab(this.app, this));
@@ -81,30 +81,21 @@ export default class UltimatePlannerPlugin extends Plugin {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings) // Populate Settings
 		
 		// Initialize Stores, Subscribe, and assign unsubscribers
-		actionItems.set(Object.assign({}, {}, data.planner.actionItems));
-		calendars.set(Object.assign({}, {}, data.planner.calendars));
 		templates.set(Object.assign({}, {}, data.planner.templates));
-		cells.set(Object.assign({}, {}, data.planner.cells));
-		calendarCells.set(Object.assign({}, {}, data.planner.calendarCells));
+		dayData.set(Object.assign({}, {}, data.planner.dayData))
 		this.storeSubscriptions = [
-			actionItems.subscribe(() => this.queueSave()),
-			cells.subscribe(() => this.queueSave()),
-			calendars.subscribe(() => this.queueSave()),
-			calendarCells.subscribe(() => this.queueSave()),
+			dayData.subscribe(() => this.queueSave()),
 			templates.subscribe(() => this.queueSave())
 		]
 	}
 
 	private snapshot(): PluginData {
 		return {
-			version: 4,
+			version: 5,
 			settings: this.settings,
 			planner: {
-				actionItems: get(actionItems),
-				calendars: get(calendars),
+				dayData: get(dayData),
 				templates: get(templates),
-				cells: get(cells),
-				calendarCells: get(calendarCells),
 			},
 		}
 	}
