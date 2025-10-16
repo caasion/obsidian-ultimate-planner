@@ -1,4 +1,5 @@
 import type { Day } from "date-fns";
+import type { Writable } from "svelte/store";
 
 /* Plugin Data Types */
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
@@ -48,6 +49,36 @@ export interface PluginSettings {
 }
 
 export type CalendarStatus = "idle" | "fetching" | "unchanged" | "updated" | "error";
+
+/* Core Data Service */
+export interface DataService {
+    // Svelte Stores (The Writable objects themselves)
+    dayData: Writable<Record<ISODate, Record<ItemID, string>>>;
+    templates: Writable<Record<ISODate, Record<ItemID, ItemMeta>>>;
+    calendarState: Writable<CalendarState>;
+    fetchToken: Writable<number>;
+
+    // Planner Store Actions (matches exports from plannerStore.ts)
+    setTemplate: (date: ISODate, newTemplate: Record<ItemID, ItemMeta>) => void;
+    addToTemplate: (date: ISODate, id: ItemID, meta: ItemMeta) => boolean;
+    removeFromTemplate: (date: ISODate, id: ItemID) => boolean;
+    removeFromCellsInTemplate: (date: ISODate, id: ItemID) => boolean;
+    updateItem: (date: ISODate, id: ItemID, updates: Partial<ItemMeta>) => boolean;
+    setCell: (date: ISODate, id: ItemID, value: string) => void;
+    getCell: (date: ISODate, id: ItemID) => string;
+    getItemMeta: (date: ISODate, id: ItemID) => ItemMeta;
+    updateItemMeta: (date: ISODate, id: ItemID, updates: Partial<ItemMeta>) => boolean;
+}
+
+// Core Helper Service Contract (Pure Functions from helper.ts)
+export interface HelperService {
+    hashText: (text: string) => Promise<string>;
+    generateID: (prefix: string) => string;
+    getISODate: (date: Date) => ISODate;
+    addDaysISO: (iso: ISODate, n: number) => ISODate;
+    swapArrayItems: <T>(array: T[], a: number, b: number) => T[]; 
+    idUsedInTemplates: (templates: Record<ISODate, Record<ItemID, ItemMeta>>, rowID: ItemID) => boolean;
+}
 
 /* Calendar State */
 export interface CalendarState {
