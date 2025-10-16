@@ -1,18 +1,16 @@
 <script lang="ts">
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
-	import { addDays, eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek, type Day } from "date-fns";
+	import { format, parseISO, startOfWeek, type Day } from "date-fns";
 	import { onMount, tick } from "svelte";
-	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
-	import { setCell, getCell, calendars } from "../state/plannerStore";
 	import { newRowContextMenu } from "src/ui/NewRowContextMenu";
-	import { getISODate, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
+	import { getISODate, addDaysISO, getLabelFromDateRange, } from "src/actions/helpers";
 	import type { ISODate, PluginSettings, RowID } from "src/types";
-	import { actionItems, calendarCells, templates } from "src/state/plannerStore";
+	import { templates } from "src/state/plannerStore";
 	import { openRowContextMenu } from './GenericContextMenu';
-	import { fetchPipelineInGracePeriod } from "src/actions/calendarPipelines";
 	import GenericCell from "./GenericCell.svelte";
+	import { getDatesOfWeek, getDatesOfBlock } from "src/actions/renderHelpers";
 
 	interface ViewProps {
 		app: App;
@@ -32,71 +30,55 @@
     //     })
 	// })
 
+	/** Reactive function that returns the date of the template that the given date uses. 
+	 * Implemented using binary search for efficiency.
+	 */
+	function getTemplateDate(date: ISODate): ISODate {
+		const sortedTemplateDates: ISODate[] = Object.keys($templates).sort();
+
+		// Implement binary search to find the template date that is the greatest date less than or equal to the date provided
+		let left = 0;
+		let right = sortedTemplateDates.length - 1;
+		let mid = 0;
+
+		while (left <= right) {
+			mid = Math.floor((left + right) / 2);
+			if (sortedTemplateDates[mid] === date) {
+				return sortedTemplateDates[mid];
+			}
+			if (sortedTemplateDates[mid] <= date) {
+				left = mid + 1;
+			} else {
+				right = mid - 1;
+			}
+		}
+
+		return "";
+	}
+
 	/* Table Rendering */
 	const weekFormat = true;
-	const blocks = 1;
 	const columns = 7;
 
 	let anchor = $state<ISODate>(getISODate(new Date()));
+	let dates = $derived.by<ISODate[]>(() => {
+		if (weekFormat) return getDatesOfWeek(anchor, settings.weekStartOn);
+		else return getDatesOfBlock(anchor, columns);
+		});
 
-	interface BlockMeta {
-		dates: ISODate[];
-		ids: RowID[];
-	}
-
-	let renderMeta: BlockMeta[] = $derived.by(() => {
-		let renderMeta = [];
-
-		for (let i = 0; i < blocks; i++) {
-			let dates: ISODate[] = [];
-
-			if (weekFormat) dates = getDatesOfWeek(anchor, settings.weekStartOn);
-			else dates = getDatesOfBlock(anchor, columns);
-
-			const blockMeta: BlockMeta = {
-				dates,
-				ids: getIds(dates),
-			}
-
-			renderMeta.push(blockMeta)
-		}
-
-		return renderMeta;
+	let columnsMeta: DateColumn[] = $derived.by(() => {
+		return dates.map(date => ({
+			date,
+			templateDate: getTemplateDate(date),
+		}));
 	});
 
-	function getIds(dates: ISODate[]): RowID[] {
-		const first = dates[0];
-		const last = dates[dates.length - 1];
-
-		let ids: RowID[] = [];
-
-		for (const ai of Object.values($actionItems)) {
-			if (first > ai.start || last < ai.end) {
-				ids.push(ai.id)
-			}
-		}
-
-		return ids;
+	interface DateColumn {
+		date: ISODate;
+		templateDate: ISODate;
 	}
 
-	function getDatesOfWeek(anchor: ISODate, weekStartsOn: Day): ISODate[] {
-		const date = parseISO(anchor);
-
-		const start = startOfWeek(date, { weekStartsOn });
-        const end = startOfWeek(date, { weekStartsOn });
-
-        const dates = eachDayOfInterval({ start, end });
-
-        return dates.map(d => getISODate(d));
-	}
-
-	function getDatesOfBlock(anchor: ISODate, days: number): ISODate[] {
-		const date = parseISO(anchor);
-
-		const dates = eachDayOfInterval({ start: date, end: addDays(date, days)})
-
-		return dates.map(d => getISODate(d));
-	}
+	
 
 	// TODO: Each block should have their own "rowsToRender"
 
@@ -122,117 +104,108 @@
 		<button onclick={() => goTo(addDaysISO(anchor, 7))}>&gt;</button>
 	</div>
 	<div class="week">
-		<span class="week-label">{getLabelFromDateRange(renderMeta[0].dates[0], renderMeta[renderMeta.length - 1].dates[renderMeta[renderMeta.length - 1].dates.length - 1])}</span>
+		<span class="week-label">{getLabelFromDateRange(columnsMeta[0].date, columnsMeta[columnsMeta.length - 1].date)}</span>
 		<input type="date" bind:value={anchor} />
 	</div>
 	<div class="new-ai">
 		<button onclick={(evt) => newRowContextMenu(app, evt)}>+ Add</button>
 	</div>
-	
 </div>
 <div class="grid">
-	<div class="row">
-		{#each renderMeta[0].dates as date}
-			<div class="dow-label">{format(parseISO(date), "E")}</div>
-		{/each}
-	</div>
-	{#each renderMeta as blockMeta, block} <!-- Create a new block for each block -->
-		 <div class="row"> <!-- Set-up the rows for the date labels -->
-			{#each blockMeta.dates as date} <!-- Create a column for each date -->
-				<div class="date-label">{format(parseISO(date), "dd")}</div>
-			{/each}
-		 </div>
-		 {#each blockMeta.ids as id, row} <!-- Create a row for each ID-->
-		 	<div class="row">
-				{#each blockMeta.dates as date, col} <!-- Create a column for each date -->
+	{#each columnsMeta as columnMeta, col (columnMeta.date)} <!-- Create a column for every date-->
+		<div class="column">
+			<div class="dow-label">{format(parseISO(columnMeta.date), "E")}</div>
+			<div class="date-label">{format(parseISO(columnMeta.date), "dd")}</div>
+			{#each Object.keys($templates[columnMeta.templateDate]) as id, row (id)} <!-- Create a row for every item in column-->
+				<div class="row">
 					{#if id.split("-", 1)[0] === "cal"}
 						<GenericCell
-							{date}
+							date={columnMeta.date}
 							{id}
 							type={"calendar"}
-							label={$calendars[id].label}
-							color={$calendars[id].color}
-							start={$calendars[id].start}
+							label={$templates[columnMeta.templateDate][id].label}
+							color={$templates[columnMeta.templateDate][id].color}
+							start={$templates[columnMeta.templateDate][id].start}
 							{col}
-							contextMenu={(e: MouseEvent) => openRowContextMenu(app, e, "calendar", date, id)}
+							contextMenu={(e: MouseEvent) => openRowContextMenu(app, e, "calendar", columnMeta.date, id)}
 						/>
 					{:else}
 						<GenericCell
-							{date}
+							date={columnMeta.date}
 							{id}
 							type={"actionItem"}
-							label={$actionItems[id].label}
-							color={$actionItems[id].color}
-							start={$calendars[id].start}
+							label={$templates[columnMeta.templateDate][id].label}
+							color={$templates[columnMeta.templateDate][id].color}
+							start={$templates[columnMeta.templateDate][id].start}
 							{row}
 							{col}
-							contextMenu={(e: MouseEvent) => openRowContextMenu(app, e, "actionItem", date, id)}
+							contextMenu={(e: MouseEvent) => openRowContextMenu(app, e, "calendar", columnMeta.date, id)}
 							{focusCell}
 						/>
 					{/if}
-				{/each}
-			</div>
-		 {/each}
+				</div>
+			{/each}
+		</div>
 	{/each}
 </div>
 
 <style>
 	.header {
 		display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    	grid-template-columns: 1fr 1fr 1fr;
 	}
 
-  .week {
-    display: flex;
-    justify-content: center; 
-    position: relative;
-  }
+	.week {
+		display: flex;
+		justify-content: center; 
+		position: relative;
+	}
 
-  .week-label {
-    font-weight: 600;
-    font-size: x-large;
-    text-align: center;
-    padding: .25rem .5rem;
-    display: inline-block;
-    pointer-events: none;  
-  }
+	.week-label {
+		font-weight: 600;
+		font-size: x-large;
+		text-align: center;
+		padding: .25rem .5rem;
+		display: inline-block;
+		pointer-events: none;  
+	}
 
-  .week input[type="date"] {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
+	.week input[type="date"] {
+		position: absolute;
+		top: 0;
+		left: 50%;
+		transform: translateX(-50%);
 
-    width: 100%;
-    height: 100%;
-    z-index: 1;
+		width: 100%;
+		height: 100%;
+		z-index: 1;
 
-    opacity: 0;
-    cursor: pointer;
-  }
+		opacity: 0;
+		cursor: pointer;
+	}
 
-  .week input[type="date"]::-webkit-calendar-picker-indicator {
-    width: 100%;
-    cursor: pointer;
-  }
+	.week input[type="date"]::-webkit-calendar-picker-indicator {
+		width: 100%;
+		cursor: pointer;
+	}
 
-  .week input[type="date"]::-webkit-datetime-edit {
-    display: none;
-  }
+	.week input[type="date"]::-webkit-datetime-edit {
+		display: none;
+	}
 
-  .new-ai {
-    display: flex;
-    justify-content: flex-end;
-  }
+	.new-ai {
+		display: flex;
+		justify-content: flex-end;
+	}
 
-  .dow-label {
-    text-align: center;
-    background-color: var(--theme-color);
-    color: white;
-    mix-blend-mode: exclusion;
-  }
+	.dow-label {
+		text-align: center;
+		background-color: var(--theme-color);
+		color: white;
+		mix-blend-mode: exclusion;
+	}
 
-  .date-label {
+	.date-label {
 		text-align: right;
 	}
 
@@ -244,6 +217,22 @@
 
 	.row {
 		display: contents;
+	}
+
+	.column {
+		display: flex;
+		flex-direction: column;
+		border: 1px solid #ccc;
+	}
+
+	.column > div {
+		padding: 4px;
+		border-bottom: 1px solid #ccc;
+		min-height: 40px; /* Consistent row height */
+	}
+	
+	.column > div:last-child {
+		border-bottom: none;
 	}
 
 	.grid > .row > div {

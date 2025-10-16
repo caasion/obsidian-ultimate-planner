@@ -63,3 +63,4 @@ export async function hashText(text: string): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-1', data);
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
+
