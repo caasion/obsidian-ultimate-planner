@@ -1,0 +1,9 @@
+Problems to solve:
+- If I don't ensure that everything has the same row numbers, the table rendering will be really weird... I need to have blank cells.
+
+
+I temporarily made context menu be a void function so I don't have to worry about implementing it yet.
+
+?!?!?!?!?!??! This is so annoying. I'm just trying to get my new data structure working, but you're telling me I have to fix everything else? I don't have the capacity for that. I need to work on the current feature I have on hand first. This is very frustrating.
+
+Is it the way I'm coding? Is it the way this whole thing works? This isn't the first time I've had this problem, and it takes away so much time from development because I'm just putting flex tape all over leaking buckets everywhere.

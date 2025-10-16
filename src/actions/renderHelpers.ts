@@ -2,6 +2,7 @@ import { type Day, parseISO, startOfWeek, eachDayOfInterval, addDays } from "dat
 import type { ISODate } from "src/types";
 import { getISODate } from "./helpers";
 import { templates } from "src/state/plannerStore";
+import { get } from "svelte/store";
 
 export function getDatesOfWeek(anchor: ISODate, weekStartsOn: Day): ISODate[] {
     const date = parseISO(anchor);

@@ -10,7 +10,7 @@ import { fetchAllandFreeze, fetchPipelineInGracePeriod } from './actions/calenda
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
 	private saveTimer: number | null = null;
-	private storeSubscriptions: Unsubscriber[];
+	private storeSubscriptions: Unsubscriber[] = [];
 
 	async onload() {
 		await this.loadPersisted();
@@ -58,7 +58,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 	async onunload() {
 		// Unsubscribe to stores
-		this.storeSubscriptions.forEach(unsub => unsub());
+		await this.storeSubscriptions.forEach(unsub => unsub());
 
 		await this.flushSave(); // Save immediately
 	}

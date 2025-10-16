@@ -6,7 +6,7 @@
 	import type { App } from "obsidian";
 	import { newRowContextMenu } from "src/ui/NewRowContextMenu";
 	import { getISODate, addDaysISO, getLabelFromDateRange, } from "src/actions/helpers";
-	import type { ISODate, PluginSettings, RowID } from "src/types";
+	import type { ISODate, PluginSettings } from "src/types";
 	import { templates } from "src/state/plannerStore";
 	import { openRowContextMenu } from './GenericContextMenu';
 	import GenericCell from "./GenericCell.svelte";
@@ -78,8 +78,6 @@
 		templateDate: ISODate;
 	}
 
-	
-
 	// TODO: Each block should have their own "rowsToRender"
 
 	function focusCell() {
@@ -116,30 +114,30 @@
 		<div class="column">
 			<div class="dow-label">{format(parseISO(columnMeta.date), "E")}</div>
 			<div class="date-label">{format(parseISO(columnMeta.date), "dd")}</div>
-			{#each Object.keys($templates[columnMeta.templateDate]) as id, row (id)} <!-- Create a row for every item in column-->
+			{#each Object.values($templates[columnMeta.templateDate]) as itemMeta, row (itemMeta.id)} <!-- Create a row for every item in column-->
 				<div class="row">
-					{#if id.split("-", 1)[0] === "cal"}
+					{#if itemMeta.id.split("-", 1)[0] === "cal"}
 						<GenericCell
 							date={columnMeta.date}
-							{id}
+							id={itemMeta.id}
 							type={"calendar"}
-							label={$templates[columnMeta.templateDate][id].label}
-							color={$templates[columnMeta.templateDate][id].color}
-							start={$templates[columnMeta.templateDate][id].start}
+							label={itemMeta.label}
+							color={itemMeta.color}
+							templateDate={columnMeta.templateDate}
 							{col}
-							contextMenu={(e: MouseEvent) => openRowContextMenu(app, e, "calendar", columnMeta.date, id)}
+							contextMenu={(e: MouseEvent) => {}}
 						/>
 					{:else}
 						<GenericCell
 							date={columnMeta.date}
-							{id}
+							id={itemMeta.id}
 							type={"actionItem"}
-							label={$templates[columnMeta.templateDate][id].label}
-							color={$templates[columnMeta.templateDate][id].color}
-							start={$templates[columnMeta.templateDate][id].start}
+							label={itemMeta.label}
+							color={itemMeta.color}
+							templateDate={columnMeta.templateDate}
 							{row}
 							{col}
-							contextMenu={(e: MouseEvent) => openRowContextMenu(app, e, "calendar", columnMeta.date, id)}
+							contextMenu={(e: MouseEvent) => {}}
 							{focusCell}
 						/>
 					{/if}

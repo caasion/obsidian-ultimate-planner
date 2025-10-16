@@ -12,8 +12,6 @@ export interface ActionItemMeta {
     id: ActionItemID;
     label: string;
     color: string;
-    start: ISODate;
-    end: ISODate;
 }
 
 export interface CalendarMeta {
@@ -21,8 +19,6 @@ export interface CalendarMeta {
     label: string;
     color: string;
     url: string;
-    start: ISODate;
-    end: ISODate;
     etag?: string;
     lastFetched?: number;
     lastModified?: string;

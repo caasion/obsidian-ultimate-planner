@@ -2,7 +2,6 @@ import { differenceInMinutes } from "date-fns";
 import { format } from "date-fns";
 import type { CalendarID, CalendarStatus, NormalizedEvent } from "src/types";
 import { calendarState } from "src/state/calendarStore";
-import { setCalendarCell } from "src/state/plannerStore";
 
 /** HELPER: Set the statatus of calendarState */
 export function setCalendarStatus(status: CalendarStatus) {

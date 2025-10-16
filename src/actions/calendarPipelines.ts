@@ -1,6 +1,5 @@
 import { Notice } from "obsidian";
 import { calendarState, fetchToken } from "../state/calendarStore";
-import { updateCalendar } from "src/state/plannerStore";
 import type { CalendarMeta } from "../types";
 import { fetchFromUrl, detectFetchChange } from "./calendarFetch";
 import { setCalendarStatus, populateCalendarCells } from "./calendarIndexFreeze";

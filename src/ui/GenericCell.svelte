@@ -2,22 +2,22 @@
 	import { getISODate, addDaysISO } from "src/actions/helpers";
 	import { setCell, getCell } from "src/state/plannerStore";
 	import InputCell from "./InputCell.svelte";
-	import type { ActionItemID, ISODate } from "src/types";
+	import type { ItemID, ISODate } from "src/types";
 
     interface CellProps {
         date: ISODate;
-        id: ActionItemID;
+        id: ItemID;
         type: "actionItem" | "calendar";
         label: string;
         color: string;
-        start: ISODate;
+        templateDate: ISODate;
         row?: number;
         col: number;
         contextMenu: (e: MouseEvent) => void;
         focusCell?: () => void;
     }
 
-    let { date, id, label, color, start, row, col, contextMenu, focusCell }: CellProps = $props();
+    let { date, id, label, color, templateDate, row, col, contextMenu, focusCell }: CellProps = $props();
 
     let inactive = $derived(date < getISODate(new Date()));
 
@@ -29,6 +29,7 @@
     style={`color: ${color ?? ""}`}
     oncontextmenu={(e) => contextMenu(e)}
 > 
+    <!-- The condition to render the label for the item. -->
     {#if (col == 0 && label !== "") || start == date}
         <div class="row-label">{label}</div>
     {/if}

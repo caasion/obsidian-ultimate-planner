@@ -1,8 +1,6 @@
 import { App, Menu, Notice } from "obsidian";
 import { getISODate, idUsedInTemplates } from "src/actions/helpers";
-import { getTemplateDatesAfter, templateForDate, swapArrayItems, getNextTemplateDate, getPreviousTemplateDate } from "src/actions/itemActions";
-import { actionItems, updateActionItem, addToTemplate, removeFromTemplate, templates, removeItemFromPlanner, setTemplate, updateCalendar, calendars } from "src/state/plannerStore";
-import type { ISODate, ActionItemMeta, CalendarMeta, RowID } from "src/types";
+import type { ISODate, ActionItemMeta, CalendarMeta } from "src/types";
 import { GenericEditModal } from "./GenericEditModal";
 import { get } from "svelte/store";
 import { fetchAllandFreeze, fetchPipelineInGracePeriod } from "src/actions/calendarPipelines";
