@@ -1,11 +1,99 @@
 import { Notice } from "obsidian";
 import { calendarState, fetchToken } from "../state/calendarStore";
-import type { CalendarMeta } from "../types";
+import type { CalendarMeta, CalendarStatus, DataService, HelperService } from "../types";
 import { fetchFromUrl, detectFetchChange } from "./calendarFetch";
 import { setCalendarStatus, populateCalendarCells } from "./calendarIndexFreeze";
 import { parseICSBetween, buildEventDictionaries, parseICS } from "./calendarParse";
 import { get } from "svelte/store";
 import { hashText } from "./helpers";
+
+export interface CalendarServiceDeps {
+    data: DataService;
+    helpers: HelperService;
+}
+
+export class CalendarPipeline {
+    // Declare properties to hold injected dependencies
+    private data: DataService;
+    private helpers: HelperService;
+
+    // Inject dependencies via constructor
+    constructor(deps: CalendarServiceDeps) {
+        this.data = deps.data;
+        this.helpers = deps.helpers;
+    }
+
+    /** Helper to access calendar status. */
+    private setCalendarStatus(status: CalendarStatus) {
+        this.data.calendarState.set({ status })
+    }
+
+    private getCalendarStatus(): CalendarStatus {
+        return get(this.data.calendarState).status;
+    }
+
+    private async fetchInGracePeriod(calendar: CalendarMeta, after: Date, before: Date) {
+        // Check if we should fetch. If we do fetch, set status.
+        if (this.getCalendarStatus() === "fetching") return;
+        setCalendarStatus("fetching");
+
+        // [SETUP] fetchToken for GUARD later
+        this.data.fetchToken.update(token => token + 1);
+        const myToken = get(this.data.fetchToken);
+
+        // [SETUP] startUrl for GUARD later
+        const startUrl = calendar.url;
+
+        try { // Wrap in try because fetchFromUrl throws Exception
+            const response = await fetchFromUrl(calendar.url, calendar.etag, calendar.lastModified); 	
+
+            // [STORE] Update lastFetched status in store
+            this.data.updateItem("2025-10-16" /* Placeholder date */, calendar.id, { lastFetched: Date.now() })
+
+            // [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
+            if (myToken !== get(this.data.fetchToken)) {
+                console.warn("Fetch request is stale. Aborted.");
+                setCalendarStatus("unchanged");
+                return;
+            };
+
+            // [GUARD] If the old URL is different from the current one, the URL changed and we should drop the fetch
+            if (startUrl !== calendar.url) { // We can do this because calendar is a reference to the object
+                new Notice("URL changed during fetch. Please fetch again.");
+                console.warn("URL changed during fetch. Aborted.");
+                setCalendarStatus("unchanged");
+                return;
+            };
+
+            // [PARSE] Parse the ICS within the grace period
+            const events = parseICSBetween(response.text, calendar.id, after, before);
+
+            // [CONDITION] If the calendar contents didn't change, don't bother updating freeze and cache.
+            const contentHash = await this.helpers.hashText(JSON.stringify(events));
+            if (!detectFetchChange(response, contentHash, calendar.contentHash)) {
+                setCalendarStatus("unchanged");
+                return;
+            }
+            
+            // [STORE] Update cache information 
+            this.data.updateItem("2025-10-16", calendar.id, { contentHash })
+            
+            // [STORE] Build efficient event dictionaries and use those to write into store
+            const { index, eventsById } = buildEventDictionaries(events);
+            populateCalendarCells(calendar.id, index, eventsById);
+
+
+            setCalendarStatus("updated");
+            
+        } catch (error) {
+            calendarState.update(() => { return { status: "error", lastError: error } });
+            new Notice("An error occured while fetching. See console for details");
+            console.error("An error occured while fetching:", error.message)
+        }
+
+
+    }
+}
 
 export async function fetchPipelineInGracePeriod(calendar: CalendarMeta, after: Date, before: Date) {
     // Check if we should fetch. If we do fetch, set status.
