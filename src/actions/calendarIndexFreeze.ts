@@ -3,11 +3,6 @@ import { format } from "date-fns";
 import type { CalendarID, CalendarStatus, ISODate, ItemID, NormalizedEvent } from "src/types";
 import { calendarState } from "src/state/calendarStore";
 
-/** HELPER: Set the statatus of calendarState */
-export function setCalendarStatus(status: CalendarStatus) {
-    calendarState.set({ status });
-}
-
 /** Write into calendarCells (store) with index and eventsById. */    
 export function populateCalendarCells(
     setCell: (date: ISODate, id: ItemID, value: string) => void;
