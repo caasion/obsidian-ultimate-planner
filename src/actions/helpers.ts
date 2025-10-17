@@ -1,4 +1,4 @@
-import type { ISODate, RowID } from '../types';
+import type { ISODate, ItemID } from '../types';
 /* Helper Functions */
 import { addDays, eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek, type Day } from 'date-fns';
 
@@ -49,7 +49,7 @@ export function getLabelFromDateRange(firstDate: ISODate, lastDate: ISODate) {
 }
 
 // Templates helpers
-export function idUsedInTemplates(templates: Record<ISODate, RowID[]>, rowID: RowID): boolean {
+export function idUsedInTemplates(templates: Record<ISODate, ItemID[]>, rowID: ItemID): boolean {
     // Check all template arrays
     for (const arr of Object.values(templates)) {
         if (arr.includes(rowID)) return true;
