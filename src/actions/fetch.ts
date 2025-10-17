@@ -1,14 +1,5 @@
 import { requestUrl, type RequestUrlResponse } from "obsidian";
 
-/** Checks whether if we should fetch based on a time-guard (fetchInterval). */
-export function shouldFetch(fetchInterval: number, lastFetched?: number): boolean {
-    if (!lastFetched) return true;
-
-    if (Date.now() - lastFetched > fetchInterval) return true;
-
-    return false;
-}
-
 /** Using Obsidian's requestUrl(), attempt to fetch with headers.
  * Throws errors, must be handled.
  */

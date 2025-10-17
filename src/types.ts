@@ -2,6 +2,7 @@ import type { Day } from "date-fns";
 import type { Writable } from "svelte/store";
 import ICAL from "ical.js";
 import type { occurrenceDetails } from "ical.js/dist/types/types";
+import type { RequestUrlResponse, RequestUrlResponsePromise } from "obsidian";
 
 /* Plugin Data Types */
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
@@ -89,6 +90,11 @@ export interface CalendarHelperService {
     normalizeOccurrenceEvent: (occurance: occurrenceDetails, calendarId: string) => NormalizedEvent;
     buildEventDictionaries: (events: NormalizedEvent[]) => { index: Record<ISODate, string[]>, eventsById: Record<string, NormalizedEvent> }
     getEventLabels: (events: NormalizedEvent[]) => string;
+}
+
+export interface FetchService {
+    fetchFromUrl: (url: string, etag?: string, lastFetched?: string) => RequestUrlResponsePromise;
+    detectFetchChange: (response: RequestUrlResponse, contentHash: string, oldContentHash?: string) => boolean;
 }
 
 /* Calendar State */
