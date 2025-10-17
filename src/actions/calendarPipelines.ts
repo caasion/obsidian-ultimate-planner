@@ -66,12 +66,12 @@ export class CalendarPipeline {
             const response = await this.fetch.fetchFromUrl(calendar.url, calendar.etag, calendar.lastModified); 	
 
             // [STORE] Update lastFetched status in store
-            this.data.updateItem("2025-10-16" /* Placeholder date */, calendar.id, { lastFetched: Date.now() })
+            this.data.updateItemMeta("2025-10-16" /* Placeholder date */, calendar.id, { lastFetched: Date.now() })
 
             // [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
             if (myToken !== get(this.data.fetchToken)) {
                 console.warn("Fetch request is stale. Aborted.");
-                setCalendarStatus("unchanged");
+                this.setCalendarStatus("unchanged");
                 return;
             };
 
@@ -79,7 +79,7 @@ export class CalendarPipeline {
             if (startUrl !== calendar.url) { // We can do this because calendar is a reference to the object
                 new Notice("URL changed during fetch. Please fetch again.");
                 console.warn("URL changed during fetch. Aborted.");
-                setCalendarStatus("unchanged");
+                this.setCalendarStatus("unchanged");
                 return;
             };
 
@@ -94,7 +94,7 @@ export class CalendarPipeline {
             }
             
             // [STORE] Update cache information 
-            this.data.updateItem("2025-10-16", calendar.id, { contentHash })
+            this.data.updateItemMeta("2025-10-16", calendar.id, { contentHash })
             
             // [STORE] Build efficient event dictionaries and use those to write into store
             const { index, eventsById } = this.calHelpers.buildEventDictionaries(events);
