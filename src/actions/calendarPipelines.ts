@@ -50,7 +50,7 @@ export class CalendarPipeline {
         })
     }
 
-    private async fetchInGracePeriod(calendar: CalendarMeta, after: Date, before: Date) {
+    public async fetchInGracePeriod(calendar: CalendarMeta, after: Date, before: Date) {
         // Check if we should fetch. If we do fetch, set status.
         if (this.getCalendarStatus() === "fetching") return;
         this.setCalendarStatus("fetching");
