@@ -1,5 +1,7 @@
 import type { Day } from "date-fns";
 import type { Writable } from "svelte/store";
+import ICAL from "ical.js";
+import type { occurrenceDetails } from "ical.js/dist/types/types";
 
 /* Plugin Data Types */
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
@@ -78,6 +80,15 @@ export interface HelperService {
     addDaysISO: (iso: ISODate, n: number) => ISODate;
     swapArrayItems: <T>(array: T[], a: number, b: number) => T[]; 
     idUsedInTemplates: (templates: Record<ISODate, Record<ItemID, ItemMeta>>, rowID: ItemID) => boolean;
+}
+
+export interface CalendarHelperService {
+    parseICS: (ics: string, calendarId: string) => NormalizedEvent[];
+    parseICSBetween: (ics: string, calendarId: CalendarID, after: Date, before: Date) => NormalizedEvent[];
+    normalizeEvent: (event: ICAL.Event, calendarId: CalendarID) => NormalizedEvent;
+    normalizeOccurrenceEvent: (occurance: occurrenceDetails, calendarId: string) => NormalizedEvent;
+    buildEventDictionaries: (events: NormalizedEvent[]) => { index: Record<ISODate, string[]>, eventsById: Record<string, NormalizedEvent> }
+    getEventLabels: (events: NormalizedEvent[]) => string;
 }
 
 /* Calendar State */
