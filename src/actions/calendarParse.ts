@@ -4,7 +4,7 @@ import ICAL from "ical.js";
 import type { occurrenceDetails } from "ical.js/dist/types/event";
 import type { CalendarID, ISODate, NormalizedEvent } from "src/types";
 
-/** Converts an ICS string into a list of events with details. */
+/** [PURE HELPER] Converts an ICS string into a list of events with details. */
 export function parseICS(ics: string, calendarId: string): NormalizedEvent[] {
     const icalExpander = new IcalExpander({ics, maxIterations: 10})
     // TODO: Handle iterations
@@ -18,7 +18,7 @@ export function parseICS(ics: string, calendarId: string): NormalizedEvent[] {
     return allEvents;
 }
 
-/** Converts an ICS string into a list of events with details. */
+/** [PURE HELPER] Converts an ICS string into a list of events with details within a given time period. */
 export function parseICSBetween(ics: string, calendarId: CalendarID, after: Date, before: Date): NormalizedEvent[] {
     const icalExpander = new IcalExpander({ics})
     const results = icalExpander.between(after, before);
@@ -30,7 +30,7 @@ export function parseICSBetween(ics: string, calendarId: CalendarID, after: Date
     return allEvents;
 }
 
-//TODO: Overload one function instead
+/** [PURE HELPER] Normalizes a normal ical event. */
 export function normalizeEvent(event: ICAL.Event, calendarId: CalendarID) {
     return { 
         id: event.uid,
@@ -44,6 +44,7 @@ export function normalizeEvent(event: ICAL.Event, calendarId: CalendarID) {
     }
 }
 
+/** [PURE HELPER] Normalizes a recurring event given occurrence details. */
 export function normalizeOccurrenceEvent(occurance: occurrenceDetails, calendarId: string) {
     const event = occurance.item;
 
@@ -60,7 +61,7 @@ export function normalizeOccurrenceEvent(occurance: occurrenceDetails, calendarI
     }
 }
 
-/** Builds a record of Date-EventIDs and EventId-NormalizedEvent for quick look-up. O(1) */
+/** [PURE HELPER] Builds a record of Date-EventIDs and EventId-NormalizedEvent for quick look-up. O(1) */
 export function buildEventDictionaries(events: NormalizedEvent[]) {
     const index: Record<ISODate, string[]> = {};
 
