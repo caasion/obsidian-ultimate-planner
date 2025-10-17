@@ -1,26 +1,24 @@
 import { Notice } from "obsidian";
-import { calendarState, fetchToken } from "../state/calendarStore";
-import type { CalendarMeta, CalendarStatus, DataService, HelperService } from "../types";
-import { fetchFromUrl, detectFetchChange } from "./calendarFetch";
-import { setCalendarStatus, populateCalendarCells } from "./calendarIndexFreeze";
-import { parseICSBetween, buildEventDictionaries, parseICS } from "./calendarParse";
+=import type { CalendarHelperService, CalendarID, CalendarMeta, CalendarStatus, DataService, HelperService, NormalizedEvent } from "../types";
 import { get } from "svelte/store";
-import { hashText } from "./helpers";
 
 export interface CalendarServiceDeps {
     data: DataService;
     helpers: HelperService;
+    calHelpers: CalendarHelperService;
 }
 
 export class CalendarPipeline {
     // Declare properties to hold injected dependencies
     private data: DataService;
     private helpers: HelperService;
+    private calHelpers: CalendarHelperService;
 
     // Inject dependencies via constructor
     constructor(deps: CalendarServiceDeps) {
         this.data = deps.data;
         this.helpers = deps.helpers;
+        this.calHelpers = deps.calHelpers;
     }
 
     /** Helper to access calendar status. */
@@ -32,10 +30,23 @@ export class CalendarPipeline {
         return get(this.data.calendarState).status;
     }
 
+    /** Write into calendarCells (store) with index and eventsById. */    
+    private populateCells(id: CalendarID, index: Record<string, string[]>, eventsById: Record<string, NormalizedEvent>) {
+        Object.keys(index).forEach(date => {
+            const IDs = index[date];
+            const events: NormalizedEvent[] = [];
+
+            IDs.forEach(id => events.push(eventsById[id]));
+
+            const labels = this.calHelpers.getEventLabels(events);
+            this.data.setCell(date, id, labels);
+        })
+    }
+
     private async fetchInGracePeriod(calendar: CalendarMeta, after: Date, before: Date) {
         // Check if we should fetch. If we do fetch, set status.
         if (this.getCalendarStatus() === "fetching") return;
-        setCalendarStatus("fetching");
+        this.setCalendarStatus("fetching");
 
         // [SETUP] fetchToken for GUARD later
         this.data.fetchToken.update(token => token + 1);
@@ -66,7 +77,7 @@ export class CalendarPipeline {
             };
 
             // [PARSE] Parse the ICS within the grace period
-            const events = parseICSBetween(response.text, calendar.id, after, before);
+            const events = this.calHelpers.parseICSBetween(response.text, calendar.id, after, before);
 
             // [CONDITION] If the calendar contents didn't change, don't bother updating freeze and cache.
             const contentHash = await this.helpers.hashText(JSON.stringify(events));
