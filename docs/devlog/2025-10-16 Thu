@@ -10,3 +10,7 @@ Is it the way I'm coding? Is it the way this whole thing works? This isn't the f
 
 Okay dependency injection?? Or maybe object-oriented programming...
 idek anymoreeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+
+
+
+Okay, I'm on commit 60506b2 right now, and I've just finished my first dependency injection implementation. I converted all of my functions into "services." I've also create a CalendarPipeline class. The combination of the two allows me to delegate all the import statements to main.ts, where I create the class on runtime.
