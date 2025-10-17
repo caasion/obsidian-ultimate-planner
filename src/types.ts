@@ -62,14 +62,14 @@ export interface DataService {
     fetchToken: Writable<number>;
 
     // Planner Store Actions (matches exports from plannerStore.ts)
-    setTemplate: (date: ISODate, newTemplate: Record<ItemID, ItemMeta>) => void;
-    addToTemplate: (date: ISODate, id: ItemID, meta: ItemMeta) => boolean;
-    removeFromTemplate: (date: ISODate, id: ItemID) => boolean;
-    removeFromCellsInTemplate: (date: ISODate, id: ItemID) => boolean;
+    setTemplate: (templateDate: ISODate, newTemplate: Record<ItemID, ItemMeta>) => void;
+    addToTemplate: (templateDate: ISODate, id: ItemID, meta: ItemMeta) => boolean;
+    removeFromTemplate: (templateDate: ISODate, id: ItemID) => boolean;
+    removeFromCellsInTemplate: (templateDate: ISODate, id: ItemID) => boolean;
     setCell: (date: ISODate, id: ItemID, value: string) => void;
     getCell: (date: ISODate, id: ItemID) => string;
-    getItemMeta: (date: ISODate, id: ItemID) => ItemMeta;
-    updateItemMeta: (date: ISODate, id: ItemID, updates: Partial<ItemMeta>) => boolean;
+    getItemMeta: (templateDate: ISODate, id: ItemID) => ItemMeta;
+    updateItemMeta: (templateDate: ISODate, id: ItemID, updates: Partial<ItemMeta>) => boolean;
 }
 
 // Core Helper Service Contract (Pure Functions from helper.ts)
