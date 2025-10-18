@@ -66,10 +66,10 @@ export interface DataService {
     addToTemplate: (templateDate: ISODate, id: ItemID, meta: ItemMeta) => boolean;
     removeFromTemplate: (templateDate: ISODate, id: ItemID) => boolean;
     removeFromCellsInTemplate: (templateDate: ISODate, id: ItemID) => boolean;
+    getItemMeta: (templateDate: ISODate, id: ItemID) => ItemMeta; // NOT IMPLEMENTED
+    updateItemMeta: (templateDate: ISODate, id: ItemID, updates: Partial<ItemMeta>) => boolean; // NOT IMPLEMENTED
     setCell: (date: ISODate, id: ItemID, value: string) => void;
     getCell: (date: ISODate, id: ItemID) => string;
-    getItemMeta: (templateDate: ISODate, id: ItemID) => ItemMeta;
-    updateItemMeta: (templateDate: ISODate, id: ItemID, updates: Partial<ItemMeta>) => boolean;
 }
 
 // Core Helper Service Contract (Pure Functions from helper.ts)

@@ -1,5 +1,5 @@
 import { get, writable } from "svelte/store";
-import type { ActionItemID, ISODate, ItemID, ItemMeta } from "src/types";
+import type { ISODate, ItemID, ItemMeta } from "src/types";
 
 export const dayData = writable<Record<ISODate, Record<ItemID, string>>>({});
 export const templates = writable<Record<ISODate, Record<ItemID, ItemMeta>>>({});
@@ -52,9 +52,10 @@ export function removeFromCellsInTemplate(date: ISODate, id: ItemID): boolean {
     // Function not implemented.
 }
 
+/** Gets the metadata of an item given a date with a template */
 
 /** Updates the metadata of an item given a date with a template, the item's id, and a partial object containing the updates. Returns false if given date doesn't have a template. */
-export function updateItem(date: ISODate, id: ItemID, updates: Partial<ItemMeta>): boolean {
+export function updateItemMeta(date: ISODate, id: ItemID, updates: Partial<ItemMeta>): boolean {
     if (!get(templates)[date]) return false;
 
     templates.update(templates => ({
