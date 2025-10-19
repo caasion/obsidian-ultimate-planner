@@ -1,20 +1,17 @@
 <script lang="ts">
-	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
-
-	import { format, parseISO, startOfWeek, type Day } from "date-fns";
-	import { onMount, tick } from "svelte";
 	import type { App } from "obsidian";
-	import { newRowContextMenu } from "src/ui/NewRowContextMenu";
-	import { getISODate, addDaysISO, getLabelFromDateRange, } from "src/actions/helpers";
-	import type { ISODate, PluginSettings } from "src/types";
-	import { templates } from "src/state/plannerStore";
-	import { openRowContextMenu } from './GenericContextMenu';
-	import GenericCell from "./GenericCell.svelte";
-	import { getDatesOfWeek, getDatesOfBlock } from "src/actions/renderHelpers";
+	import type { CalendarPipeline } from "src/actions/calendarPipelines";
+	import type { PlannerActions } from "src/actions/itemActions";
+	import type { DataService, PluginSettings } from "src/types";
+
+	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
 	interface ViewProps {
 		app: App;
 		settings: PluginSettings;
+		data: DataService;
+		plannerActions: PlannerActions;
+		calendarPipeline: CalendarPipeline;
 	}
 
 	let { app, settings }: ViewProps = $props();
