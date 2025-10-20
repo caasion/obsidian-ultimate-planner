@@ -1,0 +1,15 @@
+I've been quite inconsistent with my development logs, so I'd like to provide a brief update.
+
+In the past few days, I've been working on the dependency injection refactor. Why? I was sick and tired of having to change all of my imports and implementations everytime I modified a function or the way of how something works. I hated refactoring, and that was the only thing I was doing--instead of actually developing and making something new or productive.
+
+I stumbled upon dependency injection, which turns the responsibility of the imports to `main.ts` instead of every file, so I've been refactoring to implement that. I know I said I hated refactoring, but I think implementing dependency injection will definitely make working with this code base a lot easier.
+
+I'm still in the process of implementing it, but I've been learning a lot about dependency injection by doing. I hope to write about what I've learnt soon.
+
+I've just finished refactoring and injecting dependencies to my ultimate planner view. However, I've decided to not continue with DI for now because I want to Think about how I want to implement the view rendering in the data processing first, then I can devise the functions that I might need, then I can inject the dependencies that I will need.
+
+Here is the result of some brainstorming I did:
+![Brainstorming](brainstorm_2025-10-19.png)
+
+I also made a sample data set to help visualize:
+[sample data](<sample data 2025-10-19.json>)
