@@ -11,15 +11,20 @@ export type ActionItemID = string;
 export type CalendarID = string;
 export type ItemID = ActionItemID | CalendarID;
 export type ItemMeta = ActionItemMeta | CalendarMeta;
+export type ItemTypes = "action" | "calendar";
 
 export interface ActionItemMeta {
     id: ActionItemID;
+    type: "action";
+    order: number;
     label: string;
     color: string;
 }
 
 export interface CalendarMeta {
     id: CalendarID;
+    type: "calendar";
+    order: number;
     label: string;
     color: string;
     url: string;
