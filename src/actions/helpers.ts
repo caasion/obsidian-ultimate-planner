@@ -22,7 +22,7 @@ export function getISODates(anchor: Date, days: number): ISODate[];
 /** Get the ISODates of the weeks from and including this week given the anchor, week number, and the day the week starts on. */
 export function getISODates(anchor: Date, weeks: number, weekStartsOn: Day): ISODate[];
 export function getISODates(anchor: Date, amount: number, weekStartsOn?: Day) {
-    if (weekStartsOn) { // If we are looking for the dates of a week
+    if (weekStartsOn != undefined) { // If we are looking for the dates of a week
         let dates: ISODate[] = [];
         
         for (let i = 0; i < amount; i++) {

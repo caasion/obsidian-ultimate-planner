@@ -5,7 +5,6 @@
 	import type { PlannerActions } from "src/actions/itemActions";
 	import { templates } from "src/state/plannerStore";
 	import type { DataService, HelperService, ISODate, ItemID, ItemMeta, PluginSettings } from "src/types";
-	import { arrayBuffer } from "stream/consumers";
 	import { tick } from "svelte";
 
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
@@ -69,7 +68,7 @@
 		const anchorDate = parseISO(anchor);
 
 		if (weekFormat) {
-			return helper.getISODates(anchorDate, 2, settings.weekStartOn);
+			return helper.getISODates(anchorDate, blocks, settings.weekStartOn);
 		} else {
 			return helper.getISODates(anchorDate, columns * blocks)
 		}
@@ -100,13 +99,15 @@
 		const result: SortedTemplates = {};
 
 		allTemplateDates.forEach(date => {
-			const rawTemplate = data.getTemplate(date); 
+			if (date != "") {
+				const rawTemplate = data.getTemplate(date); 
 			
-			const itemsArray: RenderItem[] = Object.entries(rawTemplate).map(([id, meta]) => ({id,meta}));
+				const itemsArray: RenderItem[] = Object.entries(rawTemplate).map(([id, meta]) => ({id,meta}));
 
-			itemsArray.sort((a, b) => a.meta.order - b.meta.order);
+				itemsArray.sort((a, b) => a.meta.order - b.meta.order);
 
-			result[date] = itemsArray;
+				result[date] = itemsArray;
+			}			
 		});
 
 		return result;
@@ -121,13 +122,12 @@
 		let blocks: BlockMeta[] = [];
 		
 		for (let i = 0; i < dates.length; i++) {
-			const dateChunk: ISODate[] = dates.slice(i, i + columns);
-			const templateLengths: number[] = dateChunk.map(d => sortedTemplates[d].length);
-			const columnMeta: ColumnMeta[] = dateChunk.map(d => ({date: d, templateDate: getTemplateDate(d)}));
+			const columnChunk: ColumnMeta[] = columnsMeta.slice(i, i + columns);
+			const templateLengths: number[] = columnChunk.map(({ date, templateDate}) => templateDate != "" ? sortedTemplates[templateDate].length : 0)
 
 			blocks.push({
 				rows: Math.max(...templateLengths),
-				dates: columnMeta,
+				dates: columnChunk,
 			})
 		}
 
@@ -152,6 +152,7 @@
 
 <h1>The Ultimate Planner</h1>
 
+<pre>
 <div class="header">
 	<div class="nav-buttons">
 		<button onclick={() => goTo(helper.getISODate(new Date()))}>Today</button>
@@ -167,7 +168,7 @@
 	</div>
 </div>
 <div class="grid">
-	{#each blocksMeta as {rows, dates}, block (blocksMeta)}
+	{#each blocksMeta as {rows, dates}, block (dates)}
 		{#each dates as {date, templateDate}, col (date)}
 		<div class="column">
 			<div class="dow-label">{format(date, "E")}</div>
