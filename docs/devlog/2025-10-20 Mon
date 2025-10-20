@@ -1,0 +1,13 @@
+I started today by adding ordering and a type property In both Action item and Calendar item interfaces.
+
+Is actually a lot harder to find the appropriate items to render because of my data structures, so I'll probably have to do more pre sorting and pre rendering logic to make this whole thing work, since I can't have a lot of code within my svelte component.
+
+I worked on the presorting, and the logic isn't actually that. I simply had to make an extra array that keeps track of the templates in sorted order. I will make a new flow diagram for the processing a little later.
+
+Afterwards, I focused on getting the view working, so instead of rendering a generic cell, I decided to just render the properties as raw text. Afterwards, I force built the plug in, and I discovered some runtime errors, such as forgetting to inject the helper service, not processing undefined templates properly, etcetera.
+
+I managed to get the view running, and that made me really happy, even though it was buggy.
+ new new
+
+
+ next time, I'm going to continue working on the rendering logic to make sure that everything works fine. Then, i'm going to use a sample data structure to test out the rendering. Only after that will I start implementing the actual interactable tables. Currently, the focus is on processing and rendering the data.
