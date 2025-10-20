@@ -8,8 +8,18 @@ I'm still in the process of implementing it, but I've been learning a lot about 
 
 I've just finished refactoring and injecting dependencies to my ultimate planner view. However, I've decided to not continue with DI for now because I want to Think about how I want to implement the view rendering in the data processing first, then I can devise the functions that I might need, then I can inject the dependencies that I will need.
 
+## Brainstorming
 Here is the result of some brainstorming I did:
 ![Brainstorming](brainstorm_2025-10-19.png)
 
 I also made a sample data set to help visualize:
 [sample data](<sample data 2025-10-19.json>)
+
+## Procedure to Render Table
+- We have an anchor date.
+- Depending on the settings `weekFormat`
+    - if true, we will get the dates from the start of the week to the end of the week, multiplied by the number of weeks (blocks) to render
+    - if false, we will get X of dates from anchor
+Okay, I'm doing this graphically. I want to properly define what I mean by blocks, columns, etc.
+
+![Rendering Logic](<rendering logic 2025-10-19.png>)
