@@ -1,8 +1,12 @@
 <script lang="ts">
+	import { parseISO } from "date-fns";
 	import type { App } from "obsidian";
 	import type { CalendarPipeline } from "src/actions/calendarPipelines";
+	import { getISODates } from "src/actions/helpers";
 	import type { PlannerActions } from "src/actions/itemActions";
-	import type { DataService, PluginSettings } from "src/types";
+	import { templates } from "src/state/plannerStore";
+	import type { DataService, HelperService, ISODate, PluginSettings } from "src/types";
+	import { arrayBuffer } from "stream/consumers";
 
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
@@ -10,11 +14,12 @@
 		app: App;
 		settings: PluginSettings;
 		data: DataService;
+		helper: HelperService;
 		plannerActions: PlannerActions;
 		calendarPipeline: CalendarPipeline;
 	}
 
-	let { app, settings }: ViewProps = $props();
+	let { app, settings, data, helper, plannerActions, calendarPipeline }: ViewProps = $props();
 
 	// Fetch in grace period for current calendars
 	// onMount(() => {
@@ -56,12 +61,24 @@
 	/* Table Rendering */
 	const weekFormat = true;
 	const columns = 7;
+	const blocks = 2;
 
-	let anchor = $state<ISODate>(getISODate(new Date()));
+	let anchor = $state<ISODate>(helper.getISODate(new Date()));
+
 	let dates = $derived.by<ISODate[]>(() => {
-		if (weekFormat) return getDatesOfWeek(anchor, settings.weekStartOn);
-		else return getDatesOfBlock(anchor, columns);
-		});
+		const anchorDate = parseISO(anchor);
+
+		if (weekFormat) {
+			return getISODates(anchorDate, 2, settings.weekStartOn);
+		} else {
+			return getISODates(anchorDate, columns * blocks)
+		}
+	})
+
+	interface DateColumn {
+		date: ISODate;
+		templateDate: ISODate;
+	}
 
 	let columnsMeta: DateColumn[] = $derived.by(() => {
 		return dates.map(date => ({
@@ -69,10 +86,37 @@
 			templateDate: getTemplateDate(date),
 		}));
 	});
+	
+	interface BlockMeta {
+		rows: number; // Use a function to get the # of rows to render
+		dates: DateColumn[];
+	}
 
-	interface DateColumn {
-		date: ISODate;
-		templateDate: ISODate;
+	let blocksMeta = $derived.by<BlockMeta[]>(() => {
+		let blocks: BlockMeta[] = [];
+		
+		for (let i = 0; i < columnsMeta.length; i++) {
+			const chunk = columnsMeta.slice(i, i + columns);
+			const templateDates = chunk.map(c => c.templateDate);
+			const uniqueTemplateDates = new Set(templateDates);
+			blocks.push({
+				rows: getRowsToRender(uniqueTemplateDates),
+				dates: chunk,
+			})
+		}
+
+		return blocks;
+	})
+
+	/** Returns the numbers of rows to render given a set of template dates. */
+	function getRowsToRender(templateDates: Set<ISODate>): number {
+		const templateSizes: number[] = [];
+
+		templateDates.forEach(date => {
+			templateSizes.push(Object.keys(data.getTemplate(date)).length);
+		})
+
+		return Math.max(...templateSizes);
 	}
 
 	// TODO: Each block should have their own "rowsToRender"

@@ -64,6 +64,7 @@ export interface DataService {
     // Planner Store Actions (matches exports from plannerStore.ts)
     setTemplate: (templateDate: ISODate, newTemplate: Record<ItemID, ItemMeta>) => void;
     addToTemplate: (templateDate: ISODate, id: ItemID, meta: ItemMeta) => boolean;
+    getTemplate: (templateDate: ISODate) => Record<ItemID, ItemMeta>;
     removeFromTemplate: (templateDate: ISODate, id: ItemID) => boolean;
     removeFromCellsInTemplate: (templateDate: ISODate, id: ItemID) => boolean;
     getItemMeta: (templateDate: ISODate, id: ItemID) => ItemMeta;
@@ -77,6 +78,7 @@ export interface HelperService {
     hashText: (text: string) => Promise<string>;
     generateID: (prefix: string) => string;
     getISODate: (date: Date) => ISODate;
+    getISODates: (anchor: Date, amount: number, weekStartsOn?: Day) => ISODate[];
     addDaysISO: (iso: ISODate, n: number) => ISODate;
     swapArrayItems: <T>(array: T[], a: number, b: number) => T[]; 
     idUsedInTemplates: (templates: Record<ISODate, Record<ItemID, ItemMeta>>, rowID: ItemID) => boolean;
