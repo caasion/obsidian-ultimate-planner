@@ -30,6 +30,10 @@ export function addToTemplate(date: ISODate, id: ItemID, meta: ItemMeta): boolea
     return true;
 }
 
+export function getTemplate(date: ISODate): Record<ItemID, ItemMeta> {
+    return get(templates)[date];
+}
+
 
 /** Removes an item from a template of a given date. Returns false if the given date doesn't have a template. */
 export function removeFromTemplate(date: ISODate, id: ItemID): boolean {
@@ -62,7 +66,7 @@ export function updateItemMeta(date: ISODate, id: ItemID, updates: Partial<ItemM
         ...templates,
         [date]: {
             ...templates[date],
-            [id]: { ...templates[date][id], ...updates }
+            [id]: { ...templates[date][id], ...updates } as ItemMeta
         }
     }))
 

@@ -1,13 +1,13 @@
 import { Plugin } from 'obsidian';
 import { PLANNER_VIEW_TYPE, PlannerView } from './ui/PlannerView';
 import { UltimatePlannerPluginTab } from './ui/SettingsTab';
-import { addToTemplate, dayData, getCell, removeFromCellsInTemplate, removeFromTemplate, setCell, setTemplate, templates, updateItemMeta } from './state/plannerStore';
+import { addToTemplate, dayData, getCell, getTemplate, removeFromCellsInTemplate, removeFromTemplate, setCell, setTemplate, templates, updateItemMeta } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
 import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings } from './types';
 import { CalendarPipeline } from './actions/calendarPipelines';
 import { PlannerActions } from './actions/itemActions';
 import { calendarState, fetchToken } from './state/calendarState';
-import { hashText, generateID, getISODate, addDaysISO, swapArrayItems } from './actions/helpers';
+import { hashText, generateID, getISODate, addDaysISO, swapArrayItems, getISODates, getLabelFromDateRange } from './actions/helpers';
 import { parseICS, parseICSBetween, normalizeEvent, normalizeOccurrenceEvent, buildEventDictionaries, getEventLabels } from './actions/calendarHelper';
 
 export default class UltimatePlannerPlugin extends Plugin {
@@ -42,6 +42,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 			
 			setTemplate,
 			addToTemplate,
+			getTemplate,
 			removeFromTemplate,
 			removeFromCellsInTemplate,
 			getItemMeta: () => {}, // NOT IMPLEMENTED
@@ -54,6 +55,8 @@ export default class UltimatePlannerPlugin extends Plugin {
 			hashText,
 			generateID,
 			getISODate,
+			getISODates,
+			getLabelFromDateRange,
 			addDaysISO,
 			swapArrayItems,
 			idUsedInTemplates: () => true, // NOT IMPLEMENTED
