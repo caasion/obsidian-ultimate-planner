@@ -79,6 +79,7 @@ export interface HelperService {
     generateID: (prefix: string) => string;
     getISODate: (date: Date) => ISODate;
     getISODates: (anchor: Date, amount: number, weekStartsOn?: Day) => ISODate[];
+    getLabelFromDateRange: (first: Date, last: Date) => string;
     addDaysISO: (iso: ISODate, n: number) => ISODate;
     swapArrayItems: <T>(array: T[], a: number, b: number) => T[]; 
     idUsedInTemplates: (templates: Record<ISODate, Record<ItemID, ItemMeta>>, rowID: ItemID) => boolean;

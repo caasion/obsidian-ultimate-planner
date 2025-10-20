@@ -43,7 +43,7 @@ export function getISODates(anchor: Date, amount: number, weekStartsOn?: Day) {
 }
 
 /** [PURE HELPER] Gets a well-formmated label given a date range. */
-export function getLabelFromDateRange(first: Date, last: Date) {
+export function getLabelFromDateRange(first: Date, last: Date): string {
     if (first.getFullYear() === last.getFullYear()) {
         if (first.getMonth() === last.getMonth()) {
             return `${format(first, "MMM")} ${format(first, "dd")} – ${format(last, "dd")}, ${format(first, "yyyy")}`

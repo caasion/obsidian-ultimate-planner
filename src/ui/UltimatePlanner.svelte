@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { parseISO } from "date-fns";
+	import { format, parseISO } from "date-fns";
 	import type { App } from "obsidian";
 	import type { CalendarPipeline } from "src/actions/calendarPipelines";
-	import { getISODates } from "src/actions/helpers";
 	import type { PlannerActions } from "src/actions/itemActions";
 	import { templates } from "src/state/plannerStore";
 	import type { DataService, HelperService, ISODate, PluginSettings } from "src/types";
 	import { arrayBuffer } from "stream/consumers";
+	import { tick } from "svelte";
 
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
@@ -69,9 +69,9 @@
 		const anchorDate = parseISO(anchor);
 
 		if (weekFormat) {
-			return getISODates(anchorDate, 2, settings.weekStartOn);
+			return helper.getISODates(anchorDate, 2, settings.weekStartOn);
 		} else {
-			return getISODates(anchorDate, columns * blocks)
+			return helper.getISODates(anchorDate, columns * blocks)
 		}
 	})
 
@@ -138,23 +138,60 @@
 
 <div class="header">
 	<div class="nav-buttons">
-		<button onclick={() => goTo(getISODate(new Date()))}>Today</button>
-    <button onclick={() => goTo(addDaysISO(anchor, -7))}>&lt;</button>
-		<button onclick={() => goTo(addDaysISO(anchor, 7))}>&gt;</button>
+		<button onclick={() => goTo(helper.getISODate(new Date()))}>Today</button>
+    <button onclick={() => goTo(helper.addDaysISO(anchor, -7))}>&lt;</button>
+		<button onclick={() => goTo(helper.addDaysISO(anchor, 7))}>&gt;</button>
 	</div>
 	<div class="week">
-		<span class="week-label">{getLabelFromDateRange(columnsMeta[0].date, columnsMeta[columnsMeta.length - 1].date)}</span>
+		<span class="week-label">{helper.getLabelFromDateRange(parseISO(columnsMeta[0].date), parseISO(columnsMeta[columnsMeta.length - 1].date))}</span>
 		<input type="date" bind:value={anchor} />
 	</div>
 	<div class="new-ai">
-		<button onclick={(evt) => newRowContextMenu(app, evt)}>+ Add</button>
+		<!-- <button onclick={(evt) => newRowContextMenu(app, evt)}>+ Add</button> -->
 	</div>
 </div>
 <div class="grid">
+	{#each blocksMeta as {rows, dates}, block (blocksMeta)}
+		{#each dates as columnMeta, col (columnMeta.date)}
+		<div class="column">
+			<div class="dow-label">{format(columnMeta.date, "E")}</div>
+			<div class="date-label">{format(columnMeta.date, "dd")}</div>
+			{#each {length: rows}, row}
+				<div class="row">
+					{#if itemMeta.id.split("-", 1)[0] === "cal"}
+						<GenericCell
+							date={columnMeta.date}
+							id={itemMeta.id}
+							type={"calendar"}
+							label={itemMeta.label}
+							color={itemMeta.color}
+							templateDate={columnMeta.templateDate}
+							{col}
+							contextMenu={(e: MouseEvent) => {}}
+						/>
+					{:else}
+						<GenericCell
+							date={columnMeta.date}
+							id={itemMeta.id}
+							type={"actionItem"}
+							label={itemMeta.label}
+							color={itemMeta.color}
+							templateDate={columnMeta.templateDate}
+							{row}
+							{col}
+							contextMenu={(e: MouseEvent) => {}}
+							{focusCell}
+						/>
+					{/if}
+				</div>
+			{/each}
+		</div>
+		{/each}
+	{/each}
 	{#each columnsMeta as columnMeta, col (columnMeta.date)} <!-- Create a column for every date-->
 		<div class="column">
-			<div class="dow-label">{format(parseISO(columnMeta.date), "E")}</div>
-			<div class="date-label">{format(parseISO(columnMeta.date), "dd")}</div>
+			<div class="dow-label">{format(columnMeta.date, "E")}</div>
+			<div class="date-label">{format(columnMeta.date, "dd")}</div>
 			{#each Object.values($templates[columnMeta.templateDate]) as itemMeta, row (itemMeta.id)} <!-- Create a row for every item in column-->
 				<div class="row">
 					{#if itemMeta.id.split("-", 1)[0] === "cal"}
