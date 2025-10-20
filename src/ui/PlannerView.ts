@@ -28,6 +28,9 @@ export class PlannerView extends ItemView {
         mount(UltimatePlannerView, {target: container, props: {
             app: this.plugin.app,
             settings: this.plugin.settings,
+            data: this.plugin.dataService,
+            plannerActions: this.plugin.plannerActions,
+            calendarPipeline: this.plugin.calendarPipeline,
         }})
     }
 

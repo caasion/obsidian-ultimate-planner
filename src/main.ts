@@ -1,16 +1,26 @@
 import { Plugin } from 'obsidian';
 import { PLANNER_VIEW_TYPE, PlannerView } from './ui/PlannerView';
 import { UltimatePlannerPluginTab } from './ui/SettingsTab';
-import { actionItems, calendarCells, calendars, cells, templates } from './state/plannerStore';
+import { addToTemplate, dayData, getCell, removeFromCellsInTemplate, removeFromTemplate, setCell, setTemplate, templates, updateItemMeta } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
-import { DEFAULT_SETTINGS, type ActionItemID, type PluginData, type PluginSettings } from './types';
-import { addDays, startOfDay } from 'date-fns';
-import { fetchAllandFreeze, fetchPipelineInGracePeriod } from './actions/calendarPipelines';
+import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings } from './types';
+import { CalendarPipeline } from './actions/calendarPipelines';
+import { PlannerActions } from './actions/itemActions';
+import { calendarState, fetchToken } from './state/calendarState';
+import { hashText, generateID, getISODate, addDaysISO, swapArrayItems } from './actions/helpers';
+import { parseICS, parseICSBetween, normalizeEvent, normalizeOccurrenceEvent, buildEventDictionaries, getEventLabels } from './actions/calendarHelper';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
 	private saveTimer: number | null = null;
-	private storeSubscriptions: Unsubscriber[];
+	private storeSubscriptions: Unsubscriber[] = [];
+	public dataService: DataService;
+	public helperService: HelperService;
+	public calendarHelperService: CalendarHelperService;
+	public fetchService: FetchService;
+	public plannerActions: PlannerActions;
+	public calendarPipeline: CalendarPipeline;
+
 
 	async onload() {
 		await this.loadPersisted();
@@ -24,21 +34,51 @@ export default class UltimatePlannerPlugin extends Plugin {
 			}
 		});
 
-		this.addCommand({
-			id: 'debug-manual-fetch',
-			name: 'Debug: Manual Fetch in Grace Period',
-			callback: async () => {
-				fetchPipelineInGracePeriod(get(calendars)["cal-abcdefji-fsdkj-fjdskl"], addDays(startOfDay(Date.now()), -7), addDays(startOfDay(Date.now()), 60))
-			}
+		this.dataService = {
+			dayData,
+			templates,
+			calendarState,
+			fetchToken,
+			
+			setTemplate,
+			addToTemplate,
+			removeFromTemplate,
+			removeFromCellsInTemplate,
+			getItemMeta: () => {}, // NOT IMPLEMENTED
+			updateItemMeta,
+			setCell,
+			getCell
+		}
+
+		this.helperService = {
+			hashText,
+			generateID,
+			getISODate,
+			addDaysISO,
+			swapArrayItems,
+			idUsedInTemplates: () => true, // NOT IMPLEMENTED
+		}
+
+		this.calendarHelperService = {
+			parseICS,
+			parseICSBetween,
+			normalizeEvent,
+			normalizeOccurrenceEvent,
+			buildEventDictionaries,
+			getEventLabels
+		}
+		
+		this.calendarPipeline = new CalendarPipeline({
+			data: this.dataService, 
+			fetch: this.fetchService, 
+			helpers: this.helperService, 
+			calHelpers: this.calendarHelperService
 		})
 
-		this.addCommand({
-			id: 'debug-manual-fetch-freeze',
-			name: 'Debug: Manual Fetch All & Freeze',
-			callback: async () => {
-				fetchAllandFreeze(get(calendars)["cal-abcdefji-fsdkj-fjdskl"], addDays(Date.now(), -7), addDays(Date.now(), 60))
-			}
-		})
+		this.plannerActions = new PlannerActions({
+			data: this.dataService, 
+			helpers: this.helperService, 
+			calendarPipelines: this.calendarPipeline})
 
 		// Add Settings Tab using Obsidian's API
 		this.addSettingTab(new UltimatePlannerPluginTab(this.app, this));
@@ -58,7 +98,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 	async onunload() {
 		// Unsubscribe to stores
-		this.storeSubscriptions.forEach(unsub => unsub());
+		await this.storeSubscriptions.forEach(unsub => unsub());
 
 		await this.flushSave(); // Save immediately
 	}
@@ -81,30 +121,21 @@ export default class UltimatePlannerPlugin extends Plugin {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings) // Populate Settings
 		
 		// Initialize Stores, Subscribe, and assign unsubscribers
-		actionItems.set(Object.assign({}, {}, data.planner.actionItems));
-		calendars.set(Object.assign({}, {}, data.planner.calendars));
 		templates.set(Object.assign({}, {}, data.planner.templates));
-		cells.set(Object.assign({}, {}, data.planner.cells));
-		calendarCells.set(Object.assign({}, {}, data.planner.calendarCells));
+		dayData.set(Object.assign({}, {}, data.planner.dayData))
 		this.storeSubscriptions = [
-			actionItems.subscribe(() => this.queueSave()),
-			cells.subscribe(() => this.queueSave()),
-			calendars.subscribe(() => this.queueSave()),
-			calendarCells.subscribe(() => this.queueSave()),
+			dayData.subscribe(() => this.queueSave()),
 			templates.subscribe(() => this.queueSave())
 		]
 	}
 
 	private snapshot(): PluginData {
 		return {
-			version: 4,
+			version: 5,
 			settings: this.settings,
 			planner: {
-				actionItems: get(actionItems),
-				calendars: get(calendars),
+				dayData: get(dayData),
 				templates: get(templates),
-				cells: get(cells),
-				calendarCells: get(calendarCells),
 			},
 		}
 	}

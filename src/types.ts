@@ -1,19 +1,22 @@
 import type { Day } from "date-fns";
+import type { Writable } from "svelte/store";
+import ICAL from "ical.js";
+import type { occurrenceDetails } from "ical.js/dist/types/types";
+import type { RequestUrlResponse, RequestUrlResponsePromise } from "obsidian";
 
 /* Plugin Data Types */
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
 
 export type ActionItemID = string;
+export type CalendarID = string;
+export type ItemID = ActionItemID | CalendarID;
+export type ItemMeta = ActionItemMeta | CalendarMeta;
 
 export interface ActionItemMeta {
     id: ActionItemID;
     label: string;
     color: string;
 }
-
-export type CalendarID = string;
-
-export type RowID = ActionItemID | CalendarID;
 
 export interface CalendarMeta {
     id: CalendarID;
@@ -27,12 +30,8 @@ export interface CalendarMeta {
 }
 
 export interface PlannerState {
-    actionItems: Record<ActionItemID, ActionItemMeta>;
-    calendars: Record<CalendarID, CalendarMeta>;
-    templates: Record<ISODate, RowID[]>;
-    // Records are much more efficient objects for look-ups
-    cells: Record<ISODate, Record<ActionItemID, string>>; 
-    calendarCells: Record<ISODate, Record<CalendarID, string[] >>;
+    dayData: Record<ISODate, Record<ItemID, string>>;
+    templates: Record<ISODate, Record<ItemID, ItemMeta>>;
 }
 
 /* Data persistence */
@@ -53,6 +52,49 @@ export interface PluginSettings {
 }
 
 export type CalendarStatus = "idle" | "fetching" | "unchanged" | "updated" | "error";
+
+/* Core Data Service */
+export interface DataService {
+    // Svelte Stores (The Writable objects themselves)
+    dayData: Writable<Record<ISODate, Record<ItemID, string>>>;
+    templates: Writable<Record<ISODate, Record<ItemID, ItemMeta>>>;
+    calendarState: Writable<CalendarState>;
+    fetchToken: Writable<number>;
+
+    // Planner Store Actions (matches exports from plannerStore.ts)
+    setTemplate: (templateDate: ISODate, newTemplate: Record<ItemID, ItemMeta>) => void;
+    addToTemplate: (templateDate: ISODate, id: ItemID, meta: ItemMeta) => boolean;
+    removeFromTemplate: (templateDate: ISODate, id: ItemID) => boolean;
+    removeFromCellsInTemplate: (templateDate: ISODate, id: ItemID) => boolean;
+    getItemMeta: (templateDate: ISODate, id: ItemID) => ItemMeta;
+    updateItemMeta: (templateDate: ISODate, id: ItemID, updates: Partial<ItemMeta>) => boolean;
+    setCell: (date: ISODate, id: ItemID, value: string) => void;
+    getCell: (date: ISODate, id: ItemID) => string;
+}
+
+// Core Helper Service Contract (Pure Functions from helper.ts)
+export interface HelperService {
+    hashText: (text: string) => Promise<string>;
+    generateID: (prefix: string) => string;
+    getISODate: (date: Date) => ISODate;
+    addDaysISO: (iso: ISODate, n: number) => ISODate;
+    swapArrayItems: <T>(array: T[], a: number, b: number) => T[]; 
+    idUsedInTemplates: (templates: Record<ISODate, Record<ItemID, ItemMeta>>, rowID: ItemID) => boolean;
+}
+
+export interface CalendarHelperService {
+    parseICS: (ics: string, calendarId: string) => NormalizedEvent[];
+    parseICSBetween: (ics: string, calendarId: CalendarID, after: Date, before: Date) => NormalizedEvent[];
+    normalizeEvent: (event: ICAL.Event, calendarId: CalendarID) => NormalizedEvent;
+    normalizeOccurrenceEvent: (occurance: occurrenceDetails, calendarId: string) => NormalizedEvent;
+    buildEventDictionaries: (events: NormalizedEvent[]) => { index: Record<ISODate, string[]>, eventsById: Record<string, NormalizedEvent> }
+    getEventLabels: (events: NormalizedEvent[]) => string;
+}
+
+export interface FetchService {
+    fetchFromUrl: (url: string, etag?: string, lastFetched?: string) => Promise<RequestUrlResponse>;
+    detectFetchChange: (response: RequestUrlResponse, contentHash: string, oldContentHash?: string) => boolean;
+}
 
 /* Calendar State */
 export interface CalendarState {

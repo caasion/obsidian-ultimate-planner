@@ -1,88 +1,92 @@
 <script lang="ts">
-	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
-
-	import { addDays, format, parseISO } from "date-fns";
-	import { onMount, tick } from "svelte";
-	import InputCell from "./InputCell.svelte";
 	import type { App } from "obsidian";
-	import { setCell, getCell, calendars } from "../state/plannerStore";
-	import { newRowContextMenu } from "src/ui/NewRowContextMenu";
-	import { getISODate, addDaysISO, getISODatesOfWeek, getLabelFromDateRange, } from "src/actions/helpers";
-	import type { ISODate, PluginSettings } from "src/types";
-	import { actionItems, calendarCells, templates } from "src/state/plannerStore";
-	import { openRowContextMenu } from './GenericContextMenu';
-	import { fetchPipelineInGracePeriod } from "src/actions/calendarPipelines";
+	import type { CalendarPipeline } from "src/actions/calendarPipelines";
+	import type { PlannerActions } from "src/actions/itemActions";
+	import type { DataService, PluginSettings } from "src/types";
+
+	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
 	interface ViewProps {
 		app: App;
 		settings: PluginSettings;
+		data: DataService;
+		plannerActions: PlannerActions;
+		calendarPipeline: CalendarPipeline;
 	}
 
 	let { app, settings }: ViewProps = $props();
 
-	/* Reactive: templateStoreForDate */
-	function templateStoreForDate(date: ISODate) {
-		let best: ISODate | null = null;
-		for (const key in $templates) {
-			if (key <= date && (best === null || key > best)) best = key;
-		}
-		return best ? JSON.parse(JSON.stringify($templates[best])) : [];
-	}
-
-
 	// Fetch in grace period for current calendars
-	onMount(() => {
-		const today = getISODate(new Date());
+	// onMount(() => {
+	// 	const today = getISODate(new Date());
 
-        rows.forEach(id => {
-            if (id.split("-", 1)[0] === "cal") {
-                fetchPipelineInGracePeriod($calendars[id], addDays(today, -7), addDays(today, 60))
-            }
-        })
-	})
+    //     rows.forEach(id => {
+    //         if (id.split("-", 1)[0] === "cal") {
+    //             fetchPipelineInGracePeriod($calendars[id], addDays(today, -7), addDays(today, 60))
+    //         }
+    //     })
+	// })
+
+	/** Reactive function that returns the date of the template that the given date uses. 
+	 * Implemented using binary search for efficiency.
+	 */
+	function getTemplateDate(date: ISODate): ISODate {
+		const sortedTemplateDates: ISODate[] = Object.keys($templates).sort();
+
+		// Implement binary search to find the template date that is the greatest date less than or equal to the date provided
+		let left = 0;
+		let right = sortedTemplateDates.length - 1;
+		let mid = 0;
+
+		while (left <= right) {
+			mid = Math.floor((left + right) / 2);
+			if (sortedTemplateDates[mid] === date) {
+				return sortedTemplateDates[mid];
+			}
+			if (sortedTemplateDates[mid] <= date) {
+				left = mid + 1;
+			} else {
+				right = mid - 1;
+			}
+		}
+
+		return "";
+	}
 
 	/* Table Rendering */
-	let weeksVisible = settings.weeksToRender;
-	let anchorDate = $state<ISODate>(getISODate(new Date()));
-	let isoDates = $derived<ISODate[][]>(getISODatesOfWeek(anchorDate, weeksVisible, settings.weekStartOn));
-	
-	const colCount = 7;
-	let rows = $derived(rowsToRender(isoDates[0]));
+	const weekFormat = true;
+	const columns = 7;
 
-	function rowsToRender(dates: ISODate[]): string[] {
-		const actionItemIDs = dates.flatMap((date) =>
-			templateStoreForDate(date),
-		);
+	let anchor = $state<ISODate>(getISODate(new Date()));
+	let dates = $derived.by<ISODate[]>(() => {
+		if (weekFormat) return getDatesOfWeek(anchor, settings.weekStartOn);
+		else return getDatesOfBlock(anchor, columns);
+		});
 
-		return Array.from(new Set(actionItemIDs));
+	let columnsMeta: DateColumn[] = $derived.by(() => {
+		return dates.map(date => ({
+			date,
+			templateDate: getTemplateDate(date),
+		}));
+	});
+
+	interface DateColumn {
+		date: ISODate;
+		templateDate: ISODate;
 	}
 
-	/* Table Navigation (Tab, Shift-tab, Enter) */
-	let focus: { row: number; col: number } = $state({ row: 0, col: 0 }); // Track focus to preserve focus at the same row
+	// TODO: Each block should have their own "rowsToRender"
 
-	function focusCell(row: number, col: number, fromEditor = false): boolean {
-		const rowCount = rows.length;
-
-		if (row > rowCount - 1 || row < 0 || col > colCount - 1 || col < 0) {
-			console.warn("Attempted to focus on cell out of table bounds");
-			return false; // Informs the caller whether if the focus actually worked
-		}
-
-		if (!fromEditor) {
-			const cell = document.getElementById(`cell-${row}-${col}`);
-			cell?.querySelector<HTMLElement>(".ProseMirror")?.focus();
-		}
-
-		focus = { row, col };
-		return true;
+	function focusCell() {
+		// TODO: Re-implement row and column navigation.
 	}
 
 	// Currently doesn't work
 	async function goTo(newDate: ISODate) {
 		/* Maintain focus when switching weeks */
-		anchorDate = newDate;
+		anchor = newDate;
 		await tick();
-		focusCell(focus.row, focus.col);
+		// focusCell(focus.row, focus.col);
 	}
 </script>
 
@@ -91,134 +95,112 @@
 <div class="header">
 	<div class="nav-buttons">
 		<button onclick={() => goTo(getISODate(new Date()))}>Today</button>
-    <button onclick={() => goTo(addDaysISO(anchorDate, -7))}>&lt;</button>
-		<button onclick={() => goTo(addDaysISO(anchorDate, 7))}>&gt;</button>
+    <button onclick={() => goTo(addDaysISO(anchor, -7))}>&lt;</button>
+		<button onclick={() => goTo(addDaysISO(anchor, 7))}>&gt;</button>
 	</div>
 	<div class="week">
-		<span class="week-label">{getLabelFromDateRange(isoDates[0][0], isoDates[isoDates.length - 1][6])}</span>
-		<input type="date" bind:value={anchorDate} />
+		<span class="week-label">{getLabelFromDateRange(columnsMeta[0].date, columnsMeta[columnsMeta.length - 1].date)}</span>
+		<input type="date" bind:value={anchor} />
 	</div>
 	<div class="new-ai">
 		<button onclick={(evt) => newRowContextMenu(app, evt)}>+ Add</button>
 	</div>
-	
 </div>
 <div class="grid">
-	<div class="row">
-		{#each isoDates[0] as date}
-			<div class="dow-label">{format(parseISO(date), "E")}</div>
-		{/each}
-	</div>
-	{#each isoDates as week, w (week)}
-		<div class="row">
-			{#each isoDates[w] as date}
-				<div class="date-label">{format(parseISO(date), "dd")}</div>
+	{#each columnsMeta as columnMeta, col (columnMeta.date)} <!-- Create a column for every date-->
+		<div class="column">
+			<div class="dow-label">{format(parseISO(columnMeta.date), "E")}</div>
+			<div class="date-label">{format(parseISO(columnMeta.date), "dd")}</div>
+			{#each Object.values($templates[columnMeta.templateDate]) as itemMeta, row (itemMeta.id)} <!-- Create a row for every item in column-->
+				<div class="row">
+					{#if itemMeta.id.split("-", 1)[0] === "cal"}
+						<GenericCell
+							date={columnMeta.date}
+							id={itemMeta.id}
+							type={"calendar"}
+							label={itemMeta.label}
+							color={itemMeta.color}
+							templateDate={columnMeta.templateDate}
+							{col}
+							contextMenu={(e: MouseEvent) => {}}
+						/>
+					{:else}
+						<GenericCell
+							date={columnMeta.date}
+							id={itemMeta.id}
+							type={"actionItem"}
+							label={itemMeta.label}
+							color={itemMeta.color}
+							templateDate={columnMeta.templateDate}
+							{row}
+							{col}
+							contextMenu={(e: MouseEvent) => {}}
+							{focusCell}
+						/>
+					{/if}
+				</div>
 			{/each}
 		</div>
-		{#each rows as id, i (id)}
-			<div class="row">
-				{#each isoDates[w] as date, j (date)}
-					{#if Object.keys($calendars).includes(id)} <!-- Check if the calendars dictionary has the key -->
-						{#if templateStoreForDate(date).includes(id)}
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<div
-								class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
-								style={`color: ${$calendars[id].color ?? ""}`}
-								oncontextmenu={(e) => openRowContextMenu(app, e, "calendar", date, id)}
-							>
-								{#if (j == 0 && $calendars[id].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(id)}
-									<div class="row-label">{$calendars[id].label ?? ""}</div>
-								{/if}
-								{#each $calendarCells[date]?.[id] ?? [] as label}
-									<p>{label}</p>
-								{/each}
-							</div>
-						{:else}
-							<div class="cell empty">-</div>
-						{/if}
-					{:else}
-						
-							{#if templateStoreForDate(date).includes(id)}
-								<!-- svelte-ignore a11y_no_static_element_interactions -->
-								<div
-									class={`cell ${date < getISODate(new Date()) ? "inactive" : ""}`}
-									style={`color: ${$actionItems[id].color ?? ""}`}
-									oncontextmenu={(e) => openRowContextMenu(app, e, "actionItem", date, id)}
-								>
-									{#if (j == 0 && $actionItems[id].label != "") || !templateStoreForDate(addDaysISO(date, -1)).includes(id)}
-										<div class="row-label">{$actionItems[id].label ?? ""}</div>
-									{/if}
-									<InputCell {date} rowID={id} {setCell} {getCell} row={i} col={j} {focusCell} />
-								</div>
-							{:else}
-								<div class="cell empty">-</div>
-							{/if}
-										
-					{/if}
-				{/each}	
-			</div>
-		{/each}
 	{/each}
-	
 </div>
 
 <style>
 	.header {
 		display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    	grid-template-columns: 1fr 1fr 1fr;
 	}
 
-  .week {
-    display: flex;
-    justify-content: center; 
-    position: relative;
-  }
+	.week {
+		display: flex;
+		justify-content: center; 
+		position: relative;
+	}
 
-  .week-label {
-    font-weight: 600;
-    font-size: x-large;
-    text-align: center;
-    padding: .25rem .5rem;
-    display: inline-block;
-    pointer-events: none;  
-  }
+	.week-label {
+		font-weight: 600;
+		font-size: x-large;
+		text-align: center;
+		padding: .25rem .5rem;
+		display: inline-block;
+		pointer-events: none;  
+	}
 
-  .week input[type="date"] {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
+	.week input[type="date"] {
+		position: absolute;
+		top: 0;
+		left: 50%;
+		transform: translateX(-50%);
 
-    width: 100%;
-    height: 100%;
-    z-index: 1;
+		width: 100%;
+		height: 100%;
+		z-index: 1;
 
-    opacity: 0;
-    cursor: pointer;
-  }
+		opacity: 0;
+		cursor: pointer;
+	}
 
-  .week input[type="date"]::-webkit-calendar-picker-indicator {
-    width: 100%;
-    cursor: pointer;
-  }
+	.week input[type="date"]::-webkit-calendar-picker-indicator {
+		width: 100%;
+		cursor: pointer;
+	}
 
-  .week input[type="date"]::-webkit-datetime-edit {
-    display: none;
-  }
+	.week input[type="date"]::-webkit-datetime-edit {
+		display: none;
+	}
 
-  .new-ai {
-    display: flex;
-    justify-content: flex-end;
-  }
+	.new-ai {
+		display: flex;
+		justify-content: flex-end;
+	}
 
-  .dow-label {
-    text-align: center;
-    background-color: var(--theme-color);
-    color: white;
-    mix-blend-mode: exclusion;
-  }
+	.dow-label {
+		text-align: center;
+		background-color: var(--theme-color);
+		color: white;
+		mix-blend-mode: exclusion;
+	}
 
-  .date-label {
+	.date-label {
 		text-align: right;
 	}
 
@@ -232,10 +214,20 @@
 		display: contents;
 	}
 
-	.row-label {
-		font-style: italic;
-		font-size: x-small;
-		padding: 4px 0px;
+	.column {
+		display: flex;
+		flex-direction: column;
+		border: 1px solid #ccc;
+	}
+
+	.column > div {
+		padding: 4px;
+		border-bottom: 1px solid #ccc;
+		min-height: 40px; /* Consistent row height */
+	}
+	
+	.column > div:last-child {
+		border-bottom: none;
 	}
 
 	.grid > .row > div {
@@ -244,23 +236,5 @@
 
 	}
 
-  .cell {
-    border-top-style: dashed;
-    border-bottom-style: dashed;
-  }
 
-	.cell.inactive {
-		background-color: #2f2f2f !important;
-	}
-
-	.cell.empty {
-		background-color: #3b3b3b;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.cell p {
-		margin: 0px;
-	}
 </style>
