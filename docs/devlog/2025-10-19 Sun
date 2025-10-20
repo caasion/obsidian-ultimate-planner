@@ -23,3 +23,9 @@ I also made a sample data set to help visualize:
 Okay, I'm doing this graphically. I want to properly define what I mean by blocks, columns, etc.
 
 ![Rendering Logic](<rendering logic 2025-10-19.png>)
+
+It is so much quicker to have the rendering logic figured out because I can directly focus on implementing the code instead of thinking while coding. 
+
+Also, dependency injection is paying off! I am able to define a function in the interface and not have to worry about implementing it. I love that the interface is like a contract saying "I will implement it," but I don't have to implement it RIGHT NOW.
+
+One problem I've found with my new rendering system is that I cannot properly get the items since they don't have any order, and my rows are based on numbers. I will need to add an ordering to my item list. 
