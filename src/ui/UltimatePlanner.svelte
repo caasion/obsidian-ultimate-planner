@@ -4,7 +4,7 @@
 	import type { CalendarPipeline } from "src/actions/calendarPipelines";
 	import type { PlannerActions } from "src/actions/itemActions";
 	import { templates } from "src/state/plannerStore";
-	import type { DataService, HelperService, ISODate, PluginSettings } from "src/types";
+	import type { DataService, HelperService, ISODate, ItemID, ItemMeta, PluginSettings } from "src/types";
 	import { arrayBuffer } from "stream/consumers";
 	import { tick } from "svelte";
 
@@ -75,49 +75,63 @@
 		}
 	})
 
-	interface DateColumn {
+	interface ColumnMeta {
 		date: ISODate;
 		templateDate: ISODate;
 	}
 
-	let columnsMeta: DateColumn[] = $derived.by(() => {
+	let columnsMeta: ColumnMeta[] = $derived.by(() => {
 		return dates.map(date => ({
 			date,
 			templateDate: getTemplateDate(date),
 		}));
 	});
+
+	interface RenderItem {
+		id: ItemID;
+		meta: ItemMeta;
+	}
+
+	type SortedTemplates = Record<ISODate, RenderItem[]>;
+
+	let sortedTemplates = $derived.by<SortedTemplates>(() => {
+		const allTemplateDates = new Set(columnsMeta.map(c => c.templateDate));
+
+		const result: SortedTemplates = {};
+
+		allTemplateDates.forEach(date => {
+			const rawTemplate = data.getTemplate(date); 
+			
+			const itemsArray: RenderItem[] = Object.entries(rawTemplate).map(([id, meta]) => ({id,meta}));
+
+			itemsArray.sort((a, b) => a.meta.order - b.meta.order);
+
+			result[date] = itemsArray;
+		});
+
+		return result;
+	});
 	
 	interface BlockMeta {
 		rows: number; // Use a function to get the # of rows to render
-		dates: DateColumn[];
+		dates: ISODate[];
 	}
 
 	let blocksMeta = $derived.by<BlockMeta[]>(() => {
 		let blocks: BlockMeta[] = [];
 		
-		for (let i = 0; i < columnsMeta.length; i++) {
-			const chunk = columnsMeta.slice(i, i + columns);
-			const templateDates = chunk.map(c => c.templateDate);
-			const uniqueTemplateDates = new Set(templateDates);
+		for (let i = 0; i < dates.length; i++) {
+			const chunk: ISODate[] = dates.slice(i, i + columns);
+			const templateLengths: number[] = chunk.map(c => sortedTemplates[c].length);
 			blocks.push({
-				rows: getRowsToRender(uniqueTemplateDates),
+				rows: Math.max(...templateLengths),
 				dates: chunk,
 			})
 		}
 
 		return blocks;
 	})
-
-	/** Returns the numbers of rows to render given a set of template dates. */
-	function getRowsToRender(templateDates: Set<ISODate>): number {
-		const templateSizes: number[] = [];
-
-		templateDates.forEach(date => {
-			templateSizes.push(Object.keys(data.getTemplate(date)).length);
-		})
-
-		return Math.max(...templateSizes);
-	}
+	
 
 	// TODO: Each block should have their own "rowsToRender"
 
@@ -152,12 +166,16 @@
 </div>
 <div class="grid">
 	{#each blocksMeta as {rows, dates}, block (blocksMeta)}
-		{#each dates as columnMeta, col (columnMeta.date)}
+		{#each dates as {date, templateDate}, col (date)}
 		<div class="column">
-			<div class="dow-label">{format(columnMeta.date, "E")}</div>
-			<div class="date-label">{format(columnMeta.date, "dd")}</div>
+			<div class="dow-label">{format(date, "E")}</div>
+			<div class="date-label">{format(date, "dd")}</div>
 			{#each {length: rows}, row}
 				<div class="row">
+					<GenericCell 
+						{date}
+						id={data.getItemMeta(templateDate)}
+					/>
 					{#if itemMeta.id.split("-", 1)[0] === "cal"}
 						<GenericCell
 							date={columnMeta.date}
