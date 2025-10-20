@@ -114,18 +114,20 @@
 	
 	interface BlockMeta {
 		rows: number; // Use a function to get the # of rows to render
-		dates: ISODate[];
+		dates: ColumnMeta[];
 	}
 
 	let blocksMeta = $derived.by<BlockMeta[]>(() => {
 		let blocks: BlockMeta[] = [];
 		
 		for (let i = 0; i < dates.length; i++) {
-			const chunk: ISODate[] = dates.slice(i, i + columns);
-			const templateLengths: number[] = chunk.map(c => sortedTemplates[c].length);
+			const dateChunk: ISODate[] = dates.slice(i, i + columns);
+			const templateLengths: number[] = dateChunk.map(d => sortedTemplates[d].length);
+			const columnMeta: ColumnMeta[] = dateChunk.map(d => ({date: d, templateDate: getTemplateDate(d)}));
+
 			blocks.push({
 				rows: Math.max(...templateLengths),
-				dates: chunk,
+				dates: columnMeta,
 			})
 		}
 
@@ -172,74 +174,30 @@
 			<div class="date-label">{format(date, "dd")}</div>
 			{#each {length: rows}, row}
 				<div class="row">
-					<GenericCell 
+					<!-- <GenericCell 
 						{date}
-						id={data.getItemMeta(templateDate)}
-					/>
-					{#if itemMeta.id.split("-", 1)[0] === "cal"}
-						<GenericCell
-							date={columnMeta.date}
-							id={itemMeta.id}
-							type={"calendar"}
-							label={itemMeta.label}
-							color={itemMeta.color}
-							templateDate={columnMeta.templateDate}
-							{col}
-							contextMenu={(e: MouseEvent) => {}}
-						/>
-					{:else}
-						<GenericCell
-							date={columnMeta.date}
-							id={itemMeta.id}
-							type={"actionItem"}
-							label={itemMeta.label}
-							color={itemMeta.color}
-							templateDate={columnMeta.templateDate}
-							{row}
-							{col}
-							contextMenu={(e: MouseEvent) => {}}
-							{focusCell}
-						/>
-					{/if}
+						id={sortedTemplates[date][row].meta.id}
+						type={sortedTemplates[date][row].meta.type}
+						label={sortedTemplates[date][row].meta.label}
+						color={sortedTemplates[date][row].meta.color}
+						{templateDate}
+						{row}
+						{col}
+						contextMenu={(e: MouseEvent) => {}}
+						{focusCell}
+					/> -->
+					{date}
+					{sortedTemplates[date][row].meta.id}
+					{sortedTemplates[date][row].meta.type}
+					{sortedTemplates[date][row].meta.label}
+					{sortedTemplates[date][row].meta.color}
+					{templateDate}
+					{row}
+					{col}
 				</div>
 			{/each}
 		</div>
 		{/each}
-	{/each}
-	{#each columnsMeta as columnMeta, col (columnMeta.date)} <!-- Create a column for every date-->
-		<div class="column">
-			<div class="dow-label">{format(columnMeta.date, "E")}</div>
-			<div class="date-label">{format(columnMeta.date, "dd")}</div>
-			{#each Object.values($templates[columnMeta.templateDate]) as itemMeta, row (itemMeta.id)} <!-- Create a row for every item in column-->
-				<div class="row">
-					{#if itemMeta.id.split("-", 1)[0] === "cal"}
-						<GenericCell
-							date={columnMeta.date}
-							id={itemMeta.id}
-							type={"calendar"}
-							label={itemMeta.label}
-							color={itemMeta.color}
-							templateDate={columnMeta.templateDate}
-							{col}
-							contextMenu={(e: MouseEvent) => {}}
-						/>
-					{:else}
-						<GenericCell
-							date={columnMeta.date}
-							id={itemMeta.id}
-							type={"actionItem"}
-							label={itemMeta.label}
-							color={itemMeta.color}
-							templateDate={columnMeta.templateDate}
-							{row}
-							{col}
-							contextMenu={(e: MouseEvent) => {}}
-							{focusCell}
-						/>
-					{/if}
-				</div>
-			{/each}
-		</div>
 	{/each}
 </div>
 
