@@ -2,22 +2,20 @@
 	import { getISODate, addDaysISO } from "src/actions/helpers";
 	import { setCell, getCell } from "src/state/plannerStore";
 	import InputCell from "./InputCell.svelte";
-	import type { ItemID, ISODate } from "src/types";
+	import type { ItemID, ISODate, ItemMeta } from "src/types";
 
     interface CellProps {
         date: ISODate;
         id: ItemID;
-        type: "actionItem" | "calendar";
-        label: string;
-        color: string;
-        templateDate: ISODate;
+        meta: ItemMeta;
+        tDate: ISODate;
         row?: number;
         col: number;
         contextMenu: (e: MouseEvent) => void;
         focusCell?: () => void;
     }
 
-    let { date, id, label, color, templateDate, row, col, contextMenu, focusCell }: CellProps = $props();
+    let { date, id, meta, tDate, row, col, contextMenu, focusCell }: CellProps = $props();
 
     let inactive = $derived(date < getISODate(new Date()));
 
@@ -26,12 +24,12 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
     class={["cell", inactive]}
-    style={`color: ${color ?? ""}`}
+    style={`color: ${meta.color ?? ""}`}
     oncontextmenu={(e) => contextMenu(e)}
 > 
     <!-- The condition to render the label for the item. -->
-    {#if (col == 0 && label !== "") || start == date}
-        <div class="row-label">{label}</div>
+    {#if (col == 0 && meta.label !== "") || tDate == date}
+        <div class="row-label">{meta.label}</div>
     {/if}
     <InputCell {date} rowID={id} {setCell} {getCell} {row} {col} {focusCell} />
 </div>

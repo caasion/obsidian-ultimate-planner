@@ -7,6 +7,7 @@
 	import type { DataService, HelperService, ISODate, ItemID, ItemMeta, PluginSettings } from "src/types";
 	import { tick } from "svelte";
 	import DebugBlock from "./DebugBlock.svelte";
+	import GenericCell from "./GenericCell.svelte";
 
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
@@ -180,7 +181,7 @@
 </div>
 <div class="grid">
 	{#each blocksMeta as {rows, dates}, block (dates)}
-		{#each dates as {date, templateDate}, col (date)}
+		{#each dates as {date, templateDate: tDate}, col (date)}
 		<div class="column">
 			<div class="dow-label">{format(parseISO(date), "E")}</div>
 			<div class="date-label">{format(parseISO(date), "dd")}</div>
@@ -198,14 +199,16 @@
 						contextMenu={(e: MouseEvent) => {}}
 						{focusCell}
 					/> -->
-					{date}
-					{sortedTemplates[templateDate][row].meta.id}
-					{sortedTemplates[templateDate][row].meta.type}
-					{sortedTemplates[templateDate][row].meta.label}
-					{sortedTemplates[templateDate][row].meta.color}
-					{templateDate}
-					{row}
-					{col}
+					<GenericCell 
+						{date}
+						id={sortedTemplates[tDate][row].id}
+						meta={sortedTemplates[tDate][row].meta}
+						{tDate}
+						{row}
+						{col}
+						contextMenu={(e: MouseEvent) => {}}
+						{focusCell}
+					/>
 				</div>
 			{/each}
 		</div>
