@@ -120,19 +120,19 @@
 	}
 
 	let blocksMeta = $derived.by<BlockMeta[]>(() => {
-		let blocks: BlockMeta[] = [];
+		let meta: BlockMeta[] = [];
 		
-		for (let i = 0; i < dates.length; i++) {
-			const columnChunk: ColumnMeta[] = columnsMeta.slice(i, i + columns);
+		for (let i = 0; i < blocks; i++) {
+			const columnChunk: ColumnMeta[] = columnsMeta.slice(columns * i, columns * (i + 1));
 			const templateLengths: number[] = columnChunk.map(({ date, templateDate}) => templateDate != "" ? sortedTemplates[templateDate].length : 0)
 
-			blocks.push({
+			meta.push({
 				rows: Math.max(...templateLengths),
 				dates: columnChunk,
 			})
 		}
 
-		return blocks;
+		return meta;
 	})
 	
 
@@ -176,8 +176,8 @@
 	{#each blocksMeta as {rows, dates}, block (dates)}
 		{#each dates as {date, templateDate}, col (date)}
 		<div class="column">
-			<div class="dow-label">{format(date, "E")}</div>
-			<div class="date-label">{format(date, "dd")}</div>
+			<div class="dow-label">{format(parseISO(date), "E")}</div>
+			<div class="date-label">{format(parseISO(date), "dd")}</div>
 			{#each {length: rows}, row}
 				<div class="row">
 					<!-- <GenericCell 
