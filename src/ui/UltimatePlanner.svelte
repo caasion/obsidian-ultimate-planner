@@ -38,24 +38,30 @@
 	function getTemplateDate(date: ISODate): ISODate {
 		const sortedTemplateDates: ISODate[] = Object.keys($templates).sort();
 
+		console.log(date)
+		console.log("Sorted template dates:", sortedTemplateDates)
+
 		// Implement binary search to find the template date that is the greatest date less than or equal to the date provided
 		let left = 0;
 		let right = sortedTemplateDates.length - 1;
-		let mid = 0;
+		let result: ISODate = "";
 
 		while (left <= right) {
-			mid = Math.floor((left + right) / 2);
-			if (sortedTemplateDates[mid] === date) {
-				return sortedTemplateDates[mid];
+			const mid = Math.floor((left + right) / 2);
+			const midDate = sortedTemplateDates[mid];
+
+			if (midDate === date) {
+				return midDate;
 			}
-			if (sortedTemplateDates[mid] <= date) {
+			if (midDate < date) {
+				result = midDate;
 				left = mid + 1;
 			} else {
 				right = mid - 1;
 			}
 		}
 
-		return "";
+		return result;
 	}
 
 	/* Table Rendering */
