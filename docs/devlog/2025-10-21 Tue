@@ -1,0 +1,35 @@
+Right now, blocksMeta has a block every day... This should not happen.
+
+I realize I need to parse the ISO in order for the date to be correct, so I fixed it. I also fixed a few other minor issues with my locks Meadow processing, and now it actually provides the dates correctly. (0308471)
+
+I also realized that I implemented `getTemplateDate` Incorrectly because it is a binary search that looks for the exact match to the data I provided, but not the greatest date that is less than the date I provided. (b53845d)
+
+After confirming that the data pre rendering is correct, I started implementing the generic cell back in, and I used the wrong date as I was going through the sort of templates, which led to errors, so I fixed that and it started working. (13577e7)
+
+![progress update](<2025-10-21 progress update.png>)
+
+I haven't actually had this thing working for a while, and I realized that having columns instead of rows makes it so hot the cells are not In sync and the height of it depends on its own content. This gave me a really good laugh, but I'm glad that it's working now. (edaae07)
+
+Right now, I found out that the table is no longer reactive for some reason. It was reactive before, but I don't know why it is not updating anymore. I'm not going to spend a lot of time trying to fix this right now, but instead I'll focus on continuing to work on the table logic to get it running. Correction: it starts breaking once I go too far back in time.
+
+Also, I want to talk about high improved the `getTemplatesDate` Function, but right now I'm going to focus on implementing the features back. It's also worth noting that sorting is O(N log N) operation, so I should definitely try to optimize a list of sorted templates instead of trying to sort it every single time.
+
+As part of my last 30 minutes of my work session, I implemented the add button back. This has been a point of avoidance for awhile because I didn't know how I can implement dependency injection with a pure context menu function and a `GenericNewModal`. I talked with Chap TPT and how I can implement dependency injection, and it suggested things like creating functions that return another function so then you don't actually have to implement a function concretely. Chat called it "factory with a services bundle." then, I had concerns about prop drilling, because I really didn't want to instantiate a service in `main.ts` And then have to pass down props fruit of you and then through the component into another component. Chat suggested using contexts or stores for the services. But I realized that I don't actually need to implement the pendency injection because I only have one function in the service. Instead, I chose to merge the new role context menu function into item actions, which already had a class that performed actions. So I refactored Functions and rerouted the imports, and now I have a functioning add action item button. (2a75526)
+
+However, while it adds a new item in my templates, it doesn't correctly get the date from the moto, which is something that I need to fix. Furthermore, I will probably switch to a different templates editor now that my template structure is much more rigid. However, that is a plan for the future.
+
+A summary of today:
+- I fixed several things, which made rendering the data possible.
+- I hooked up the generic cell to the rendering.
+- I semi-implemented dependency injection for adding a new item and hooked it up to the rendering.
+
+Next Steps:
+- [Fix bug] The table is no longer reactive once I go too far back in time.
+- [Optimization] I should keep a state of a list of the sorted templates instead of trying to sort the templates every single time.
+- [Fix bug] Correctly insert a date when I add an item to a template
+- [Feature] Template manipulation (which will probably require a new UI)
+    - Think about the template manipulation actions that users will need
+    - Design a UI flow for these actions
+    - Implement the Logic
+
+I'm quite excited about the new template manipulation feature, because I'm thinking instead of squishing everything into the context menu, I will have a dedicated templates editor where you can drag and drop items within templates easily. I'm actually not sure if it is better to create a new view for the templates manipulation because I do want everything to be in the same place. Perhaps I will give users the option to do both, but I think I should implement a separate interface for templates editing for now just to keep the logic clean.
