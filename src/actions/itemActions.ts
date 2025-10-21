@@ -1,7 +1,9 @@
-import type { ISODate, DataService, HelperService, ItemMeta } from '../types';
+import type { ISODate, DataService, HelperService, ItemMeta, CalendarMeta } from '../types';
 import { get } from 'svelte/store';
 import { CalendarPipeline } from './calendarPipelines';
 import { addDays, parseISO, startOfDay } from 'date-fns';
+import { Menu, type App } from 'obsidian';
+import { GenericNewModal } from 'src/ui/GenericNewModal';
 
 export interface PlannerServiceDeps {
     data: DataService;
@@ -64,4 +66,28 @@ export class PlannerActions {
         }
     }
 
+    public newRowContextMenu(app: App, evt: MouseEvent) {
+        evt.preventDefault();
+        evt.stopPropagation();
+    
+        const menu = new Menu();
+    
+        menu
+            .addItem((i) =>
+                i.setTitle("Create New Action Item")
+                .setIcon("add")
+                .onClick(() => {
+                    new GenericNewModal(app, "action", (date, meta) => this.newItem(date, meta)).open();
+                })
+            )
+            .addItem((i) =>
+                i.setTitle("Add New Remote Calendar")
+                .setIcon("add")
+                .onClick(() => {
+                    new GenericNewModal(app, "calendar", (date, meta) => this.newItem(date, meta as CalendarMeta)).open();
+                })
+            )
+    
+        menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
+    }
 }

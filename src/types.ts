@@ -2,7 +2,7 @@ import type { Day } from "date-fns";
 import type { Writable } from "svelte/store";
 import ICAL from "ical.js";
 import type { occurrenceDetails } from "ical.js/dist/types/types";
-import type { RequestUrlResponse, RequestUrlResponsePromise } from "obsidian";
+import type { App, RequestUrlResponse, RequestUrlResponsePromise } from "obsidian";
 
 /* Plugin Data Types */
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
@@ -11,7 +11,7 @@ export type ActionItemID = string;
 export type CalendarID = string;
 export type ItemID = ActionItemID | CalendarID;
 export type ItemMeta = ActionItemMeta | CalendarMeta;
-export type ItemTypes = "action" | "calendar";
+export type ItemType = "action" | "calendar";
 
 export interface ActionItemMeta {
     id: ActionItemID;

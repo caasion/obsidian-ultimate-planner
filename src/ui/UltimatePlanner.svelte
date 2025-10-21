@@ -39,9 +39,6 @@
 	function getTemplateDate(date: ISODate): ISODate {
 		const sortedTemplateDates: ISODate[] = Object.keys($templates).sort();
 
-		console.log(date)
-		console.log("Sorted template dates:", sortedTemplateDates)
-
 		// Implement binary search to find the template date that is the greatest date less than or equal to the date provided
 		let left = 0;
 		let right = sortedTemplateDates.length - 1;
@@ -176,7 +173,7 @@
 		<input type="date" bind:value={anchor} />
 	</div>
 	<div class="new-ai">
-		<!-- <button onclick={(evt) => newRowContextMenu(app, evt)}>+ Add</button> -->
+		<button onclick={(evt) => plannerActions.newRowContextMenu(app, evt)}>+ Add</button>
 	</div>
 </div>
 <div class="grid">
@@ -187,18 +184,6 @@
 			<div class="date-label">{format(parseISO(date), "dd")}</div>
 			{#each {length: rows}, row}
 				<div class="row">
-					<!-- <GenericCell 
-						{date}
-						id={sortedTemplates[date][row].meta.id}
-						type={sortedTemplates[date][row].meta.type}
-						label={sortedTemplates[date][row].meta.label}
-						color={sortedTemplates[date][row].meta.color}
-						{templateDate}
-						{row}
-						{col}
-						contextMenu={(e: MouseEvent) => {}}
-						{focusCell}
-					/> -->
 					<GenericCell 
 						{date}
 						id={sortedTemplates[tDate][row].id}

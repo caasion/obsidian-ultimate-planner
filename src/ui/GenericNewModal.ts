@@ -1,31 +1,28 @@
 import { Modal, App, Setting } from "obsidian";
 import { generateID } from "src/actions/helpers";
-import type { ISODate, ActionItemMeta, CalendarMeta } from "src/types";
+import type { ISODate, ActionItemMeta, CalendarMeta, ItemType, ItemMeta } from "src/types";
 
-type RowType = "actionItem" | "calendar";
-
-
-export class GenericNewModal<T extends (ActionItemMeta | CalendarMeta)> extends Modal {
-    constructor(app: App, type: RowType, onSubmit: (date: ISODate, meta: T) => void) {
+export class GenericNewModal extends Modal {
+    constructor(app: App, type: ItemType, onSubmit: (date: ISODate, meta: ItemMeta) => void) {
         super(app);
 
         const { contentEl } = this;
         let date: ISODate;
-        let meta: T;
+        let meta: ItemMeta;
 
-        if (type === "actionItem") {
+        if (type === "action") {
             meta = {
                 id: generateID("ai-"),
                 label: "",
                 color: "",
-            } as T;
+            } as ItemMeta;
         } else if (type === "calendar") {
             meta = {
                 id: generateID("cal-"),
                 label: "",
                 color: "",
                 url: "",
-            } as T;
+            } as ItemMeta;
         }
         
 
