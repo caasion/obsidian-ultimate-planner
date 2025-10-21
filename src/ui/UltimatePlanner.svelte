@@ -199,10 +199,10 @@
 						{focusCell}
 					/> -->
 					{date}
-					{sortedTemplates[date][row].meta.id}
-					{sortedTemplates[date][row].meta.type}
-					{sortedTemplates[date][row].meta.label}
-					{sortedTemplates[date][row].meta.color}
+					{sortedTemplates[templateDate][row].meta.id}
+					{sortedTemplates[templateDate][row].meta.type}
+					{sortedTemplates[templateDate][row].meta.label}
+					{sortedTemplates[templateDate][row].meta.color}
 					{templateDate}
 					{row}
 					{col}
