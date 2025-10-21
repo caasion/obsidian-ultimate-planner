@@ -6,6 +6,7 @@
 	import { templates } from "src/state/plannerStore";
 	import type { DataService, HelperService, ISODate, ItemID, ItemMeta, PluginSettings } from "src/types";
 	import { tick } from "svelte";
+	import DebugBlock from "./DebugBlock.svelte";
 
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
@@ -152,7 +153,11 @@
 
 <h1>The Ultimate Planner</h1>
 
-<pre>
+<DebugBlock label={"Dates:"} object={dates} />
+<DebugBlock label={"Columns Meta:"} object={columnsMeta} />
+<DebugBlock label={"Sorted Templates:"} object={sortedTemplates} />
+<DebugBlock label={"Blocks Meta:"} object={blocksMeta} />
+
 <div class="header">
 	<div class="nav-buttons">
 		<button onclick={() => goTo(helper.getISODate(new Date()))}>Today</button>
