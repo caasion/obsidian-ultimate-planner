@@ -1,14 +1,12 @@
 import { Modal, Setting, type App } from "obsidian";
-import type { ActionItemMeta, CalendarMeta } from "src/types";
+import type { ActionItemMeta, CalendarMeta, ItemMeta } from "src/types";
 
-type RowType = "actionItem" | "calendar";
-
-export class GenericEditModal<T extends (ActionItemMeta | CalendarMeta)> extends Modal {
-    constructor(app: App, initial: T, type: RowType, onSubmit: (meta: T) => void) {
+export class GenericEditModal extends Modal {
+    constructor(app: App, initial: ItemMeta, onSubmit: (meta: ItemMeta) => void) {
         super(app);
 
         const { contentEl } = this;
-        let meta: T = { ...initial };
+        let meta: ItemMeta = { ...initial };
 
         new Setting(contentEl)
             .setName("Name: ")
@@ -28,7 +26,7 @@ export class GenericEditModal<T extends (ActionItemMeta | CalendarMeta)> extends
                  .onChange((v) => meta.color = v)
             );
 
-        if (type === "calendar") {
+        if (meta.type === "calendar") {
             new Setting(contentEl)
                 .setName("Remote Calendar URL: ")
                 .addText((t) => t.setValue((meta as CalendarMeta).url ?? "").onChange((v) => ((meta as CalendarMeta).url = v)));

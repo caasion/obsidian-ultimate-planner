@@ -1,9 +1,10 @@
-import type { ISODate, DataService, HelperService, ItemMeta, CalendarMeta } from '../types';
+import type { ISODate, DataService, HelperService, ItemMeta, CalendarMeta, ItemID } from '../types';
 import { get } from 'svelte/store';
 import { CalendarPipeline } from './calendarPipelines';
 import { addDays, parseISO, startOfDay } from 'date-fns';
 import { Menu, type App } from 'obsidian';
 import { GenericNewModal } from 'src/ui/GenericNewModal';
+import { GenericEditModal } from 'src/ui/GenericEditModal';
 
 export interface PlannerServiceDeps {
     data: DataService;
@@ -91,6 +92,29 @@ export class PlannerActions {
                 })
             )
     
+        menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
+    }
+
+    public openItemMenu(app: App, evt: MouseEvent, date: ISODate, id: ItemID, meta: ItemMeta) {
+        evt.preventDefault();
+        evt.stopPropagation();
+
+        const menu = new Menu();
+
+        menu
+            .addItem((i) =>
+                i.setTitle(`ID: ${id}`)
+                .setIcon("info")
+            )
+            .addSeparator()
+            .addItem((i) =>
+                i.setTitle("Edit")
+                .setIcon("pencil")
+                .onClick(() => {
+                    new GenericEditModal(app, meta, (newMeta) => this.data.updateItemMeta(this.getTemplateDate(date), id, newMeta)).open();
+                })
+            )
+
         menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
     }
 }

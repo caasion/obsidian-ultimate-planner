@@ -191,7 +191,7 @@
 						{tDate}
 						{row}
 						{col}
-						contextMenu={(e: MouseEvent) => {}}
+						contextMenu={(e: MouseEvent) => plannerActions.openItemMenu(app, e, date, sortedTemplates[tDate][row].id, sortedTemplates[tDate][row].meta)}
 						{focusCell}
 					/>
 				</div>
