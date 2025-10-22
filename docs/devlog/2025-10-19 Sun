@@ -10,7 +10,7 @@ I've just finished refactoring and injecting dependencies to my ultimate planner
 
 ## Brainstorming
 Here is the result of some brainstorming I did:
-![Brainstorming](brainstorm_2025-10-19.png)
+![Brainstorming](<2025-10-19 brainstorm.png>)
 
 I also made a sample data set to help visualize:
 [sample data](<sample data 2025-10-19.json>)
@@ -22,7 +22,7 @@ I also made a sample data set to help visualize:
     - if false, we will get X of dates from anchor
 Okay, I'm doing this graphically. I want to properly define what I mean by blocks, columns, etc.
 
-![Rendering Logic](<rendering logic 2025-10-19.png>)
+![Rendering Logic](<2025-10-19 rendering logic.png>)
 
 It is so much quicker to have the rendering logic figured out because I can directly focus on implementing the code instead of thinking while coding. 
 
