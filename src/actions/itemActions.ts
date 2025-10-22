@@ -23,28 +23,31 @@ export class PlannerActions {
     }
 
     /** Uses binary search to get the template date for a given date. */
-    private getTemplateDate(date: ISODate): ISODate {
-    const sortedTemplateDates: ISODate[] = Object.keys(get(this.data.templates)).sort();
+    public getTemplateDate(date: ISODate): ISODate {
+        const sortedTemplateDates: ISODate[] = Object.keys(get(this.data.templates)).sort();
 
-        // Implement binary search to find the template date that is the greatest date less than or equal to the date provided
-        let left = 0;
-        let right = sortedTemplateDates.length - 1;
-        let mid = 0;
+		// Implement binary search to find the template date that is the greatest date less than or equal to the date provided
+		let left = 0;
+		let right = sortedTemplateDates.length - 1;
+		let result: ISODate = "";
 
-        while (left <= right) {
-            mid = Math.floor((left + right) / 2);
-            if (sortedTemplateDates[mid] === date) {
-                return sortedTemplateDates[mid];
-            }
-            if (sortedTemplateDates[mid] <= date) {
-                left = mid + 1;
-            } else {
-                right = mid - 1;
-            }
-        }
+		while (left <= right) {
+			const mid = Math.floor((left + right) / 2);
+			const midDate = sortedTemplateDates[mid];
 
-        return "";
-    }
+			if (midDate === date) {
+				return midDate;
+			}
+			if (midDate < date) {
+				result = midDate;
+				left = mid + 1;
+			} else {
+				right = mid - 1;
+			}
+		}
+
+		return result;
+	}
 
     /** Creates a new item given a date and item details. */
     public newItem(date: ISODate, meta: ItemMeta) {
