@@ -117,4 +117,5 @@ export class PlannerActions {
 
         menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
     }
+
 }

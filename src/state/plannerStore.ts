@@ -52,6 +52,8 @@ export function removeFromTemplate(date: ISODate, id: ItemID): boolean {
 export function removeFromCellsInTemplate(date: ISODate, id: ItemID): boolean {
     if (!get(templates)[date]) return false;
 
+    
+
     return true;
     // Function not implemented.
 }

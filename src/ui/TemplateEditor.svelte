@@ -57,6 +57,11 @@
                 >
                     {meta.label}
                 </div>
+                <div>
+                    <button onclick={() => plannerActions.swapItem(selectedTemplate, id, -1)}>▲</button>
+                    <button onclick={() => plannerActions.swapItem(selectedTemplate, id, 1)}>▼</button>
+                </div>
+            </div>
                 
             {/each}
             <button onclick={(e) => plannerActions.newRowContextMenu(app, e, selectedTemplate)}>+ Add</button>
