@@ -50,10 +50,6 @@
     justify-content: center;
 }
 
-.cell p {
-    margin: 0px;
-}
-
 .row-label {
     font-style: italic;
     font-size: x-small;
