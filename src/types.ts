@@ -51,9 +51,7 @@ export interface PluginSettings {
     autosaveDebounceMs: number;
     weeksToRender: number;
     refreshRemoteMs: number;
-    archivePastEvents: boolean;
-    graceDays: number;
-    retentionMonths: number;
+    lookaheadDays: number;
 }
 
 export type CalendarStatus = "idle" | "fetching" | "unchanged" | "updated" | "error";
@@ -129,7 +127,5 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     autosaveDebounceMs: 200,
     weeksToRender: 1,
     refreshRemoteMs: 5 * 60 * 1000,
-    archivePastEvents: true,
-    graceDays: 7,
-    retentionMonths: 0, // STALE OPTION
+    lookaheadDays: 14,
 }
