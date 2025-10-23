@@ -7,6 +7,7 @@ import { NewItemModal } from 'src/ui/GenericNewModal';
 import { GenericEditModal } from 'src/ui/GenericEditModal';
 import { sortedTemplateDates } from 'src/state/plannerStore';
 import { NewTemplateModal } from 'src/ui/GenericNewModal';
+import { ConfirmationModal } from 'src/ui/ConfirmationModal';
 
 export interface PlannerServiceDeps {
     data: DataService;
@@ -72,9 +73,38 @@ export class PlannerActions {
         }
     }
 
+    /** Handles the deletion of an item given the template date and id (confirmation modal, deletion, and clean-up). */
+    public handleRemoveItem(app: App, tDate: ISODate, id: ItemID) {
+        new ConfirmationModal(
+            app, 
+            () => this.removeItem(tDate, id),
+            "Removing the item will remove all cell contents."
+        ).open();
+    }
+
+    /** Deletes an item and its cell contents */
+    public removeItem(tDate: ISODate, id: ItemID): boolean {
+        if (!get(this.data.templates)[tDate]) return false;
+
+        this.data.removeFromTemplate(tDate, id);
+        this.data.removeFromCellsInTemplate(tDate, id);
+
+        return true;
+    }
+
     /** Handles the create of a new template (modal and creation). */
     public handleNewTemplate(app: App) {
         new NewTemplateModal(app, this.helpers.getISODate(new Date()), (date) => this.data.setTemplate(date, {})).open();
+    }
+
+    /** Handles the removal of a new template (confirmation modal, deletion, and clean-up.) */
+    public handleRemoveTemplate(app: App, tDate: ISODate, id: ItemID) {
+        new ConfirmationModal(
+            app, 
+            () => {
+            }, 
+            "Removing the template will remove all items and their contents."
+        ).open();
     }
 
     /** Creates and opens the context menu for creating a new item. */
@@ -122,6 +152,13 @@ export class PlannerActions {
                 .setIcon("pencil")
                 .onClick(() => {
                     new GenericEditModal(app, meta, (newMeta) => this.data.updateItemMeta(this.getTemplateDate(date), id, newMeta)).open();
+                })
+            )
+            .addItem((i) =>
+                i.setTitle("Remove")
+                .setIcon("x")
+                .onClick(() => {
+                    this.handleRemoveItem(app, this.getTemplateDate(date), id);
                 })
             )
 
