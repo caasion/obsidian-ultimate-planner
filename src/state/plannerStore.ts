@@ -77,14 +77,20 @@ function getIndexFromTDate(tDate: ISODate): number {
     return -1;
 }
 
+/** Returns a list of dates that are involved with a template. */
+function getDatesOfTemplate(tDate: ISODate): ISODate[] {
+    const tDateIndex = getIndexFromTDate(tDate);
+    const nextTDate = get(sortedTemplateDates)[tDateIndex + 1];
+    return eachDayOfInterval({start: parseISO(tDate), end: addDays(parseISO(nextTDate), -1)}).map(d => getISODate(d))
+
+}
+
 /** Removes an item from all cells of a template of a given date. Returns false if the given date doesn't have a template. A costly operation. */
 export function removeFromCellsInTemplate(tDate: ISODate, id: ItemID): boolean {
     if (!get(templates)[tDate]) return false;
 
     // Implementation: Finds the index of the current date, then add one, to find the next template date within sortedTemplateDates. Then, get an array of the dates to remove the item from. Finally, delete the item from every day the template is in.
-    const tDateIndex = getIndexFromTDate(tDate);
-    const nextTDate = get(sortedTemplateDates)[tDateIndex + 1];
-    const dates: ISODate[] = eachDayOfInterval({start: parseISO(tDate), end: addDays(parseISO(nextTDate), -1)}).map(d => getISODate(d))
+    const dates: ISODate[] = getDatesOfTemplate(tDate);
 
     dayData.update(data => {
         const current = {...data}
@@ -100,19 +106,22 @@ export function removeFromCellsInTemplate(tDate: ISODate, id: ItemID): boolean {
 export function removeTemplate(tDate: ISODate): boolean {
     if (!get(templates)[tDate]) return false;
 
-    templates.update(templates => {
-        const current = {...templates};
-        delete current[tDate];
+    const dates = getDatesOfTemplate(tDate);
+    dayData.update(data => {
+        const current = {...data};
+        dates.forEach(d => {
+            current[d] && delete current[d];
+        })
         return current;
     })
-    return true;
-    // Sort all templates
-    // Get next template
-    // Get date interval to next template
-    // Remove all entries in that date range
 
-    return false;
-    // Function not implemented.
+    templates.update(templates => {
+        const current = {...templates};
+        current[tDate] && delete current[tDate];
+        return current;
+    })
+
+    return true;
 }
 
 /** Gets the metadata of an item given a date with a template */
