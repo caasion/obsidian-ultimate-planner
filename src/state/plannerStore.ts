@@ -145,6 +145,33 @@ export function updateItemMeta(tDate: ISODate, id: ItemID, updates: Partial<Item
 }
 
 
+/** Sets the contents of a floatCell for a given item id.
+ * Doesn't matter if the cell was previously empty.
+ */
+export function setFloatCell(tDate: ISODate, id: ItemID, value: string): boolean {
+    if (!get(templates)[tDate]) return false;
+
+    templates.update(templates => ({
+        ...templates,
+        [tDate]: {
+            ...templates[tDate],
+            [id]: { ...templates[tDate][id], floatCell: value}
+        }
+    }))
+
+    return true;
+}
+
+
+/** Gets the contents of a float cell given an item id. 
+ * Returns an empty string if there is no template, item, or floatCell value found. */
+export function getFloatCell(tDate: ISODate, id: ItemID) {
+    const temps = get(templates);
+
+    return temps[tDate] && temps[tDate][id] && temps[tDate][id].floatCell ? temps[tDate][id].floatCell : "";
+}
+
+
 /** Sets the contents of a cell in a given date for given action item ID.
  * Doesn't matter if the cell was previously empty.
  */
