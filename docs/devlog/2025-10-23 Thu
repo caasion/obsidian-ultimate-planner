@@ -5,10 +5,9 @@ Today, I'm going to do a sprint to finish up the plugin into a shippable state. 
 - Ship.
 - Write out README.md, add demo to personal website
 
-
 Summary:
 - [Fix bug] The table is no longer reactive once I go too far back in time.
-- [Feature] Add Template
+- [Feature] Add Template ✔️ 327b3a4
 - [Feature] Remove Item
 - [Feature] Remove Template
 - [Feature] Collapsible Cells
@@ -19,3 +18,10 @@ Summary:
     - Fix settings options to curate fetching
 - [Feature] (Low Priority) Drag and drop in templates editor.
 - [Feature] Sortable views (i.e. isolate one action item across time)
+
+## Debugging
+After implementing the add template feature, the whole table broke. I think it's a problem with reactivity, but I'm going to debug this so it doesn't cause future problems.
+
+Update: A problem occurs when I add a new template and go back. Ultimate Planner doesn't seem to understand that a change has occurred with the templates and it's time to render things differently. however, the curious thing is that all the datas are processed correctly, but it is just a reactivity that is lacking.
+Furthermore, after a reload, The table works fine. However, it is during the transition between the templates that causes bugs.
+

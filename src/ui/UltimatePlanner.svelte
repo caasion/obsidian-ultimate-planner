@@ -3,7 +3,6 @@
 	import type { App } from "obsidian";
 	import type { CalendarPipeline } from "src/actions/calendarPipelines";
 	import type { PlannerActions } from "src/actions/itemActions";
-	import { templates } from "src/state/plannerStore";
 	import type { DataService, HelperService, ISODate, ItemID, ItemMeta, PluginSettings } from "src/types";
 	import { tick } from "svelte";
 	import DebugBlock from "./DebugBlock.svelte";
@@ -149,20 +148,24 @@
             </div>
 
             <div class="data-grid" style={`grid-template-columns: repeat(${columns}, 1fr);`}>
-                {#each {length: rows} as _, rowIndex}
-                    {#each dates as {date, tDate: tDate}, colIndex}
+                {#each {length: rows} as _, row (row)}
+                    {#each dates as {date, tDate: tDate}, col (col)}
+					{#if row < Object.keys(sortedTemplates[tDate]).length}
                         <div class="cell">
                             <GenericCell 
                                 {date}
-                                id={sortedTemplates[tDate][rowIndex].id}
-                                meta={sortedTemplates[tDate][rowIndex].meta}
+                                id={sortedTemplates[tDate][row].id}
+                                meta={sortedTemplates[tDate][row].meta}
                                 {tDate}
-                                row={rowIndex}
-                                col={colIndex}
-                                contextMenu={(e: MouseEvent) => plannerActions.openItemMenu(app, e, date, sortedTemplates[tDate][rowIndex].id, sortedTemplates[tDate][rowIndex].meta)}
+                                row={row}
+                                col={col}
+                                contextMenu={(e: MouseEvent) => plannerActions.openItemMenu(app, e, date, sortedTemplates[tDate][row].id, sortedTemplates[tDate][row].meta)}
                                 {focusCell}
                             />
                         </div>
+					{:else}
+						<div class="cell">-</div>
+					{/if}
                     {/each}
                 {/each}
             </div>
