@@ -2,7 +2,7 @@
 	import { toDate } from "date-fns";
 	import { MetadataCache, type App } from "obsidian";
 	import { PlannerActions } from "src/actions/itemActions";
-	import { templates } from "src/state/plannerStore";
+	import { sortedTemplateDates, templates } from "src/state/plannerStore";
 	import type { HelperService, ISODate, ItemID, ItemMeta } from "src/types";
 
     interface ViewProps {
@@ -13,12 +13,8 @@
 
     let { app, plannerActions, helper }: ViewProps = $props();
 
-    const sortedTemplateDates: ISODate[] = Object.keys($templates).sort();
-
     let selectedTemplate = $state<ISODate>(plannerActions.getTemplateDate(helper.getISODate(new Date())));
     let templateItems = $derived<Record<ItemID, ItemMeta>>($templates[selectedTemplate]);
-
-
 </script>
 
 <div class="container">
@@ -28,7 +24,7 @@
             <button>+ Add</button>
         </div>
         <div class="templates-selector">
-            {#each sortedTemplateDates as tDate} 
+            {#each $sortedTemplateDates as tDate} 
                 <div 
                     class="template" 
                     role="button"

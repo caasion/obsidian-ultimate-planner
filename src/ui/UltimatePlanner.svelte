@@ -87,7 +87,7 @@
 	let columnsMeta: ColumnMeta[] = $derived.by(() => {
 		return dates.map(date => ({
 			date,
-			templateDate: getTemplateDate(date),
+			tDate: plannerActions.getTemplateDate(date),
 		}));
 	});
 

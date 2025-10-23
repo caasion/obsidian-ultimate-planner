@@ -3,6 +3,7 @@ import type { ISODate, ItemID, ItemMeta } from "src/types";
 
 export const dayData = writable<Record<ISODate, Record<ItemID, string>>>({});
 export const templates = writable<Record<ISODate, Record<ItemID, ItemMeta>>>({});
+export const sortedTemplateDates = writable<ISODate[]>([]);
 
 /** Sets the template for a date.
  * Primarily used for initializing templates.

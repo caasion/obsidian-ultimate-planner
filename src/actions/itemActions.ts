@@ -5,6 +5,7 @@ import { addDays, parseISO, startOfDay } from 'date-fns';
 import { Menu, type App } from 'obsidian';
 import { GenericNewModal } from 'src/ui/GenericNewModal';
 import { GenericEditModal } from 'src/ui/GenericEditModal';
+import { sortedTemplateDates } from 'src/state/plannerStore';
 
 export interface PlannerServiceDeps {
     data: DataService;
@@ -25,16 +26,16 @@ export class PlannerActions {
 
     /** Uses binary search to get the template date for a given date. */
     public getTemplateDate(date: ISODate): ISODate {
-        const sortedTemplateDates: ISODate[] = Object.keys(get(this.data.templates)).sort();
+        const dates: ISODate[] = get(sortedTemplateDates);
 
 		// Implement binary search to find the template date that is the greatest date less than or equal to the date provided
 		let left = 0;
-		let right = sortedTemplateDates.length - 1;
+		let right = dates.length - 1;
 		let result: ISODate = "";
 
 		while (left <= right) {
 			const mid = Math.floor((left + right) / 2);
-			const midDate = sortedTemplateDates[mid];
+			const midDate = dates[mid];
 
 			if (midDate === date) {
 				return midDate;
