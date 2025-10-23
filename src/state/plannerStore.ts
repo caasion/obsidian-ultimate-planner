@@ -16,13 +16,13 @@ export function setTemplate(date: ISODate, newTemplate: Record<ItemID, ItemMeta>
 
 
 /** Adds an item to a template of a given date. Returns false if the given date doesn't have a template.  */
-export function addToTemplate(date: ISODate, id: ItemID, meta: ItemMeta): boolean {
-    if (!get(templates)[date]) return false;
+export function addToTemplate(tDate: ISODate, id: ItemID, meta: ItemMeta): boolean {
+    if (!get(templates)[tDate]) return false;
 
     templates.update(templates => ({
         ...templates,
-        [date]: {
-            ...templates[date],
+        [tDate]: {
+            ...templates[tDate],
             [id]: meta
         }
     }))
@@ -30,18 +30,18 @@ export function addToTemplate(date: ISODate, id: ItemID, meta: ItemMeta): boolea
     return true;
 }
 
-export function getTemplate(date: ISODate): Record<ItemID, ItemMeta> {
-    return get(templates)[date];
+export function getTemplate(tDate: ISODate): Record<ItemID, ItemMeta> {
+    return get(templates)[tDate];
 }
 
 
 /** Removes an item from a template of a given date. Returns false if the given date doesn't have a template. */
-export function removeFromTemplate(date: ISODate, id: ItemID): boolean {
-    if (!get(templates)[date]) return false;
+export function removeFromTemplate(tDate: ISODate, id: ItemID): boolean {
+    if (!get(templates)[tDate]) return false;
 
     templates.update(templates => {
         const current = {...templates};
-        delete current[date];
+        delete current[tDate];
         return current;
     })
     return true;
@@ -49,8 +49,8 @@ export function removeFromTemplate(date: ISODate, id: ItemID): boolean {
 
 
 /** Removes an item from all cells of a template of a given date. Returns false if the given date doesn't have a template. A costly operation. */
-export function removeFromCellsInTemplate(date: ISODate, id: ItemID): boolean {
-    if (!get(templates)[date]) return false;
+export function removeFromCellsInTemplate(tDate: ISODate, id: ItemID): boolean {
+    if (!get(templates)[tDate]) return false;
 
     // Sort all templates
     // Get next template
@@ -78,14 +78,14 @@ export function getItemMeta(tDate: ISODate, id: ItemID): ItemMeta {
 }
 
 /** Updates the metadata of an item given a date with a template, the item's id, and a partial object containing the updates. Returns false if given date doesn't have a template. */
-export function updateItemMeta(date: ISODate, id: ItemID, updates: Partial<ItemMeta>): boolean {
-    if (!get(templates)[date]) return false;
+export function updateItemMeta(tDate: ISODate, id: ItemID, updates: Partial<ItemMeta>): boolean {
+    if (!get(templates)[tDate]) return false;
 
     templates.update(templates => ({
         ...templates,
-        [date]: {
-            ...templates[date],
-            [id]: { ...templates[date][id], ...updates } as ItemMeta
+        [tDate]: {
+            ...templates[tDate],
+            [id]: { ...templates[tDate][id], ...updates } as ItemMeta
         }
     }))
 
