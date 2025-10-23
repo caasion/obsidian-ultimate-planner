@@ -1,0 +1,21 @@
+Today, I'm going to do a sprint to finish up the plugin into a shippable state. Here's the plan:
+- Implement the rest of the features
+- Try out plugin (from installation)
+- Fix bugs if needed
+- Ship.
+- Write out README.md, add demo to personal website
+
+
+Summary:
+- [Fix bug] The table is no longer reactive once I go too far back in time.
+- [Feature] Add Template
+- [Feature] Remove Item
+- [Feature] Remove Template
+- [Feature] Collapsible Cells
+- [Feature] Float Cell (for unscheduled tasks)
+- [Feature] Calendar Features
+    - Fetch on creation
+    - Button to fetch calendar on command
+    - Fix settings options to curate fetching
+- [Feature] (Low Priority) Drag and drop in templates editor.
+- [Feature] Sortable views (i.e. isolate one action item across time)

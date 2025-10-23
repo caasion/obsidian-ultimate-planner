@@ -3,9 +3,10 @@ import { get } from 'svelte/store';
 import { CalendarPipeline } from './calendarPipelines';
 import { addDays, parseISO, startOfDay } from 'date-fns';
 import { Menu, type App } from 'obsidian';
-import { GenericNewModal } from 'src/ui/GenericNewModal';
+import { NewItemModal } from 'src/ui/GenericNewModal';
 import { GenericEditModal } from 'src/ui/GenericEditModal';
 import { sortedTemplateDates } from 'src/state/plannerStore';
+import { NewTemplateModal } from 'src/ui/GenericNewModal';
 
 export interface PlannerServiceDeps {
     data: DataService;
@@ -71,6 +72,12 @@ export class PlannerActions {
         }
     }
 
+    /** Handles the create of a new template (modal and creation). */
+    public handleNewTemplate(app: App) {
+        new NewTemplateModal(app, this.helpers.getISODate(new Date()), (date) => this.data.setTemplate(date, {})).open();
+    }
+
+    /** Creates and opens the context menu for creating a new item. */
     public newRowContextMenu(app: App, evt: MouseEvent, tDate: ISODate): void {
         evt.preventDefault();
         evt.stopPropagation();
@@ -82,14 +89,14 @@ export class PlannerActions {
             i.setTitle("Create New Action Item")
             .setIcon("add")
             .onClick(() => {
-                new GenericNewModal(app, "action", tDate, (date, meta) => this.newItem(date, meta)).open();
+                new NewItemModal(app, "action", tDate, (date: ISODate, meta: ItemMeta) => this.newItem(date, meta)).open();
             })
         )
         .addItem((i) =>
             i.setTitle("Add New Remote Calendar")
             .setIcon("add")
             .onClick(() => {
-                new GenericNewModal(app, "calendar", tDate, (date, meta) => this.newItem(date, meta as CalendarMeta)).open();
+                new NewItemModal(app, "calendar", tDate, (date: ISODate, meta: ItemMeta) => this.newItem(date, meta as CalendarMeta)).open();
             })
         )
         
@@ -97,6 +104,7 @@ export class PlannerActions {
         menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
     }
 
+    /** Creates and opens the context menu for an item. */
     public openItemMenu(app: App, evt: MouseEvent, date: ISODate, id: ItemID, meta: ItemMeta) {
         evt.preventDefault();
         evt.stopPropagation();
@@ -120,6 +128,7 @@ export class PlannerActions {
         menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
     }
 
+    /** Swaps two items within a template given the id of the first item, and the distance to swap the item to. A costly operation. */
     public swapItem(tDate: ISODate, id: ItemID, dist: number): boolean {
         const currOrder = this.data.getItemMeta(tDate, id).order;
         const newOrder = currOrder + dist;

@@ -21,7 +21,7 @@
     <div class="section">
         <div class="header">
             <h2>Templates</h2>
-            <button>+ Add</button>
+            <button onclick={() => plannerActions.handleNewTemplate(app)}>+ New</button>
         </div>
         <div class="templates-selector">
             {#each $sortedTemplateDates as tDate} 
