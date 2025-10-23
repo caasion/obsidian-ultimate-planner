@@ -10,4 +10,35 @@ Next Steps:
 
 Instead of making things look pretty imperfect, I'm going to focus on implementing features and optimizing the app. I wasn't planning on working on this app for a little more, but I really want to get the basics down so I can start focusing on other projects that really showcase my skills.
 
-I'm going to start by fixing the UI because right now the rows are out of sync. I have been talking to chat GPT to find a solution that will work, so I'll see how it goes.
+I'm going to start by fixing the UI because right now the rows are out of sync. I have been talking to chat GPT to find a solution that will work, so I'll see how it goes. Done in a8c7754. To be honest, I mostly relied on Chattypetty to create the new table structure, because it is a lot of CSS and HTML to handle, and I didn't think that was worth my time. However, I did spend time proof reading the code and making sure that it is what I want and not random jargon.
+
+I continued to work on my templates editor, adding a context menu for editing an action item, and adding buttons to sort the action items. However, it is taking almost half a second for the swap operation to occur, I definitely need to optimize it. I don't think I will add a dragon and drop library for now to keep things simple. I also added colors for my template. (a8c7754)
+
+I implemented get item meta because I needed it for something. I don't remember what. bd1db57
+
+Small change: Removed Add button in UPV and added "Templates Editor." 3b6817d
+
+I accidentally committed modo changes into my style templates editor comment, but and these two commits, I not only styled the templates editor, but I also fixed the swapping of items and the item creation prompt. d1fcdbf, 6488ef6, d69cfa5
+
+I found that multiple functions now make use of a sorted array of template dates, so i'm going to try to make it derived store. It will be subscribed to during runtime. 6a391de It was a lot easier to implement this. Along the way, I also stopped using a reactive version of `getTemplateDate()`, and instead centralized it within `itemActions.ts`. Dependency Injection for the win!
+
+I did some refactoring along the way: 42da572 27b58a4
+
+Summary:
+- [Fix bug] The table is no longer reactive once I go too far back in time.
+- [Optimization] I should keep a state of a list of the sorted templates instead of trying to sort the templates every single time. ✔️
+- [Fix bug] Correctly insert a date when I add an item to a template ✔️
+- [Fix bug] The table is no longer aligned. ✔️
+- [Feature] Template manipulation (which will probably require a new UI)
+    - Think about the template manipulation actions that users will need ✔️
+    - Design a UI flow for these actions ✔️
+    - Implement the Logic ✔️
+- [Feature] Remove Item
+- [Feature] Remove Template
+- [Feature] Collapsible Cells
+- [Feature] Float Cell (for unscheduled tasks)
+- [Feature] Calendar Features
+    - Fetch on creation
+    - Button to fetch calendar on command
+    - Fix settings options to curate fetching
+- [Feature] (Low Priority) Drag and drop in templates editor.
