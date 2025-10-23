@@ -57,11 +57,11 @@ export class PlannerActions {
         const templateDate = this.getTemplateDate(date); 
         this.data.templates.update(templates => {
             const currentMetaRecord = templates[templateDate] || {};
-            const newMetaRecord = { ...currentMetaRecord, [meta.id]: meta };
+            const newMetaRecord = { ...currentMetaRecord, [meta.id]: {...meta, order: Object.keys(currentMetaRecord).length } };
             return { ...templates, [templateDate]: newMetaRecord };
         });
 
-        if ('url' in meta) { // An indicator of a calendar item
+        if (meta.type === "calendar") {
             this.calendarPipelines.fetchInGracePeriod(
                 meta, 
                 parseISO(date), 
@@ -70,27 +70,28 @@ export class PlannerActions {
         }
     }
 
-    public newRowContextMenu(app: App, evt: MouseEvent) {
+    public newRowContextMenu(app: App, evt: MouseEvent, tDate: ISODate): void {
         evt.preventDefault();
         evt.stopPropagation();
     
         const menu = new Menu();
-    
+
         menu
-            .addItem((i) =>
-                i.setTitle("Create New Action Item")
-                .setIcon("add")
-                .onClick(() => {
-                    new GenericNewModal(app, "action", (date, meta) => this.newItem(date, meta)).open();
-                })
-            )
-            .addItem((i) =>
-                i.setTitle("Add New Remote Calendar")
-                .setIcon("add")
-                .onClick(() => {
-                    new GenericNewModal(app, "calendar", (date, meta) => this.newItem(date, meta as CalendarMeta)).open();
-                })
-            )
+        .addItem((i) =>
+            i.setTitle("Create New Action Item")
+            .setIcon("add")
+            .onClick(() => {
+                new GenericNewModal(app, "action", tDate, (date, meta) => this.newItem(date, meta)).open();
+            })
+        )
+        .addItem((i) =>
+            i.setTitle("Add New Remote Calendar")
+            .setIcon("add")
+            .onClick(() => {
+                new GenericNewModal(app, "calendar", tDate, (date, meta) => this.newItem(date, meta as CalendarMeta)).open();
+            })
+        )
+        
     
         menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
     }
@@ -118,4 +119,16 @@ export class PlannerActions {
         menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
     }
 
+    public swapItem(tDate: ISODate, id: ItemID, dist: number): boolean {
+        const currOrder = this.data.getItemMeta(tDate, id).order;
+        const newOrder = currOrder + dist;
+        const swapTargetID = Object.values(this.data.getTemplate(tDate)).find(t => t.order == newOrder)?.id;
+
+        if (!swapTargetID) return false;
+
+        this.data.updateItemMeta(tDate, id, {order: newOrder});
+        this.data.updateItemMeta(tDate, swapTargetID, {order: currOrder});
+
+        return true;
+    }
 }

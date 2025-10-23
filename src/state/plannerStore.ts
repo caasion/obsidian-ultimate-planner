@@ -48,13 +48,27 @@ export function removeFromTemplate(date: ISODate, id: ItemID): boolean {
 }
 
 
-/** Removes an item from all cells of a template of a given date. Returns false if the given date doesn't have a template. */
+/** Removes an item from all cells of a template of a given date. Returns false if the given date doesn't have a template. A costly operation. */
 export function removeFromCellsInTemplate(date: ISODate, id: ItemID): boolean {
     if (!get(templates)[date]) return false;
 
-    
+    // Sort all templates
+    // Get next template
+    // Get date interval to next template
+    // Remove all entries of a cell in a date
+
 
     return true;
+    // Function not implemented.
+}
+
+export function removeTemplate(tDate: ISODate): boolean {
+    // Sort all templates
+    // Get next template
+    // Get date interval to next template
+    // Remove all entries in that date range
+
+    return false;
     // Function not implemented.
 }
 
