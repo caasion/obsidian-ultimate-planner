@@ -26,9 +26,9 @@
 	let showTemplateEditor = $state<boolean>(false);
 
 	/* Table Rendering */
-	const weekFormat = true;
-	const columns = 7;
-	const blocks = 2;
+	const weekFormat = settings.weekFormat;
+	const columns = settings.columns;
+	const blocks = settings.blocks;
 
 	let anchor = $state<ISODate>(helper.getISODate(new Date()));
 

@@ -16,32 +16,70 @@ export class UltimatePlannerPluginTab extends PluginSettingTab {
 
         containerEl.empty();
 
+        new Setting(containerEl).setName('Refresh view after changing settings.')
+
+        new Setting(containerEl).setName('Table Settings').setHeading();
+        
         new Setting(containerEl)
-            .setName('Start week on')
-            .addDropdown((dropdown) => {
-                dropdown
-                    .addOption("0", "Sunday")
-                    .addOption("1", "Monday")
-                    .setValue(String(this.plugin.settings.weekStartOn))
+            .setName('Week Format')
+            .setDesc('whether to render dates in a week format')
+            .addToggle((toggle) => {
+                toggle
+                    .setValue(this.plugin.settings.weekFormat)
                     .onChange(async (value) => {
-                        this.plugin.settings.weekStartOn = value !== "" ? Number(value) as Day: 0;
+                        this.plugin.settings.weekFormat = value;
+                        if (this.plugin.settings.weekFormat) {
+                            this.plugin.settings.columns = 7;
+                        }
                         await this.plugin.queueSave();
                     })
 
             });
 
+
         new Setting(containerEl)
-            .setName('# of weeks to render')
+        .setName('Start week on')
+        .addDropdown((dropdown) => {
+            dropdown
+                .addOption("0", "Sunday")
+                .addOption("1", "Monday")
+                .setValue(String(this.plugin.settings.weekStartOn))
+                .onChange(async (value) => {
+                    this.plugin.settings.weekStartOn = value !== "" ? Number(value) as Day: 0;
+                    await this.plugin.queueSave();
+                })
+
+        });
+
+        
+
+        new Setting(containerEl)
+            .setName('# of blocks to render')
             .addSlider(slider => 
                 slider
                     .setDynamicTooltip()
-                    .setLimits(1, 6, 1)
-                    .setValue(this.plugin.settings.weeksToRender)
+                    .setLimits(1, 4, 1)
+                    .setValue(this.plugin.settings.blocks)
                     .onChange(async (value) => {
-                        this.plugin.settings.weeksToRender = value;
+                        this.plugin.settings.blocks = value;
                         await this.plugin.queueSave();
                     })
             )
+
+        new Setting(containerEl)
+            .setName('# of columns to render')
+            .addSlider(slider => 
+                slider
+                    .setDynamicTooltip()
+                    .setLimits(1, 10, 1)
+                    .setValue(this.plugin.settings.columns)
+                    .onChange(async (value) => {
+                        this.plugin.settings.columns = value;
+                        await this.plugin.queueSave();
+                    })
+            )
+
+        new Setting(containerEl).setName('Data Saving').setHeading();
 
         new Setting(containerEl)
             .setName('Autosave debounce (ms)')
