@@ -173,7 +173,7 @@
 		<input type="date" bind:value={anchor} />
 	</div>
 	<div class="new-ai">
-		<button onclick={(evt) => plannerActions.newRowContextMenu(app, evt)}>+ Add</button>
+		<button onclick={(evt) => plannerActions.newRowContextMenu(app, evt)}>Templates Editor</button>
 	</div>
 </div>
 <div class="main-grid-container">
