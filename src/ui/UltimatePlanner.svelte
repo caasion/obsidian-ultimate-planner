@@ -7,6 +7,7 @@
 	import { tick } from "svelte";
 	import DebugBlock from "./DebugBlock.svelte";
 	import GenericCell from "./GenericCell.svelte";
+	import { templates } from "src/state/plannerStore";
 
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
@@ -44,6 +45,8 @@
 	}
 
 	let columnsMeta: ColumnMeta[] = $derived.by(() => {
+		const _ = $templates; // trick to ensure reactivity.
+
 		return dates.map(date => ({
 			date,
 			tDate: plannerActions.getTemplateDate(date),
