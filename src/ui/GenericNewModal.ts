@@ -29,6 +29,7 @@ export class NewItemModal extends Modal {
             } as ItemMeta;
         }
         
+        new Setting(contentEl).setName("Create New Item").setHeading();
 
         new Setting(contentEl)
             .setName("Name: ")
@@ -70,13 +71,14 @@ export class NewTemplateModal extends Modal {
 
         const { contentEl } = this
 
-        
+        new Setting(contentEl).setName("Create New Template").setHeading();
 
         const dateContainer = document.createElement("div");
             dateContainer.setCssStyles({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
+                margin: "10px 0px",
             })
         const dateLabel = document.createElement("label");
             dateLabel.textContent = "Date: ";
