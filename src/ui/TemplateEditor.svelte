@@ -14,7 +14,6 @@
     let { app, plannerActions, helper }: ViewProps = $props();
 
     let selectedTemplate = $state<ISODate>(plannerActions.getTemplateDate(helper.getISODate(new Date())));
-    let templateItems = $derived<Record<ItemID, ItemMeta>>($templates[selectedTemplate]);
 </script>
 
 <div class="container">
@@ -51,7 +50,7 @@
     <div class="section">
         <h2>Template {selectedTemplate}</h2>
         <div class="items-container">
-            {#each Object.entries(templateItems).sort(([, aMeta], [, bMeta]) => aMeta.order - bMeta.order) as [id, meta] (id) }
+            {#each Object.entries($templates[selectedTemplate]).sort(([, aMeta], [, bMeta]) => aMeta.order - bMeta.order) as [id, meta] (id) }
             <div class="item">
                 <div 
                     class="item-label"
