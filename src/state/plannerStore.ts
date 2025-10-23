@@ -1,5 +1,7 @@
 import { get, writable } from "svelte/store";
 import type { ISODate, ItemID, ItemMeta } from "src/types";
+import { addDays, eachDayOfInterval } from "date-fns";
+import { getISODate } from "src/actions/helpers";
 
 export const dayData = writable<Record<ISODate, Record<ItemID, string>>>({});
 export const templates = writable<Record<ISODate, Record<ItemID, ItemMeta>>>({});
@@ -42,28 +44,69 @@ export function removeFromTemplate(tDate: ISODate, id: ItemID): boolean {
 
     templates.update(templates => {
         const current = {...templates};
-        delete current[tDate];
+        delete current[tDate][id];
         return current;
     })
     return true;
 }
 
 
+/** Uses binary search to get the index of a template date within sortedTemplateDates. */
+function getIndexFromTDate(tDate: ISODate): number {
+    const dates: ISODate[] = get(sortedTemplateDates);
+
+    // Implement binary search to find the template date that is the greatest date less than or equal to the date provided
+    let left = 0;
+    let right = dates.length - 1;
+    let result: number = 0;
+
+    while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        const midDate = dates[mid];
+
+        if (midDate === tDate) {
+            return mid;
+        }
+        if (midDate < tDate) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    return -1;
+}
+
 /** Removes an item from all cells of a template of a given date. Returns false if the given date doesn't have a template. A costly operation. */
 export function removeFromCellsInTemplate(tDate: ISODate, id: ItemID): boolean {
     if (!get(templates)[tDate]) return false;
 
-    // Sort all templates
-    // Get next template
-    // Get date interval to next template
-    // Remove all entries of a cell in a date
+    // Implementation: Finds the index of the current date, then add one, to find the next template date within sortedTemplateDates. Then, get an array of the dates to remove the item from. Finally, delete the item from every day the template is in.
+    const tDateIndex = getIndexFromTDate(tDate);
+    const nextTDate = get(sortedTemplateDates)[tDateIndex + 1];
+    const dates: ISODate[] = eachDayOfInterval({start: tDate, end: addDays(nextTDate, -1)}).map(d => getISODate(d))
+    console.log(dates);
 
+    dayData.update(data => {
+        const current = {...data}
+        dates.forEach(d => {
+            delete current[d][id];
+        })
+        return current;
+    })
 
     return true;
-    // Function not implemented.
 }
 
 export function removeTemplate(tDate: ISODate): boolean {
+    if (!get(templates)[tDate]) return false;
+
+    templates.update(templates => {
+        const current = {...templates};
+        delete current[tDate];
+        return current;
+    })
+    return true;
     // Sort all templates
     // Get next template
     // Get date interval to next template
