@@ -116,7 +116,7 @@ export class PlannerActions {
     }
 
     /** Creates and opens the context menu for creating a new item. */
-    public newRowContextMenu(app: App, evt: MouseEvent, tDate: ISODate): void {
+    public newItemMenu(app: App, evt: MouseEvent, tDate: ISODate): void {
         evt.preventDefault();
         evt.stopPropagation();
     
