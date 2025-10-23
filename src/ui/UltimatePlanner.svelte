@@ -150,7 +150,9 @@
             <div class="data-grid" style={`grid-template-columns: repeat(${columns}, 1fr);`}>
                 {#each {length: rows} as _, row (row)}
                     {#each dates as {date, tDate: tDate}, col (col)}
-					{#if row < Object.keys(sortedTemplates[tDate]).length}
+					{#if tDate === ""}
+						<div class="cell">-</div>
+					{:else if row < Object.keys(sortedTemplates[tDate]).length}
                         <div class="cell">
                             <GenericCell 
                                 {date}
