@@ -29,7 +29,7 @@
 > 
     <!-- The condition to render the label for the item. -->
     {#if (col == 0 && meta.label !== "") || tDate == date}
-        <div class="row-label">{meta.label}</div>
+        <div class="row-label">{meta.type == "calendar" ? "📅" : ""} {meta.label}</div>
     {/if}
     <InputCell {date} rowID={id} {setCell} {getCell} {row} {col} {focusCell} />
 </div>
