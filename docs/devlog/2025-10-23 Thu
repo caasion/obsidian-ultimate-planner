@@ -6,10 +6,10 @@ Today, I'm going to do a sprint to finish up the plugin into a shippable state. 
 - Write out README.md, add demo to personal website
 
 Summary:
-- [Fix bug] The table is no longer reactive once I go too far back in time.
+- [Fix bug] The table is no longer reactive once I go too far back in time. ✔️ a5b0a36, f4e4cc1
 - [Feature] Add Template ✔️ 327b3a4
-- [Feature] Remove Item
-- [Feature] Remove Template
+- [Feature] Remove Item ✔️ 41b54bc, 889a9d0, c3bbc0e
+- [Feature] Remove Template ✔️ 01810b2, dcff423
 - [Feature] Collapsible Cells
 - [Feature] Float Cell (for unscheduled tasks)
 - [Feature] Calendar Features
@@ -18,10 +18,77 @@ Summary:
     - Fix settings options to curate fetching
 - [Feature] (Low Priority) Drag and drop in templates editor.
 - [Feature] Sortable views (i.e. isolate one action item across time)
+- [Optimization] Navigating between dates take a long time.
 
-## Debugging
+## Debugging 1 ✔️
 After implementing the add template feature, the whole table broke. I think it's a problem with reactivity, but I'm going to debug this so it doesn't cause future problems.
 
-Update: A problem occurs when I add a new template and go back. Ultimate Planner doesn't seem to understand that a change has occurred with the templates and it's time to render things differently. however, the curious thing is that all the datas are processed correctly, but it is just a reactivity that is lacking.
-Furthermore, after a reload, The table works fine. However, it is during the transition between the templates that causes bugs.
+Update: A problem occurs when I add a new template and go back. (1) Ultimate Planner doesn't seem to understand that a change has occurred with the templates and it's time to render things differently. however, the curious thing is that all the datas are processed correctly, but it is just a reactivity that is lacking.
+Furthermore, after a reload, The table works fine. However, it is (2) during the transition between the templates that causes bugs.
 
+Fixed (2) in a5b0a36. Need to test if (1) is fixed. 
+
+Update: a5b0a36 fixed (1) too. Also, tested a "SUPER LONG ACTION ITEM NAME THAT OVERFLOWS." Template editor and table renders as expected.
+
+Update: Another problem is that (3) when I go too far back, where a template does not exist, the table does not know how to handle it.
+
+Fixed (3) in f4e4cc1.
+
+Finished fixing bugs with reactivity and table rendering.
+
+I've noticed that navigating between dates takes a really long time though, I probably want to optimize the process if I have time.
+
+## Thought about optimization ✔️
+instead of doing a modified binary search every single time. I want to find the template for a date, what if I make a new array with that date within. Then, I use binary search to find the index of that date. Then, I access the date that is one less in index then the inserted date, and that will be our template date. I wonder if this is more efficient.
+
+## Journal: Remove Item & Template ✔️
+I'm glad I fought through the implementation before trying to do it, because I have a clear picture of how I can approach these functions now. 
+
+However, I'm experiencing difficulties in getting the deletion to work properly. In particular, i've noticed that given one ISO date, the ISO date that I get is always one less than what I need to. This is weird because I haven't had this problem before, so it would be nice for me to know when this happens so I can avoid any errors.
+
+I found out that if I feed `date-fns` an ISO date, then it will convert it to a `Date` object, which is correct in the international UTC-0 time zone. However, because I am in UTC-4, the date is automatically adjusted to my local time zone, which happens to be yesterday. Then, Javascript will convert the date time into a Date object, which makes it so there's a one day difference.
+
+The solution is to parse the ISO with the FNS before feeding it into any functions.
+
+I'm glad this happened, because it helped me fix a bug that wouldn't have been intentional. The real issue was that I was attempting to run the delete command on an object that does not exist. I fix this by adding some preconditions before I can delete.
+`delete current[d][id]` -> `current[d] && current[d][id] && delete current[d][id]`
+
+After learning from How to remove one item from a template, implementing remove template function is so much easier. I just had to do the same things and pay attention to the same things
+
+## Debugging 2
+Table is not reactive with any template changes:
+- Add/Remove Template
+- Add/Remove Item
+- Reorder Item
+
+Diagnosis 1: `columnsMeta` and `sortedTemplates` is not changing.
+
+Previously, I had reactive versions of functions of in my components, but I would like to avoid this if possible, so I'm asking Gemini what I can do to fix this issue.
+
+Gemini suggested a small trick to ensure reactivity, and it works really well and is super compact. 
+`const _ = $templates; // trick to ensure reactivity.` within the `$derived.by()` callback function. 
+
+- Add/Remove Template ✔️ (❌ See "Debugging 3)
+- Add/Remove Item ✔️
+- Reorder Item ✔️
+
+Fixed in eb5f125.
+
+## Debugging 3
+I didn't account for templates that go on indefinitely. What happens if we delete these templates and how can we make sure we don't have an infinite loop? What if the next template doesn't exist?
+
+A trick would be to save the previous template's cells instead of removing infinite cells, but this operation can be also very costly...
+
+## Journal: Float Cell Implementation
+I thought this would be a really simple feature to implement, but I actually have to think about the UI. This is because I can have multiple templates within one block, so I can't just display the float cells in one column as one row may have two or more action items. 
+
+As such, I'm thinking about having something below the heathers but on top of the calendar where I can have float cells for every unique action item within the planner view. This will be a row based table where each column is in action item and there'll only be one cell for every action item.
+
+I probably need to design a new interface for this, and I'm going to use a separate component for it because the variables that it depends on is vastly different from the planner view itself.
+
+![Float Cells Ideation](<2025-10-23 Float Cells>)
+
+Here's what I've come up with. On second thought, I realize it's better for me to implement collapsible cells first, because I can apply that concept to these float cells too.
+
+## Journal: Collapsible Cell Implementation
+It's a lot harder to implement collapsible cells than I thought 'cause I need to take advantage of local storage and create a store and think through how I'm going to store the state persistence. I did ask Gemini how I can do this, but I don't think it's worth my effort to implement this feature right now.
