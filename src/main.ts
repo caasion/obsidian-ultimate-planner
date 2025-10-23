@@ -86,6 +86,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 		})
 
 		this.plannerActions = new PlannerActions({
+			settings: this.settings,
 			data: this.dataService, 
 			helpers: this.helperService, 
 			calendarPipelines: this.calendarPipeline})

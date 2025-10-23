@@ -1,8 +1,8 @@
-import type { ISODate, DataService, HelperService, ItemMeta, CalendarMeta, ItemID } from '../types';
+import type { ISODate, DataService, HelperService, ItemMeta, CalendarMeta, ItemID, PluginSettings } from '../types';
 import { get } from 'svelte/store';
 import { CalendarPipeline } from './calendarPipelines';
 import { addDays, parseISO, startOfDay } from 'date-fns';
-import { Menu, type App } from 'obsidian';
+import { Menu, Notice, type App } from 'obsidian';
 import { NewItemModal } from 'src/ui/GenericNewModal';
 import { GenericEditModal } from 'src/ui/GenericEditModal';
 import { sortedTemplateDates } from 'src/state/plannerStore';
@@ -10,17 +10,20 @@ import { NewTemplateModal } from 'src/ui/GenericNewModal';
 import { ConfirmationModal } from 'src/ui/ConfirmationModal';
 
 export interface PlannerServiceDeps {
+    settings: PluginSettings;
     data: DataService;
     helpers: HelperService;
     calendarPipelines: CalendarPipeline;
 }
 
 export class PlannerActions {
+    private settings: PluginSettings;
     private data: DataService;
     private helpers: HelperService;
     private calendarPipelines: CalendarPipeline;
 
     constructor(deps: PlannerServiceDeps) {
+        this.settings = deps.settings;
         this.data = deps.data;
         this.helpers = deps.helpers;
         this.calendarPipelines = deps.calendarPipelines;
@@ -65,11 +68,17 @@ export class PlannerActions {
         });
 
         if (meta.type === "calendar") {
+            const from = parseISO(date);
+            const to = addDays(from, this.settings.lookaheadDays)
+
             this.calendarPipelines.fetchInGracePeriod(
-                meta, 
-                parseISO(date), 
-                addDays(startOfDay(Date.now()), 60)
+                templateDate,
+                meta.id, 
+                from, 
+                addDays(to, this.settings.lookaheadDays)
             );
+
+            new Notice(`Fetched Calendar "${meta.label}" from ${date} to ${this.helpers.getISODate(to)}.`);
         }
     }
 
@@ -160,6 +169,24 @@ export class PlannerActions {
                     this.handleRemoveItem(app, this.getTemplateDate(date), id);
                 })
             )
+
+        if (meta.type === "calendar") {
+            const from = parseISO(date);
+            const to = addDays(from, this.settings.lookaheadDays)
+
+            menu.addItem((i) => 
+                i.setTitle(`Fetch Calendar (from ${date} to ${this.helpers.getISODate(to)})`)
+                .setIcon("pencil")
+                .onClick(() => {
+                    this.calendarPipelines.fetchInGracePeriod(
+                        this.getTemplateDate(date),
+                        meta.id, 
+                        from, 
+                        to
+                    );
+                })
+            )
+        }
 
         menu.showAtPosition({ x: evt.clientX, y: evt.clientY });
     }
