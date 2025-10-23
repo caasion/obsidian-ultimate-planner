@@ -1,19 +1,24 @@
 <script lang="ts">
+	import { toDate } from "date-fns";
+	import { MetadataCache, type App } from "obsidian";
 	import { PlannerActions } from "src/actions/itemActions";
 	import { templates } from "src/state/plannerStore";
 	import type { HelperService, ISODate, ItemID, ItemMeta } from "src/types";
 
     interface ViewProps {
+        app: App;
         plannerActions: PlannerActions;
         helper: HelperService;
     }
 
-    let { plannerActions, helper }: ViewProps = $props();
+    let { app, plannerActions, helper }: ViewProps = $props();
 
     const sortedTemplateDates: ISODate[] = Object.keys($templates).sort();
 
     let selectedTemplate = $state<ISODate>(plannerActions.getTemplateDate(helper.getISODate(new Date())));
     let templateItems = $derived<Record<ItemID, ItemMeta>>($templates[selectedTemplate]);
+
+
 </script>
 
 <div class="container">
@@ -39,14 +44,22 @@
     </div>
     <div class="section">
         <h2>Template {selectedTemplate}</h2>
-        This is another div
-        <div class="item-container">
-            {#each Object.entries(templateItems) as [id, meta] (id) }
-                <div class="item">
+        <div class="items-container">
+            {#each Object.entries(templateItems).sort(([, aMeta], [, bMeta]) => aMeta.order - bMeta.order) as [id, meta] (id) }
+            <div class="item">
+                <div 
+                    class="item-label"
+                    role="button"
+                    tabindex="0"
+                    style="color: {meta.color};"
+                    onclick={(e: MouseEvent) => plannerActions.openItemMenu(app, e, selectedTemplate, id, meta)}
+                    onkeydown={(e) => (e.key === 'Enter' || e.key === ' ')}
+                >
                     {meta.label}
                 </div>
+                
             {/each}
-            
+            <button onclick={(e) => plannerActions.newRowContextMenu(app, e, selectedTemplate)}>+ Add</button>
         </div>
     </div>
 </div>
@@ -74,6 +87,11 @@
         align-items: baseline;
     }
 
+    .items-container {
+        display: flex;
+        flex-direction: column;
+    }
+
     .item {
         border: 2px solid #acacac;
         border-style: solid;
@@ -81,6 +99,17 @@
         width: 100%;
         padding: 5px;
         margin: 5px 0px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .item-label {
+        flex-grow: 2;
+    }
+
+    .item:hover {
+        background-color: var(--theme-color-translucent-01);
     }
 
     .template {

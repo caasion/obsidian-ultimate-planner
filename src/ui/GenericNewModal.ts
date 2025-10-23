@@ -3,22 +3,26 @@ import { generateID } from "src/actions/helpers";
 import type { ISODate, ActionItemMeta, CalendarMeta, ItemType, ItemMeta } from "src/types";
 
 export class GenericNewModal extends Modal {
-    constructor(app: App, type: ItemType, onSubmit: (date: ISODate, meta: ItemMeta) => void) {
+    constructor(app: App, type: ItemType, tDate: ISODate, onSubmit: (date: ISODate, meta: ItemMeta) => void) {
         super(app);
 
         const { contentEl } = this;
-        let date: ISODate;
+        let date: ISODate = tDate;
         let meta: ItemMeta;
 
         if (type === "action") {
             meta = {
                 id: generateID("ai-"),
+                type: "action",
+                order: -1, // We set the order in when newItem is called
                 label: "",
                 color: "",
             } as ItemMeta;
         } else if (type === "calendar") {
             meta = {
                 id: generateID("cal-"),
+                type: "calendar",
+                order: -1,
                 label: "",
                 color: "",
                 url: "",
@@ -50,16 +54,6 @@ export class GenericNewModal extends Modal {
                 .setName("Remote Calendar URL: ")
                 .addText((t) => t.onChange((v) => ((meta as CalendarMeta).url = v)));
         }
-
-        const dateLabel = document.createElement("label");
-        dateLabel.textContent = "Date: ";
-        const dateInput = document.createElement("input");
-        dateInput.type = "date";
-        dateInput.addEventListener("input", (e) => {
-            date = (e.target as HTMLInputElement).value;
-        });
-        contentEl.appendChild(dateLabel);
-        contentEl.appendChild(dateInput);
 
         new Setting(contentEl)
             .addButton((b) => b.setButtonText("Save").setCta().onClick(() => {
