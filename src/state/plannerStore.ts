@@ -57,6 +57,9 @@ export function removeFromCellsInTemplate(date: ISODate, id: ItemID): boolean {
 }
 
 /** Gets the metadata of an item given a date with a template */
+export function getItemMeta(tDate: ISODate, id: ItemID): ItemMeta {
+    return get(templates)[tDate][id];
+}
 
 /** Updates the metadata of an item given a date with a template, the item's id, and a partial object containing the updates. Returns false if given date doesn't have a template. */
 export function updateItemMeta(date: ISODate, id: ItemID, updates: Partial<ItemMeta>): boolean {
