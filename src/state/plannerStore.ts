@@ -98,7 +98,14 @@ export function removeFromCellsInTemplate(tDate: ISODate, id: ItemID): boolean {
     dayData.update(data => {
         const current = {...data}
         dates.forEach(d => {
-            current[d] && current[d][id] && delete current[d][id];
+            if (current[d]) {
+                current[d][id] && delete current[d][id];
+
+                // Clean up the dayData entry if there is nothing in that day
+                if (Object.keys(current[d]).length === 0) {
+                    delete current[d];
+                }
+            }
         })
         return current;
     })
