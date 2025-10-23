@@ -25,15 +25,25 @@
         </div>
         <div class="templates-selector">
             {#each $sortedTemplateDates as tDate} 
-                <div 
-                    class="template" 
+                <div class="template">
+                    <div 
+                    class="template-label" 
                     role="button"
                     tabindex="0"
                     onclick={() => selectedTemplate = tDate}
                     onkeydown={(e) => (e.key === 'Enter' || e.key === ' ' && (selectedTemplate = tDate))}
-                >
-                    {tDate}
+                    >
+                        {tDate}
+                    </div>
+                    <div>
+                        <button
+                            onclick={() => plannerActions.handleRemoveTemplate(app, tDate)}
+                        >
+                            ×
+                        </button>
+                    </div>
                 </div>
+                
             {/each}
         </div>
 
@@ -88,6 +98,18 @@
         align-items: baseline;
     }
 
+    .template {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 5px;
+    }   
+
+    .template:hover {
+        background-color: var(--theme-color-translucent-01);
+        
+    }
+
     .items-container {
         display: flex;
         flex-direction: column;
@@ -111,14 +133,5 @@
 
     .item:hover {
         background-color: var(--theme-color-translucent-01);
-    }
-
-    .template {
-        padding: 5px;
-    }   
-
-    .template:hover {
-        background-color: var(--theme-color-translucent-01);
-        
     }
 </style>

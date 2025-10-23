@@ -98,11 +98,10 @@ export class PlannerActions {
     }
 
     /** Handles the removal of a new template (confirmation modal, deletion, and clean-up.) */
-    public handleRemoveTemplate(app: App, tDate: ISODate, id: ItemID) {
+    public handleRemoveTemplate(app: App, tDate: ISODate) {
         new ConfirmationModal(
             app, 
-            () => {
-            }, 
+            () => this.data.removeTemplate(tDate), 
             "Removing the template will remove all items and their contents."
         ).open();
     }
