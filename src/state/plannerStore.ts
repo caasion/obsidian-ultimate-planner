@@ -1,6 +1,6 @@
 import { get, writable } from "svelte/store";
 import type { ISODate, ItemID, ItemMeta } from "src/types";
-import { addDays, eachDayOfInterval } from "date-fns";
+import { addDays, eachDayOfInterval, parseISO } from "date-fns";
 import { getISODate } from "src/actions/helpers";
 
 export const dayData = writable<Record<ISODate, Record<ItemID, string>>>({});
@@ -84,13 +84,12 @@ export function removeFromCellsInTemplate(tDate: ISODate, id: ItemID): boolean {
     // Implementation: Finds the index of the current date, then add one, to find the next template date within sortedTemplateDates. Then, get an array of the dates to remove the item from. Finally, delete the item from every day the template is in.
     const tDateIndex = getIndexFromTDate(tDate);
     const nextTDate = get(sortedTemplateDates)[tDateIndex + 1];
-    const dates: ISODate[] = eachDayOfInterval({start: tDate, end: addDays(nextTDate, -1)}).map(d => getISODate(d))
-    console.log(dates);
+    const dates: ISODate[] = eachDayOfInterval({start: parseISO(tDate), end: addDays(parseISO(nextTDate), -1)}).map(d => getISODate(d))
 
     dayData.update(data => {
         const current = {...data}
         dates.forEach(d => {
-            delete current[d][id];
+            current[d] && current[d][id] && delete current[d][id];
         })
         return current;
     })
