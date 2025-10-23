@@ -19,6 +19,7 @@ export interface ActionItemMeta {
     order: number;
     label: string;
     color: string;
+    floatCell: string;
 }
 
 export interface CalendarMeta {
@@ -27,6 +28,7 @@ export interface CalendarMeta {
     order: number;
     label: string;
     color: string;
+    floatCell: string;
     url: string;
     etag?: string;
     lastFetched?: number;
