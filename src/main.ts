@@ -9,6 +9,7 @@ import { PlannerActions } from './actions/itemActions';
 import { calendarState, fetchToken } from './state/calendarState';
 import { hashText, generateID, getISODate, addDaysISO, swapArrayItems, getISODates, getLabelFromDateRange } from './actions/helpers';
 import { parseICS, parseICSBetween, normalizeEvent, normalizeOccurrenceEvent, buildEventDictionaries, getEventLabels } from './actions/calendarHelper';
+import { fetchFromUrl, detectFetchChange } from './actions/fetch';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
@@ -70,6 +71,11 @@ export default class UltimatePlannerPlugin extends Plugin {
 			normalizeOccurrenceEvent,
 			buildEventDictionaries,
 			getEventLabels
+		}
+
+		this.fetchService = {
+			fetchFromUrl,
+			detectFetchChange
 		}
 		
 		this.calendarPipeline = new CalendarPipeline({
