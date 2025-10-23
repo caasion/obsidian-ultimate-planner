@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { toDate } from "date-fns";
-	import { MetadataCache, type App } from "obsidian";
+	import { type App } from "obsidian";
 	import { PlannerActions } from "src/actions/itemActions";
 	import { sortedTemplateDates, templates } from "src/state/plannerStore";
-	import type { HelperService, ISODate, ItemID, ItemMeta } from "src/types";
+	import type { HelperService, ISODate } from "src/types";
 
     interface ViewProps {
         app: App;

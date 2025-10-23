@@ -8,6 +8,7 @@
 	import DebugBlock from "./DebugBlock.svelte";
 	import GenericCell from "./GenericCell.svelte";
 	import { templates } from "src/state/plannerStore";
+	import TemplateEditor from "./TemplateEditor.svelte";
 
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
@@ -21,6 +22,8 @@
 	}
 
 	let { app, settings, data, helper, plannerActions, calendarPipeline }: ViewProps = $props();
+
+	let showTemplateEditor = $state<boolean>(false);
 
 	/* Table Rendering */
 	const weekFormat = true;
@@ -119,10 +122,10 @@
 
 <h1>The Ultimate Planner</h1>
 
-<DebugBlock label={"Dates:"} object={dates} />
+<!-- <DebugBlock label={"Dates:"} object={dates} />
 <DebugBlock label={"Columns Meta:"} object={columnsMeta} />
 <DebugBlock label={"Sorted Templates:"} object={sortedTemplates} />
-<DebugBlock label={"Blocks Meta:"} object={blocksMeta} />
+<DebugBlock label={"Blocks Meta:"} object={blocksMeta} /> -->
 
 <div class="header">
 	<div class="nav-buttons">
@@ -135,9 +138,10 @@
 		<input type="date" bind:value={anchor} />
 	</div>
 	<div class="new-ai">
-		<button onclick={(evt) => {}}>Templates Editor</button>
+		<button onclick={(evt) => showTemplateEditor = !showTemplateEditor}>{showTemplateEditor ? "Planner View" : "Templates Editor"}</button>
 	</div>
 </div>
+{#if !showTemplateEditor}
 <div class="main-grid-container">
     {#each blocksMeta as {rows, dates}, block (dates)}
         <div class="block-container">
@@ -177,6 +181,9 @@
         </div>
     {/each}
 </div>
+{:else}
+<TemplateEditor {app} {plannerActions} {helper} />
+{/if}
 
 <style>
 	/* Navigation Menu */
