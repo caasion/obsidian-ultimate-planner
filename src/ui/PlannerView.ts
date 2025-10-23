@@ -26,10 +26,11 @@ export class PlannerView extends ItemView {
         const container = this.contentEl;
 		container.empty();
 
-        // mount(TemplateEditor, { target: container, props: {
-        //     plannerActions: this.plugin.plannerActions,
-        //     helper: this.plugin.helperService
-        // } });
+        mount(TemplateEditor, { target: container, props: {
+            app: this.plugin.app,
+            plannerActions: this.plugin.plannerActions,
+            helper: this.plugin.helperService
+        } });
         
         mount(UltimatePlannerView, {target: container, props: {
             app: this.plugin.app,
