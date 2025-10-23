@@ -22,46 +22,6 @@
 
 	let { app, settings, data, helper, plannerActions, calendarPipeline }: ViewProps = $props();
 
-	// Fetch in grace period for current calendars
-	// onMount(() => {
-	// 	const today = getISODate(new Date());
-
-    //     rows.forEach(id => {
-    //         if (id.split("-", 1)[0] === "cal") {
-    //             fetchPipelineInGracePeriod($calendars[id], addDays(today, -7), addDays(today, 60))
-    //         }
-    //     })
-	// })
-
-	/** Reactive function that returns the date of the template that the given date uses. 
-	 * Implemented using binary search for efficiency.
-	 */
-	function getTemplateDate(date: ISODate): ISODate {
-		const sortedTemplateDates: ISODate[] = Object.keys($templates).sort();
-
-		// Implement binary search to find the template date that is the greatest date less than or equal to the date provided
-		let left = 0;
-		let right = sortedTemplateDates.length - 1;
-		let result: ISODate = "";
-
-		while (left <= right) {
-			const mid = Math.floor((left + right) / 2);
-			const midDate = sortedTemplateDates[mid];
-
-			if (midDate === date) {
-				return midDate;
-			}
-			if (midDate < date) {
-				result = midDate;
-				left = mid + 1;
-			} else {
-				right = mid - 1;
-			}
-		}
-
-		return result;
-	}
-
 	/* Table Rendering */
 	const weekFormat = true;
 	const columns = 7;
@@ -81,7 +41,7 @@
 
 	interface ColumnMeta {
 		date: ISODate;
-		templateDate: ISODate;
+		tDate: ISODate;
 	}
 
 	let columnsMeta: ColumnMeta[] = $derived.by(() => {
@@ -99,7 +59,7 @@
 	type SortedTemplates = Record<ISODate, RenderItem[]>;
 
 	let sortedTemplates = $derived.by<SortedTemplates>(() => {
-		const allTemplateDates = new Set(columnsMeta.map(c => c.templateDate));
+		const allTemplateDates = new Set(columnsMeta.map(c => c.tDate));
 
 		const result: SortedTemplates = {};
 
@@ -128,7 +88,7 @@
 		
 		for (let i = 0; i < blocks; i++) {
 			const columnChunk: ColumnMeta[] = columnsMeta.slice(columns * i, columns * (i + 1));
-			const templateLengths: number[] = columnChunk.map(({ date, templateDate}) => templateDate != "" ? sortedTemplates[templateDate].length : 0)
+			const templateLengths: number[] = columnChunk.map(({ date, tDate}) => tDate != "" ? sortedTemplates[tDate].length : 0)
 
 			meta.push({
 				rows: Math.max(...templateLengths),
@@ -173,7 +133,7 @@
 		<input type="date" bind:value={anchor} />
 	</div>
 	<div class="new-ai">
-		<button onclick={(evt) => plannerActions.newRowContextMenu(app, evt)}>Templates Editor</button>
+		<button onclick={(evt) => {}}>Templates Editor</button>
 	</div>
 </div>
 <div class="main-grid-container">
@@ -190,7 +150,7 @@
 
             <div class="data-grid" style={`grid-template-columns: repeat(${columns}, 1fr);`}>
                 {#each {length: rows} as _, rowIndex}
-                    {#each dates as {date, templateDate: tDate}, colIndex}
+                    {#each dates as {date, tDate: tDate}, colIndex}
                         <div class="cell">
                             <GenericCell 
                                 {date}
