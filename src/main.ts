@@ -1,7 +1,7 @@
 import { Plugin } from 'obsidian';
 import { PLANNER_VIEW_TYPE, PlannerView } from './ui/PlannerView';
 import { UltimatePlannerPluginTab } from './ui/SettingsTab';
-import { addToTemplate, dayData, getCell, getItemMeta, getTemplate, removeFromCellsInTemplate, removeFromTemplate, setCell, setTemplate, templates, updateItemMeta } from './state/plannerStore';
+import { addToTemplate, dayData, getCell, getItemMeta, getTemplate, removeFromCellsInTemplate, removeFromTemplate, removeTemplate, setCell, setTemplate, templates, updateItemMeta } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
 import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings } from './types';
 import { CalendarPipeline } from './actions/calendarPipelines';
@@ -45,7 +45,8 @@ export default class UltimatePlannerPlugin extends Plugin {
 			getTemplate,
 			removeFromTemplate,
 			removeFromCellsInTemplate,
-			getItemMeta, // NOT IMPLEMENTED
+			removeTemplate,
+			getItemMeta,
 			updateItemMeta,
 			setCell,
 			getCell
