@@ -36,8 +36,7 @@
 
 <style>
 .cell {
-    border-top-style: dashed;
-    border-bottom-style: dashed;
+    height: 100%
 }
 
 .cell.inactive {

@@ -2,3 +2,12 @@ I spent a few minutes fleshing out how I want the templates editor to look like 
 
 ![Template Editor Brainstorm](<2025-10-22 templates brainstorm>)
 
+I ended up creating a whole UI for my templates editor, fixing some implementations, and adding the contacts menu and edit item option back to UPV. Creating a templates editor was a lot easier because I had it planned out in the beginning.
+
+Next Steps:
+- stuff from yesterday
+- Adding a drag and drop library to my templates editor.
+
+Instead of making things look pretty imperfect, I'm going to focus on implementing features and optimizing the app. I wasn't planning on working on this app for a little more, but I really want to get the basics down so I can start focusing on other projects that really showcase my skills.
+
+I'm going to start by fixing the UI because right now the rows are out of sync. I have been talking to chat GPT to find a solution that will work, so I'll see how it goes.

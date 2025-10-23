@@ -78,4 +78,6 @@
 		background-color: none;
         height: 100%;
 	}
+
+    
 </style>

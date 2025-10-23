@@ -2,6 +2,7 @@ import { ItemView, WorkspaceLeaf } from "obsidian";
 import { mount } from 'svelte';
 import UltimatePlannerView from './UltimatePlanner.svelte';
 import UltimatePlannerPlugin from '../main';
+import TemplateEditor from "./TemplateEditor.svelte";
 
 export const PLANNER_VIEW_TYPE = "ultimate-planner-view"
 
@@ -24,6 +25,11 @@ export class PlannerView extends ItemView {
     async onOpen() {
         const container = this.contentEl;
 		container.empty();
+
+        // mount(TemplateEditor, { target: container, props: {
+        //     plannerActions: this.plugin.plannerActions,
+        //     helper: this.plugin.helperService
+        // } });
         
         mount(UltimatePlannerView, {target: container, props: {
             app: this.plugin.app,

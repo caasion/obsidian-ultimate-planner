@@ -1,7 +1,7 @@
 <script lang="ts">
     let { label, object } = $props();
 
-    let show = $state(true);
+    let show = $state(false);
 </script>
 
 <div style="display: flex; align-items: center;">

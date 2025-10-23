@@ -176,32 +176,42 @@
 		<button onclick={(evt) => plannerActions.newRowContextMenu(app, evt)}>+ Add</button>
 	</div>
 </div>
-<div class="grid">
-	{#each blocksMeta as {rows, dates}, block (dates)}
-		{#each dates as {date, templateDate: tDate}, col (date)}
-		<div class="column">
-			<div class="dow-label">{format(parseISO(date), "E")}</div>
-			<div class="date-label">{format(parseISO(date), "dd")}</div>
-			{#each {length: rows}, row}
-				<div class="row">
-					<GenericCell 
-						{date}
-						id={sortedTemplates[tDate][row].id}
-						meta={sortedTemplates[tDate][row].meta}
-						{tDate}
-						{row}
-						{col}
-						contextMenu={(e: MouseEvent) => plannerActions.openItemMenu(app, e, date, sortedTemplates[tDate][row].id, sortedTemplates[tDate][row].meta)}
-						{focusCell}
-					/>
-				</div>
-			{/each}
-		</div>
-		{/each}
-	{/each}
+<div class="main-grid-container">
+    {#each blocksMeta as {rows, dates}, block (dates)}
+        <div class="block-container">
+            <div class="header-row" style={`grid-template-columns: repeat(${columns}, 1fr);`}>
+                {#each dates as {date}, col (date)}
+                    <div class="header-cell">
+                        <div class="dow-label">{format(parseISO(date), "E")}</div>
+                        <div class="date-label">{format(parseISO(date), "dd")}</div>
+                    </div>
+                {/each}
+            </div>
+
+            <div class="data-grid" style={`grid-template-columns: repeat(${columns}, 1fr);`}>
+                {#each {length: rows} as _, rowIndex}
+                    {#each dates as {date, templateDate: tDate}, colIndex}
+                        <div class="cell">
+                            <GenericCell 
+                                {date}
+                                id={sortedTemplates[tDate][rowIndex].id}
+                                meta={sortedTemplates[tDate][rowIndex].meta}
+                                {tDate}
+                                row={rowIndex}
+                                col={colIndex}
+                                contextMenu={(e: MouseEvent) => plannerActions.openItemMenu(app, e, date, sortedTemplates[tDate][rowIndex].id, sortedTemplates[tDate][rowIndex].meta)}
+                                {focusCell}
+                            />
+                        </div>
+                    {/each}
+                {/each}
+            </div>
+        </div>
+    {/each}
 </div>
 
 <style>
+	/* Navigation Menu */
 	.header {
 		display: grid;
     	grid-template-columns: 1fr 1fr 1fr;
@@ -250,6 +260,7 @@
 		justify-content: flex-end;
 	}
 
+	/* Table Header */
 	.dow-label {
 		text-align: center;
 		background-color: var(--theme-color);
@@ -261,37 +272,43 @@
 		text-align: right;
 	}
 
-	.grid {
-		display: grid;
-		grid-template-columns: repeat(7, 1fr);
-		border-collapse: collapse;
-	}
-
-	.row {
-		display: contents;
-	}
-
-	.column {
+	/* Grid Layout */
+	.main-grid-container {
 		display: flex;
 		flex-direction: column;
-		border: 1px solid #ccc;
+		gap: 20px;
 	}
 
-	.column > div {
+	.block-container {
+		border: 1px solid #ccc; 
+	}
+
+	.header-row {
+		display: grid;
+		/* grid-template-columns is set dynamically in the Svelte component */
+		border-bottom: 2px solid #ccc;
+	}
+
+	.header-cell {
 		padding: 4px;
-		border-bottom: 1px solid #ccc;
-		min-height: 40px; /* Consistent row height */
-	}
-	
-	.column > div:last-child {
-		border-bottom: none;
+		border-right: 1px solid #ccc; 
 	}
 
-	.grid > .row > div {
+	.header-cell:last-child {
+		border-right: none;
+	}
+
+	.data-grid {
+		display: grid;
+		/* grid-template-columns is set dynamically in the Svelte component */
+			grid-auto-rows: minmax(40px, auto); 
+	}
+
+	.cell {
 		padding: 4px;
-		border: 1px solid #ccc;
-
+		border-right: 1px dotted #ccc;
+		border-bottom: 1px dashed #ccc;
+		border-collapse: collapse;
+		min-height: 40px; 
 	}
-
-
 </style>
