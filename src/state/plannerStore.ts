@@ -164,7 +164,5 @@ export function setCell(date: ISODate, id: ItemID, value: string) {
 export function getCell(date: ISODate, id: ItemID) {
     const data = get(dayData);
 
-    if (!data[date] || !data[date][id]) return "";
-
-    return data[date][id];
+    return data[date] && data[date][id] ? data[date][id] : "";
 }

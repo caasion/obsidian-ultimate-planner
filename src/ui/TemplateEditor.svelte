@@ -79,7 +79,7 @@
     .container {
         margin: 5%;
         display: flex;
-        max-height: 100vh;
+        max-height: 80vh;
     }
 
     .section {
@@ -87,7 +87,7 @@
         border-style: solid;
         border-radius: 4px;
         width: 100%;
-        height: 100vh;
+        height: 100%;
         padding: 10px;
         margin: 0px 5px;
     }

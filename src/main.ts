@@ -136,7 +136,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 	private snapshot(): PluginData {
 		return {
-			version: 5,
+			version: 6,
 			settings: this.settings,
 			planner: {
 				dayData: get(dayData),
