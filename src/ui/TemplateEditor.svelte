@@ -12,7 +12,8 @@
 
     let { app, plannerActions, helper }: ViewProps = $props();
 
-    let selectedTemplate = $state<ISODate>(plannerActions.getTemplateDate(helper.getISODate(new Date())));
+    let selectedTemplate = $state<ISODate>(plannerActions.getTemplateDate(helper.getISODate(new Date()) ?? ""));
+
 </script>
 
 <div class="container">
@@ -49,6 +50,7 @@
     <div class="section">
         <h2>Template {selectedTemplate}</h2>
         <div class="items-container">
+            {#if selectedTemplate !== ""}
             {#each Object.entries($templates[selectedTemplate]).sort(([, aMeta], [, bMeta]) => aMeta.order - bMeta.order) as [id, meta] (id) }
             <div class="item">
                 <div 
@@ -68,7 +70,14 @@
             </div>
                 
             {/each}
-            <button onclick={(e) => plannerActions.newRowContextMenu(app, e, selectedTemplate)}>+ Add</button>
+            <button onclick={(e) => plannerActions.newItemMenu(app, e, selectedTemplate)}>+ Add</button>
+            {:else}
+            <button onclick={(e) => {
+                plannerActions.newItemMenu(app, e, selectedTemplate);
+                selectedTemplate = plannerActions.getTemplateDate(helper.getISODate(new Date()));
+                }}>+ Add</button>
+            {/if}
+            
         </div>
     </div>
 </div>
