@@ -8,6 +8,7 @@
 	import DebugBlock from "./DebugBlock.svelte";
 	import GenericCell from "./GenericCell.svelte";
 	import { templates } from "src/state/plannerStore";
+	import FloatBlock from "./FloatBlock.svelte";
 
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
 
@@ -124,10 +125,11 @@
 <DebugBlock label={"Sorted Templates:"} object={sortedTemplates} />
 <DebugBlock label={"Blocks Meta:"} object={blocksMeta} />
 
+
 <div class="header">
 	<div class="nav-buttons">
 		<button onclick={() => goTo(helper.getISODate(new Date()))}>Today</button>
-    <button onclick={() => goTo(helper.addDaysISO(anchor, -7))}>&lt;</button>
+    	<button onclick={() => goTo(helper.addDaysISO(anchor, -7))}>&lt;</button>
 		<button onclick={() => goTo(helper.addDaysISO(anchor, 7))}>&gt;</button>
 	</div>
 	<div class="week">
@@ -138,6 +140,13 @@
 		<button onclick={(evt) => {}}>Templates Editor</button>
 	</div>
 </div>
+
+<FloatBlock 
+	templates={sortedTemplates} 
+	contextMenu={(e: MouseEvent, tDate: ISODate, id: ItemID, meta: ItemMeta) => plannerActions.openItemMenu(app, e, tDate, id, meta)} 
+	focusCell={(opt: boolean) => { return false }}
+/>
+
 <div class="main-grid-container">
     {#each blocksMeta as {rows, dates}, block (dates)}
         <div class="block-container">
