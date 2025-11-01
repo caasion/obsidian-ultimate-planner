@@ -77,6 +77,8 @@ export interface DataService {
     removeTemplate: (tDate: ISODate) => boolean;
     getItemMeta: (tDate: ISODate, id: ItemID) => ItemMeta;
     updateItemMeta: (tDate: ISODate, id: ItemID, updates: Partial<ItemMeta>) => boolean;
+    setFloatCell: (tDate: ISODate, id: ItemID, value: string) => boolean;
+    getFloatCell: (tDate: ISODate, id: ItemID) => string;
     setCell: (date: ISODate, id: ItemID, value: string) => void;
     getCell: (date: ISODate, id: ItemID) => string;
 }

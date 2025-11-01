@@ -168,7 +168,7 @@ export function setFloatCell(tDate: ISODate, id: ItemID, value: string): boolean
 export function getFloatCell(tDate: ISODate, id: ItemID) {
     const temps = get(templates);
 
-    return temps[tDate] && temps[tDate][id] && temps[tDate][id].floatCell ? temps[tDate][id].floatCell : "";
+    return (temps[tDate] && temps[tDate][id] && temps[tDate][id].floatCell) ?? "";
 }
 
 

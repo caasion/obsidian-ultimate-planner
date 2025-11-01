@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getISODate, addDaysISO } from "src/actions/helpers";
+	import { getISODate } from "src/actions/helpers";
 	import { setCell, getCell } from "src/state/plannerStore";
 	import InputCell from "./InputCell.svelte";
 	import type { ItemID, ISODate, ItemMeta } from "src/types";
