@@ -53,3 +53,48 @@
     {/each}
 </div>
 
+<style>
+    .float-block-container {
+		display: grid;
+        flex-wrap: wrap;
+        gap: 1em;
+        justify-content: center;
+	}
+
+    .float-block {
+        border: 1px solid #ccc;
+    }
+
+    .header-row {
+        border-bottom: 2px solid #ccc;
+    }
+
+    .header-cell {
+        text-align: center;
+		background-color: var(--theme-color);
+        margin: 2px;
+    }
+
+	.float-columns-container {
+		display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(4em, 1fr));
+        justify-content: center;
+        align-items: center;
+	}
+
+    .column-label {
+        border-bottom: 1px dashed #ccc;
+        padding: 4px;
+    }
+
+    .float-column {
+        border-right: 1px dotted #ccc;
+        min-width: 4em;
+    }
+
+    .float-cell {
+        padding: 4px;
+        border-collapse: collapse;
+        min-height: 40px;
+    }
+</style>
