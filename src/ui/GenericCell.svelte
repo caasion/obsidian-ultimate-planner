@@ -31,7 +31,12 @@
     {#if (col == 0 && meta.label !== "") || tDate == date}
         <div class="row-label">{meta.label}</div>
     {/if}
-    <InputCell {date} rowID={id} {setCell} {getCell} {row} {col} {focusCell} />
+    <InputCell 
+        id={`${id}-${row}-${col}`} 
+        getCell={() => getCell(date, id)} 
+        setCell={(value: string) => setCell(date, id, value)} 
+        focusCell={(opt: boolean) => { return false }} 
+    />
 </div>
 
 <style>

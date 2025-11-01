@@ -8,7 +8,14 @@
     import { keymap } from '@milkdown/prose/keymap';
     import { prosePluginsCtx } from "@milkdown/core";
 
-    let { date, rowID, setCell, getCell, row, col, focusCell } = $props();
+    interface CellProps {
+        id: string;
+        getCell: () => string;
+        setCell: (value: string) => void | boolean;
+        focusCell: (opt: boolean) => false; // Not implemented
+    }
+
+    let { id, getCell, setCell, focusCell }: CellProps = $props();
 
     let container: HTMLDivElement;
     let editorInstance: Editor | null = null;
@@ -20,25 +27,25 @@
             .use(listener)
             .config((ctx) => {
                 ctx.set(rootCtx, container);
-                ctx.set(defaultValueCtx, getCell(date, rowID));
+                ctx.set(defaultValueCtx, getCell());
 
                 // Listen for changes
                 ctx.get(listenerCtx)
                     .focus(() => {
-                        focusCell(row, col, true);
+                        focusCell(true);
                     })
                     .markdownUpdated((_, markdown) => {
-                        setCell(date, rowID, markdown);
+                        setCell(markdown);
                     });
 
                 ctx.update(prosePluginsCtx, (plugins) => [
                     keymap({
                         Tab: () => {
-                            const moved = focusCell(row, col + 1, /*fromEditor=*/false);
-                            return !!moved; // true = stop PM’s default tab behavior
+                            const moved = focusCell(false);
+                            return !!moved; 
                         },
                         "Shift-Tab": () => {
-                            const moved = focusCell(row, col - 1, false);
+                            const moved = focusCell(false);
                             return !!moved;
                         },
                     }),
@@ -67,7 +74,7 @@
 </script>
 
 <div 
-    id={`cell-${row}-${col}`} 
+    id={`cell-${id}`} 
     bind:this={container}
     tabIndex="0"
     class="milkdown-editor"
