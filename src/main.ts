@@ -9,6 +9,7 @@ import { PlannerActions } from './actions/itemActions';
 import { calendarState, fetchToken } from './state/calendarState';
 import { hashText, generateID, getISODate, addDaysISO, swapArrayItems, getISODates, getLabelFromDateRange } from './actions/helpers';
 import { parseICS, parseICSBetween, normalizeEvent, normalizeOccurrenceEvent, buildEventDictionaries, getEventLabels } from './actions/calendarHelper';
+import { fetchFromUrl, detectFetchChange } from './actions/fetch';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
@@ -73,6 +74,11 @@ export default class UltimatePlannerPlugin extends Plugin {
 			buildEventDictionaries,
 			getEventLabels
 		}
+
+		this.fetchService = {
+			fetchFromUrl,
+			detectFetchChange
+		}
 		
 		this.calendarPipeline = new CalendarPipeline({
 			data: this.dataService, 
@@ -82,6 +88,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 		})
 
 		this.plannerActions = new PlannerActions({
+			settings: this.settings,
 			data: this.dataService, 
 			helpers: this.helperService, 
 			calendarPipelines: this.calendarPipeline})
@@ -127,12 +134,12 @@ export default class UltimatePlannerPlugin extends Plugin {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings) // Populate Settings
 		
 		// Initialize Stores, Subscribe, and assign unsubscribers
-		templates.set(Object.assign({}, {}, data.planner.templates));
-		dayData.set(Object.assign({}, {}, data.planner.dayData))
+		templates.set(Object.assign({}, {}, data.planner && data.planner.templates));
+		dayData.set(Object.assign({}, {}, data.planner && data.planner.dayData))
 		this.storeSubscriptions = [
 			dayData.subscribe(() => this.queueSave()),
 			templates.subscribe(() => this.queueSave()),
-			templates.subscribe((templates) => sortedTemplateDates.set(Object.keys(templates).sort()))
+			templates.subscribe((templates) => templates && Object.keys(templates) && sortedTemplateDates.set(Object.keys(templates).sort()))
 		]
 	}
 

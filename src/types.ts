@@ -49,13 +49,30 @@ export interface PluginData {
 }
 
 export interface PluginSettings {
+    /* Rendering Settings */
+    blocks: number;
+    columns: number;
+    weekFormat: boolean;
     weekStartOn: Day;
+
+    /* Data Saving */
     autosaveDebounceMs: number;
-    weeksToRender: number;
+
+    /* Calendar Settings */
     refreshRemoteMs: number;
-    archivePastEvents: boolean;
-    graceDays: number;
-    retentionMonths: number;
+    lookaheadDays: number;
+}
+
+export const DEFAULT_SETTINGS: PluginSettings = {
+    blocks: 1,
+    columns: 7,
+    weekFormat: true,
+    weekStartOn: 0,
+
+    autosaveDebounceMs: 200,
+
+    refreshRemoteMs: 5 * 60 * 1000,
+    lookaheadDays: 14,
 }
 
 export type CalendarStatus = "idle" | "fetching" | "unchanged" | "updated" | "error";
@@ -125,15 +142,4 @@ export interface NormalizedEvent {
     location?: string;
     description?: string;
     calendarId: string;
-}
-
-/* DEFAULT VALUES */
-export const DEFAULT_SETTINGS: PluginSettings = {
-    weekStartOn: 0,
-    autosaveDebounceMs: 200,
-    weeksToRender: 1,
-    refreshRemoteMs: 5 * 60 * 1000,
-    archivePastEvents: true,
-    graceDays: 7,
-    retentionMonths: 0, // STALE OPTION
 }

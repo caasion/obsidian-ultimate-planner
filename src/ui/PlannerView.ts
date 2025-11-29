@@ -25,11 +25,6 @@ export class PlannerView extends ItemView {
     async onOpen() {
         const container = this.contentEl;
 		container.empty();
-
-        // mount(TemplateEditor, { target: container, props: {
-        //     plannerActions: this.plugin.plannerActions,
-        //     helper: this.plugin.helperService
-        // } });
         
         mount(UltimatePlannerView, {target: container, props: {
             app: this.plugin.app,

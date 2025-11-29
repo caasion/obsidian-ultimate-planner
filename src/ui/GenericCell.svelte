@@ -29,7 +29,7 @@
 > 
     <!-- The condition to render the label for the item. -->
     {#if (col == 0 && meta.label !== "") || tDate == date}
-        <div class="row-label">{meta.label}</div>
+        <div class="row-label">{meta.type == "calendar" ? "📅" : ""} {meta.label}</div>
     {/if}
     <InputCell 
         id={`${id}-${row}-${col}`} 
@@ -53,10 +53,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.cell p {
-    margin: 0px;
 }
 
 .row-label {

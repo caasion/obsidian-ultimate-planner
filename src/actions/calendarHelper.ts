@@ -92,7 +92,7 @@ export function getEventLabels(events: NormalizedEvent[]): string {
             const start = format(event.start, "HH:mm")
             value += `${event.summary} @ ${start} (${getDurationAsString(event.start, event.end)})`
         }
-        value += " \n";
+        value += " \n\n";
     })
 
     return value;

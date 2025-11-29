@@ -1,7 +1,7 @@
 import { get, writable } from "svelte/store";
 import type { ISODate, ItemID, ItemMeta } from "src/types";
 import { addDays, eachDayOfInterval, parseISO } from "date-fns";
-import { getISODate } from "src/actions/helpers";
+import { addDaysISO, getISODate } from "src/actions/helpers";
 
 export const dayData = writable<Record<ISODate, Record<ItemID, string>>>({});
 export const templates = writable<Record<ISODate, Record<ItemID, ItemMeta>>>({});
@@ -81,7 +81,10 @@ function getIndexFromTDate(tDate: ISODate): number {
 function getDatesOfTemplate(tDate: ISODate): ISODate[] {
     const tDateIndex = getIndexFromTDate(tDate);
     const nextTDate = get(sortedTemplateDates)[tDateIndex + 1];
-    return eachDayOfInterval({start: parseISO(tDate), end: addDays(parseISO(nextTDate), -1)}).map(d => getISODate(d))
+
+    let end: Date = nextTDate ? addDays(parseISO(nextTDate), -1) : addDays(parseISO(tDate), 180);
+
+    return eachDayOfInterval({start: parseISO(tDate), end}).map(d => getISODate(d))
 
 }
 
@@ -95,7 +98,14 @@ export function removeFromCellsInTemplate(tDate: ISODate, id: ItemID): boolean {
     dayData.update(data => {
         const current = {...data}
         dates.forEach(d => {
-            current[d] && current[d][id] && delete current[d][id];
+            if (current[d]) {
+                current[d][id] && delete current[d][id];
+
+                // Clean up the dayData entry if there is nothing in that day
+                if (Object.keys(current[d]).length === 0) {
+                    delete current[d];
+                }
+            }
         })
         return current;
     })

@@ -6,22 +6,143 @@ Today, I'm going to do a sprint to finish up the plugin into a shippable state. 
 - Write out README.md, add demo to personal website
 
 Summary:
-- [Fix bug] The table is no longer reactive once I go too far back in time.
+- [Fix bug] The table is no longer reactive once I go too far back in time. ✔️ a5b0a36, f4e4cc1
 - [Feature] Add Template ✔️ 327b3a4
-- [Feature] Remove Item
-- [Feature] Remove Template
+- [Feature] Remove Item ✔️ 41b54bc, 889a9d0, c3bbc0e
+- [Feature] Remove Template ✔️ 01810b2, dcff423
 - [Feature] Collapsible Cells
 - [Feature] Float Cell (for unscheduled tasks)
-- [Feature] Calendar Features
-    - Fetch on creation
-    - Button to fetch calendar on command
-    - Fix settings options to curate fetching
+- [Feature] Calendar Features ✔️
+    - Fetch on creation ✔️ 2050263
+    - Button to fetch calendar on command ✔️ fc6e2f9
+    - Fix settings options to curate fetching ✔️ 6890f44
 - [Feature] (Low Priority) Drag and drop in templates editor.
 - [Feature] Sortable views (i.e. isolate one action item across time)
+- [Optimization] Navigating between dates take a long time.
 
-## Debugging
+New things I did
+- [Feature] Hook Up Settings to UPV
+- [Feature] Add View Switch (to template editor) in UPV
+- [Optimization] Clean Up Empty Date Entries on Delete
+- Various styling tweaks
+- [Fixes] With data persistence
+
+## Debugging 1 ✔️
 After implementing the add template feature, the whole table broke. I think it's a problem with reactivity, but I'm going to debug this so it doesn't cause future problems.
 
-Update: A problem occurs when I add a new template and go back. Ultimate Planner doesn't seem to understand that a change has occurred with the templates and it's time to render things differently. however, the curious thing is that all the datas are processed correctly, but it is just a reactivity that is lacking.
-Furthermore, after a reload, The table works fine. However, it is during the transition between the templates that causes bugs.
+Update: A problem occurs when I add a new template and go back. (1) Ultimate Planner doesn't seem to understand that a change has occurred with the templates and it's time to render things differently. however, the curious thing is that all the datas are processed correctly, but it is just a reactivity that is lacking.
+Furthermore, after a reload, The table works fine. However, it is (2) during the transition between the templates that causes bugs.
 
+Fixed (2) in a5b0a36. Need to test if (1) is fixed. 
+
+Update: a5b0a36 fixed (1) too. Also, tested a "SUPER LONG ACTION ITEM NAME THAT OVERFLOWS." Template editor and table renders as expected.
+
+Update: Another problem is that (3) when I go too far back, where a template does not exist, the table does not know how to handle it.
+
+Fixed (3) in f4e4cc1.
+
+Finished fixing bugs with reactivity and table rendering.
+
+I've noticed that navigating between dates takes a really long time though, I probably want to optimize the process if I have time.
+
+## Thought about optimization ✔️
+instead of doing a modified binary search every single time. I want to find the template for a date, what if I make a new array with that date within. Then, I use binary search to find the index of that date. Then, I access the date that is one less in index then the inserted date, and that will be our template date. I wonder if this is more efficient.
+
+## Journal: Remove Item & Template ✔️
+I'm glad I fought through the implementation before trying to do it, because I have a clear picture of how I can approach these functions now. 
+
+However, I'm experiencing difficulties in getting the deletion to work properly. In particular, i've noticed that given one ISO date, the ISO date that I get is always one less than what I need to. This is weird because I haven't had this problem before, so it would be nice for me to know when this happens so I can avoid any errors.
+
+I found out that if I feed `date-fns` an ISO date, then it will convert it to a `Date` object, which is correct in the international UTC-0 time zone. However, because I am in UTC-4, the date is automatically adjusted to my local time zone, which happens to be yesterday. Then, Javascript will convert the date time into a Date object, which makes it so there's a one day difference.
+
+The solution is to parse the ISO with the FNS before feeding it into any functions.
+
+I'm glad this happened, because it helped me fix a bug that wouldn't have been intentional. The real issue was that I was attempting to run the delete command on an object that does not exist. I fix this by adding some preconditions before I can delete.
+`delete current[d][id]` -> `current[d] && current[d][id] && delete current[d][id]`
+
+After learning from How to remove one item from a template, implementing remove template function is so much easier. I just had to do the same things and pay attention to the same things
+
+## Debugging 2
+Table is not reactive with any template changes:
+- Add/Remove Template
+- Add/Remove Item
+- Reorder Item
+
+Diagnosis 1: `columnsMeta` and `sortedTemplates` is not changing.
+
+Previously, I had reactive versions of functions of in my components, but I would like to avoid this if possible, so I'm asking Gemini what I can do to fix this issue.
+
+Gemini suggested a small trick to ensure reactivity, and it works really well and is super compact. 
+`const _ = $templates; // trick to ensure reactivity.` within the `$derived.by()` callback function. 
+
+- Add/Remove Template ✔️ (❌ See "Debugging 3)
+- Add/Remove Item ✔️
+- Reorder Item ✔️
+
+Fixed in eb5f125.
+
+## Debugging 3
+I didn't account for templates that go on indefinitely. What happens if we delete these templates and how can we make sure we don't have an infinite loop? What if the next template doesn't exist?
+
+A trick would be to save the previous template's cells instead of removing infinite cells, but this operation can be also very costly...
+
+## Journal: Float Cell Implementation
+I thought this would be a really simple feature to implement, but I actually have to think about the UI. This is because I can have multiple templates within one block, so I can't just display the float cells in one column as one row may have two or more action items. 
+
+As such, I'm thinking about having something below the heathers but on top of the calendar where I can have float cells for every unique action item within the planner view. This will be a row based table where each column is in action item and there'll only be one cell for every action item.
+
+I probably need to design a new interface for this, and I'm going to use a separate component for it because the variables that it depends on is vastly different from the planner view itself.
+
+![Float Cells Ideation](<2025-10-23 Float Cells>)
+
+Here's what I've come up with. On second thought, I realize it's better for me to implement collapsible cells first, because I can apply that concept to these float cells too.
+
+Update: I create a new branch to save my work in progress, so I can focus on implementing things that actually matter.
+
+## Journal: Collapsible Cell Implementation
+It's a lot harder to implement collapsible cells than I thought 'cause I need to take advantage of local storage and create a store and think through how I'm going to store the state persistence. I did ask Gemini how I can do this, but I don't think it's worth my effort to implement this feature right now.
+
+## Edge Case
+What happens if someone writes in today's cell, and then makes a new template today. The cell would get overrated, but we would have dead data that doesn't transfer over. 
+
+Also, one of the features I want to implement is clone previous template. Maybe this is something that I can implement to transfer the dead data. Otherwise, creating a new template will empty out the cells.
+
+## Journal: Calendar Features
+Implementing these features took attention to detail. Since it's been awhile where I have worked with the calendar pipeline, I have to refamiliarize myself with the various functions and how they work. Luckily, thanks the dependency injection, is a lot easier to work with these functions especially because they have clear defined roles. 
+
+I didn't have to code a lot, but I mostly had to implement careful logic for when we are going to fetch in the calendar, and how the settings will affect the fetching. Furthermore, I decided to make the fetching more transparent by adding notices and adding a date range for when you choose to fetch the calendar, so that users know in which days they are fetching the calendar in.
+
+I think this change is needed especially because calendar sales are now editable, so I need to warn the users or let them know when they are going to overwrite their edited calendar cells.
+
+I also realized that applications have limitations on what users can do for a reason. When we allow for too much customizability, it makes the code really hard to work with that also makes the user really confused. After learning this, I decided to get rid of the grace days, retention months settings for calendar fetching. Instead, the option to fetch starts from the day that you select and into X amount of days that you have indicated in the look ahead days settings. This makes it a lot easier to manage because there are less options but you are still able to do the same amount of things with less options.
+
+## Wrapping Up
+I've done quite a lot in this Sprint, and I think it is about time to wrap up. I will hook up the template editor, and I will stop adding features from there on. I will fix any critical bugs there may be, but I will also just publish and test this plugin out and fix bugs as I go. I'm excited to finally ship a product, but also be able to move on to other projects.
+
+Hooked up template editor in 29781e7.
+
+I also hooked up settings since I had all the prerequisites set up, and I just needed to work on the settings tab and add the variables in. ce26a67
+
+Now i'm going to try a fresh install of the plugin and see if it works as intended.
+
+## Fresh Install Testing
+I transferred it, and the plugin immediately failed because it cannot read properties of undefined while trying to read templates
+
+I added a few short circuit safeguards when I load the persistent plug in data, and I also made it so The template date is blank when you first open the Templates editor without any action items.
+
+In the future, I might initialize a default calendar for people to use, but it's still good for me to have these empty templates safeguards.
+
+[BUG] I've also found that creating a new action items gives it an order of 1, instead of 0 initially. It might be because I add the item first and then I get the order for it
+
+[BUG] Because my template deletion relies on getting the next template date and then getting the range between the current template to the next template, when I only have one template or when I'm trying to delete the latest template, my plugin bugs out because there is no end date to get a date range from. This is a pretty serious issue because I do anticipate people deleting their last template. 
+
+I'm thinking of writing a new object with all the previous templates whenever I delete the last template I'm not sure if there's a more efficient way to do it, so I'm going to consult Gemini.
+
+Fixed in 343d869. Instead of cloning the object, gemini suggested to just do a large enough date range into the future. I did that and now it works fine.
+
+I also added a quick cleanup in remove cell function for when the whole dates entry is empty. c685f0c
+
+[BUG] The templates editor view is still a little buggy but it is definitely usable. 
+
+## Conclusion
+I'm going to call it a date for Ultimate Planner. However, my work is not done because I still need to write up read me dot MD, pump up the version, have a new release, and hook up an interactive version on my website. Regardless, i'm excited to start using this new Ultimate Planner. I'm going to use it despite the risks of data corruption and error.

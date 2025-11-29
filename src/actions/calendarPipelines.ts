@@ -1,5 +1,5 @@
 import { Notice } from "obsidian";
-import type { CalendarHelperService, CalendarID, CalendarMeta, CalendarStatus, DataService, FetchService, HelperService, NormalizedEvent } from "../types";
+import type { CalendarHelperService, CalendarID, CalendarMeta, CalendarStatus, DataService, FetchService, HelperService, ISODate, NormalizedEvent } from "../types";
 import { get } from "svelte/store";
 
 export interface CalendarServiceDeps {
@@ -50,7 +50,7 @@ export class CalendarPipeline {
         })
     }
 
-    public async fetchInGracePeriod(calendar: CalendarMeta, after: Date, before: Date) {
+    public async fetchInGracePeriod(tDate: ISODate, id: CalendarID, after: Date, before: Date) {
         // Check if we should fetch. If we do fetch, set status.
         if (this.getCalendarStatus() === "fetching") return;
         this.setCalendarStatus("fetching");
@@ -59,6 +59,9 @@ export class CalendarPipeline {
         this.data.fetchToken.update(token => token + 1);
         const myToken = get(this.data.fetchToken);
 
+        // [SETUP] calendar meta
+        const calendar = get(this.data.templates)[tDate][id] as CalendarMeta;
+
         // [SETUP] startUrl for GUARD later
         const startUrl = calendar.url;
 
@@ -66,7 +69,7 @@ export class CalendarPipeline {
             const response = await this.fetch.fetchFromUrl(calendar.url, calendar.etag, calendar.lastModified); 	
 
             // [STORE] Update lastFetched status in store
-            this.data.updateItemMeta("2025-10-16" /* Placeholder date */, calendar.id, { lastFetched: Date.now() })
+            this.data.updateItemMeta(tDate, id, { lastFetched: Date.now() })
 
             // [GUARD] If a new refresh token is generated, that means our fetch is stale (old data). We want to drop that.
             if (myToken !== get(this.data.fetchToken)) {
@@ -94,7 +97,7 @@ export class CalendarPipeline {
             }
             
             // [STORE] Update cache information 
-            this.data.updateItemMeta("2025-10-16", calendar.id, { contentHash })
+            this.data.updateItemMeta(tDate, calendar.id, { contentHash })
             
             // [STORE] Build efficient event dictionaries and use those to write into store
             const { index, eventsById } = this.calHelpers.buildEventDictionaries(events);
