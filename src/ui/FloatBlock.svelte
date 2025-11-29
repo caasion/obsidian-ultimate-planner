@@ -58,7 +58,7 @@
         gap: 1em;
         justify-content: center;
         align-items: center;
-        padding-bottom: 4px;
+        padding-bottom: 1em;
 	}
 
     .float-block {
