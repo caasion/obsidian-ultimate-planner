@@ -30,15 +30,13 @@
         <div class="float-columns-container">
             {#each template as {id, meta}, col (id)}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div 
-                class="float-column"
-                oncontextmenu={(e) => contextMenu(e, tDate, id, meta)}
-                style={`color: ${meta.color ?? ""}`}
-            >
-                <div class="column-label">
-                    {meta.label}
-                </div>
-                <div class="float-cell">
+            <div>
+                <div 
+                    class="float-cell"
+                    oncontextmenu={(e) => contextMenu(e, tDate, id, meta)}
+                    style={`color: ${meta.color ?? ""}`}
+                >
+                    <div class="column-label">{meta.label}</div>
                     <InputCell 
                         id={`${id}-${block}-${col}`} 
                         getCell={() => getFloatCell(tDate, id)} 
@@ -76,25 +74,22 @@
     }
 
 	.float-columns-container {
-		display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(4em, 1fr));
+		display: flex;
         justify-content: center;
-        align-items: center;
+        align-items: stretch;
+        min-height: 3em;
 	}
 
     .column-label {
-        border-bottom: 1px dashed #ccc;
-        padding: 4px;
+        font-style: italic;
+        font-size: small;
+        padding: 4px 0px;
     }
-
-    .float-column {
-        border-right: 1px dotted #ccc;
-        min-width: 4em;
-    }
-
     .float-cell {
+        border-right: 1px dotted #ccc;
         padding: 4px;
         border-collapse: collapse;
-        min-height: 40px;
+        height: 100%;
+        min-width: 4em;
     }
 </style>
