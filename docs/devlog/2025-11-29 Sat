@@ -1,0 +1,9 @@
+## Float Cells
+Today, I finished the implementation of float cells. The main issues I addressed were UI/rendering issues with float cells.
+
+The logic was mostly there already.
+
+## Daily Notes Integration
+My personal workflow calls for a greater coupling of daily notes and the ultimate planner.I illustrated a PDF document to show what I am envisioning.
+
+[Ultimate Planner v2](<Ultimate Planner v2.pdf>)
