@@ -59,11 +59,13 @@
         justify-content: center;
         align-items: center;
         padding-bottom: 1em;
+        width: 100%;
 	}
 
     .float-block {
         border: 1px solid #ccc;
-        width: fit-width;
+        border-bottom: none;
+        max-width: 100%;
     }
 
     .header-row {
@@ -78,8 +80,11 @@
 
 	.float-columns-container {
 		display: flex;
-        justify-content: center;
         align-items: stretch;
+        overflow-x: auto;
+        overflow-y: hidden;
+        width: fit-content;
+        max-width: 100%;
         min-height: 3em;
 	}
 
@@ -90,9 +95,10 @@
     }
     .float-cell {
         border-right: 1px dotted #ccc;
+        border-bottom: 1px solid #ccc;
         padding: 4px;
         border-collapse: collapse;
         height: 100%;
-        width: 10em;
+        min-width: 10em;
     }
 </style>
