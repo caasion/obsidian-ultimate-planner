@@ -53,14 +53,17 @@
 
 <style>
     .float-block-container {
-		display: grid;
-        flex-wrap: wrap;
+		display: flex;
+        flex-direction: column;
         gap: 1em;
         justify-content: center;
+        align-items: center;
+        padding-bottom: 4px;
 	}
 
     .float-block {
         border: 1px solid #ccc;
+        width: fit-width;
     }
 
     .header-row {
@@ -90,6 +93,6 @@
         padding: 4px;
         border-collapse: collapse;
         height: 100%;
-        min-width: 4em;
+        width: 10em;
     }
 </style>
