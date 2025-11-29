@@ -132,8 +132,8 @@
 <div class="header">
 	<div class="nav-buttons">
 		<button onclick={() => goTo(helper.getISODate(new Date()))}>Today</button>
-    	<button onclick={() => goTo(helper.addDaysISO(anchor, -7))}>&lt;</button>
-		<button onclick={() => goTo(helper.addDaysISO(anchor, 7))}>&gt;</button>
+    	<button onclick={() => goTo(helper.addDaysISO(anchor, settings.columns))}>&lt;</button>
+		<button onclick={() => goTo(helper.addDaysISO(anchor, settings.columns))}>&gt;</button>
 	</div>
 	<div class="week">
 		<span class="week-label">{helper.getLabelFromDateRange(parseISO(columnsMeta[0].date), parseISO(columnsMeta[columnsMeta.length - 1].date))}</span>
