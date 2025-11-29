@@ -7,3 +7,7 @@ The logic was mostly there already.
 My personal workflow calls for a greater coupling of daily notes and the ultimate planner.I illustrated a PDF document to show what I am envisioning.
 
 [Ultimate Planner v2](<Ultimate Planner v2.pdf>)
+
+Things to consider:
+- The plugin will only store templates, which look for information in certain daily notes. It no longer stores the daily information
+- Each action item will have an option to have a float cell. Not all action items need a float cell
