@@ -5,10 +5,12 @@
   } from 'obsidian-daily-notes-interface';
   import { moment } from 'obsidian';
 
-  async function getTodayContents() {
-    const dailyNotes = getAllDailyNotes();
+  function getTodayNote() {
+    return getDailyNote(moment(), getAllDailyNotes());
+  }
 
-    const dailyNoteFile = getDailyNote(moment(), dailyNotes);
+  async function getTodayContents() {
+    const dailyNoteFile = getTodayNote();
 
     if (dailyNoteFile) {
       const content = await this.app.vault.read(dailyNoteFile);
@@ -20,7 +22,19 @@
   } 
 
   const contentPromise = getTodayContents();
+  let content = $state('');
 
+  function updateToday(value: string) {
+    try {
+      this.app.vault.modify(getTodayNote, value);
+    } catch (e) {
+      console.error("Save failed", e)
+    }
+  }
+
+  $effect(() => {
+    updateToday(content);
+  });
  
 </script>
 
@@ -28,7 +42,7 @@
     <p>Loading daily note...</p>
 {:then content}
     <div class="note-preview">
-        {content}
+      <input bind:value={content}/>
     </div>
 {:catch error}
     <p style="color: red">{error.message}</p>
