@@ -10,6 +10,7 @@ import { calendarState, fetchToken } from './state/calendarState';
 import { hashText, generateID, getISODate, addDaysISO, swapArrayItems, getISODates, getLabelFromDateRange } from './actions/helpers';
 import { parseICS, parseICSBetween, normalizeEvent, normalizeOccurrenceEvent, buildEventDictionaries, getEventLabels } from './actions/calendarHelper';
 import { fetchFromUrl, detectFetchChange } from './actions/fetch';
+import { PlaygroundView, PLAYGROUND_VIEW_TYPE } from './playground/PlaygroundView';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
@@ -98,6 +99,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 
 		// Register UPV using Obsidian's API
 		this.registerView(PLANNER_VIEW_TYPE, (leaf) => new PlannerView(leaf, this));
+		this.registerView(PLAYGROUND_VIEW_TYPE, (leaf) => new PlaygroundView(leaf, this));
 
 		// Add a command to open UPV
 		this.addCommand({
@@ -105,6 +107,14 @@ export default class UltimatePlannerPlugin extends Plugin {
 			name: 'Open Ultimate Planner',
 			callback: () => {
 				this.activateView(PLANNER_VIEW_TYPE);
+			}
+		});
+
+		this.addCommand({
+			id: 'open-playground-view',
+			name: 'Open Playground View',
+			callback: () => {
+				this.activateView(PLAYGROUND_VIEW_TYPE);
 			}
 		});
 	}
