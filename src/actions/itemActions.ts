@@ -103,7 +103,7 @@ export class PlannerActions {
 
     /** Handles the create of a new template (modal and creation). */
     public handleNewTemplate(app: App) {
-        new NewTemplateModal(app, this.helpers.getISODate(new Date()), (date) => this.data.setTemplate(date, {})).open();
+        new NewTemplateModal(app, this.helpers.getISODate(new Date()), (date, copyFrom) => this.data.setTemplate(date, copyFrom == '' ? {} : this.data.getTemplate(copyFrom))).open();
     }
 
     /** Handles the removal of a new template (confirmation modal, deletion, and clean-up.) */
