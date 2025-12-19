@@ -87,6 +87,7 @@ export class PlannerActions {
         new ConfirmationModal(
             app, 
             () => this.removeItem(tDate, id),
+            "Remove",
             "Removing the item will remove all cell contents."
         ).open();
     }
@@ -103,7 +104,7 @@ export class PlannerActions {
 
     /** Handles the create of a new template (modal and creation). */
     public handleNewTemplate(app: App) {
-        new NewTemplateModal(app, this.helpers.getISODate(new Date()), (date) => this.data.setTemplate(date, {})).open();
+        new NewTemplateModal(app, this.helpers.getISODate(new Date()), (date, copyFrom) => this.data.setTemplate(date, copyFrom == '' ? {} : this.data.getTemplate(copyFrom))).open();
     }
 
     /** Handles the removal of a new template (confirmation modal, deletion, and clean-up.) */
@@ -111,6 +112,7 @@ export class PlannerActions {
         new ConfirmationModal(
             app, 
             () => this.data.removeTemplate(tDate), 
+            "Remove",
             "Removing the template will remove all items and their contents."
         ).open();
     }

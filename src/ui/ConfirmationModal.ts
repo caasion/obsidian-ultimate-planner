@@ -1,7 +1,7 @@
 import { Modal, App, Setting } from "obsidian";
 
 export class ConfirmationModal extends Modal {
-    constructor(app: App, onSubmit: () => void, message?: string) {
+    constructor(app: App, onSubmit: () => void, confirmationText: string = 'Yes', message?: string) {
         super(app);
 
         const { contentEl } = this;
@@ -13,7 +13,7 @@ export class ConfirmationModal extends Modal {
         }
 
         new Setting(contentEl)
-            .addButton((b) => b.setButtonText("Add").setCta().onClick(() => {
+            .addButton((b) => b.setButtonText(confirmationText).setCta().onClick(() => {
                 onSubmit();
                 this.close();
             }))

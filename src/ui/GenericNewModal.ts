@@ -1,6 +1,8 @@
 import { Modal, App, Setting } from "obsidian";
 import { generateID } from "src/actions/helpers";
+import { templates } from "src/state/plannerStore";
 import type { ISODate, CalendarMeta, ItemType, ItemMeta } from "src/types";
+import { get } from "svelte/store";
 
 export class NewItemModal extends Modal {
     constructor(app: App, type: ItemType, tDate: ISODate, onSubmit: (date: ISODate, meta: ItemMeta) => void) {
@@ -66,7 +68,7 @@ export class NewItemModal extends Modal {
 }
 
 export class NewTemplateModal extends Modal {
-    constructor(app: App, date: ISODate, onSubmit: (tDate: ISODate) => void) {
+    constructor(app: App, date: ISODate, onSubmit: (tDate: ISODate, copyFrom: ISODate) => void) {
         super(app);
 
         const { contentEl } = this
@@ -90,11 +92,24 @@ export class NewTemplateModal extends Modal {
             });
         dateContainer.appendChild(dateLabel);
         dateContainer.appendChild(dateInput);
+
         contentEl.appendChild(dateContainer);
+
+        let copyFrom = '';
+        
+        new Setting(contentEl).setName("Create from Template")
+            .addDropdown((dropdown) => {
+                dropdown.addOption('', 'none');
+                const templs = get(templates);
+                for (const key in templs) {
+                    dropdown.addOption(key, key);
+                }
+                dropdown.onChange(v => copyFrom = v)
+            })
 
         new Setting(contentEl)
             .addButton((b) => b.setButtonText("Add").setCta().onClick(() => {
-                onSubmit(date);
+                onSubmit(date, copyFrom);
                 this.close();
             }))
             .addButton((b) => b.setButtonText("Cancel").onClick(() => this.close()));
