@@ -87,6 +87,7 @@ export class PlannerActions {
         new ConfirmationModal(
             app, 
             () => this.removeItem(tDate, id),
+            "Remove",
             "Removing the item will remove all cell contents."
         ).open();
     }
@@ -111,6 +112,7 @@ export class PlannerActions {
         new ConfirmationModal(
             app, 
             () => this.data.removeTemplate(tDate), 
+            "Remove",
             "Removing the template will remove all items and their contents."
         ).open();
     }
