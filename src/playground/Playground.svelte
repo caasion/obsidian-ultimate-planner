@@ -37,13 +37,3 @@
   });
  
 </script>
-
-{#await contentPromise}
-    <p>Loading daily note...</p>
-{:then content}
-    <div class="note-preview">
-      <input bind:value={content}/>
-    </div>
-{:catch error}
-    <p style="color: red">{error.message}</p>
-{/await}
