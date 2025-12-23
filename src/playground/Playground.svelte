@@ -1,39 +1,47 @@
 <script lang="ts">  
-  import { 
-    getAllDailyNotes, 
-    getDailyNote 
-  } from 'obsidian-daily-notes-interface';
-  import { moment } from 'obsidian';
+import { getAllDailyNotes, getDailyNote } from 'obsidian-daily-notes-interface';
+import { moment } from 'obsidian';
+import { onMount } from 'svelte';
+import { PlannerParser } from 'src/lib/parser';
+import { type Element } from 'src/types';
 
-  function getTodayNote() {
-    return getDailyNote(moment(), getAllDailyNotes());
+let content = $state('');
+let extracted = $derived<string[]>(PlannerParser.extractSection(content, "Ultimate Planner"));
+let parsed = $derived<Element[]>(PlannerParser.parseLines(extracted));
+
+function getTodayNote() {
+  return getDailyNote(moment(), getAllDailyNotes());
+}
+
+async function getTodayContents() {
+  const dailyNoteFile = getTodayNote();
+
+  if (dailyNoteFile) {
+    return await this.app.vault.read(dailyNoteFile);
+  } else {
+    return "No daily note found";
   }
-
-  async function getTodayContents() {
-    const dailyNoteFile = getTodayNote();
-
-    if (dailyNoteFile) {
-      const content = await this.app.vault.read(dailyNoteFile);
-      console.log(content);
-      return content;
-    } else {
-      return "No daily note found"
-    }
-  } 
-
-  const contentPromise = getTodayContents();
-  let content = $state('');
-
-  function updateToday(value: string) {
-    try {
-      this.app.vault.modify(getTodayNote, value);
-    } catch (e) {
-      console.error("Save failed", e)
-    }
-  }
-
-  $effect(() => {
-    updateToday(content);
-  });
- 
+} 
 </script>
+
+<!-- svelte-ignore a11y_consider_explicit_label -->
+<button onclick={async () => content = await getTodayContents()}>Update</button>
+<h2>Raw Content</h2>
+<pre>
+  {JSON.stringify(content, null, 2)}
+</pre>
+
+<h2>Extracted Section</h2>
+<pre>{JSON.stringify(extracted, null, 2)}</pre>
+
+<h2>Parsed Lines</h2>
+<pre>{JSON.stringify(parsed, null, 2)}</pre>
+
+<h2>Rendered Lines</h2>
+{#each parsed as line, i (line.raw)} 
+{#if line.isTask}
+  <li>Task: {line.text}</li>
+{:else}
+  <li>{line.text}</li>
+{/if}
+{/each}

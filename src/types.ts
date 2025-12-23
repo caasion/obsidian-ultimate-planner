@@ -8,13 +8,13 @@ import type { App, RequestUrlResponse, RequestUrlResponsePromise } from "obsidia
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
 
 /* Plugin Daydata Datatypes */
-export type ElementType = "event" | "task";
-
 export interface Element {
-	id: string; // generated at runtime/render (random)
-	type: ElementType;
-	text: string;
-	completed?: boolean;
+	raw: string;
+    level: number;
+    text: string;
+    isTask: boolean;
+    checked?: boolean;
+    metadata?: string;
 }
 
 export interface AIData {
