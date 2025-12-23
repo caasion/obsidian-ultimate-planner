@@ -13,20 +13,29 @@ export type Time = {
 	minutes: number; 
 }
 
-// An object represents a task or an event
+export interface LineInfo {
+	raw: string;
+    level: number;
+    text: string;
+    isTask: boolean;
+    checked?: boolean;
+    metadata?: string;
+}
+
+// An object represents a task or an event\
 export interface Element {
 	raw: string;
 	text: string;
 	children: string[];
 	isTask: boolean;
-	check?: boolean;
+	checked?: boolean;
 	startTime?: Time; // in ISO time
 	duration?: number; // in minutes
 }
 
 export interface ItemData {
 	id: string; // ActionItemID + date
-	time: string; // default: retrieves from template, but can be modified otherwise
+	time: number; // default: retrieves from template, but can be modified otherwise
 	items: Element[];
 }
 
