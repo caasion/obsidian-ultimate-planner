@@ -3,11 +3,11 @@ import { getAllDailyNotes, getDailyNote } from 'obsidian-daily-notes-interface';
 import { moment } from 'obsidian';
 import { onMount } from 'svelte';
 import { PlannerParser } from 'src/lib/parser';
-import { type Element } from 'src/types';
+import { type ItemData } from 'src/types';
 
 let content = $state('');
-let extracted = $derived<string[]>(PlannerParser.extractSection(content, "Ultimate Planner"));
-let parsed = $derived<Element[]>(PlannerParser.parseLines(extracted));
+let extracted = $derived<string>(PlannerParser.extractSection(content, "Ultimate Planner"));
+let parsed = $derived<ItemData[]>(PlannerParser.parseSection(extracted));
 
 function getTodayNote() {
   return getDailyNote(moment(), getAllDailyNotes());
@@ -36,12 +36,3 @@ async function getTodayContents() {
 
 <h2>Parsed Lines</h2>
 <pre>{JSON.stringify(parsed, null, 2)}</pre>
-
-<h2>Rendered Lines</h2>
-{#each parsed as line, i (line.raw)} 
-{#if line.isTask}
-  <li>Task: {line.text}</li>
-{:else}
-  <li>{line.text}</li>
-{/if}
-{/each}
