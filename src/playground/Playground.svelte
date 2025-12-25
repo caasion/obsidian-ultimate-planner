@@ -35,4 +35,4 @@ async function getTodayContents() {
 <pre>{JSON.stringify(extracted, null, 2)}</pre>
 
 <h2>Parsed Lines</h2>
-<pre>{JSON.stringify(parsed, null, 2)}</pre>
+<pre>{JSON.stringify(parsed, null, 2)} {console.log(parsed)}</pre>
