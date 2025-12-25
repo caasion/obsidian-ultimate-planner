@@ -1,8 +1,22 @@
 // PURPOSE: Provides tools to extract the desired section header and the information from the header section
 
-import type { Element, ItemData, LineInfo } from "src/types";
+import type { PlannerActions } from "src/actions/itemActions";
+import type { DataService, Element, ISODate, ItemData, LineInfo } from "src/types";
+
+export interface ParserDeps {
+	data: DataService;
+	plannerActions: PlannerActions;
+}
 
 export class PlannerParser {
+	private data: DataService;
+	private plannerActions: PlannerActions;
+
+	constructor(deps: ParserDeps) {
+		this.data = deps.data;
+		this.plannerActions = deps.plannerActions;
+	}
+
     static extractSection(content: string, sectionHeading: string): string {
         const lines = content.split('\n');
         let sectionLines: string = "";
@@ -22,13 +36,11 @@ export class PlannerParser {
         return sectionLines;
     }
     
-    static parseSection(section: string): ItemData[] {
+    public parseSection(date: ISODate, section: string): ItemData[] {
 	    const lines = section.split('\n');
 		const itemData: ItemData[] = [];
 		let currItem: ItemData | null = null;
-		let inItem: boolean = false;
-		let currElement: Element | null = null;
-		let inElement: boolean = false;
+		let currElement: Element | null = null; 
 		
 		for (let line of lines) {
 			// Skip empty lines or lines that aren't bullet points
@@ -47,9 +59,12 @@ export class PlannerParser {
 				
 				// Strip metadata like [🕛:: 2 hours]
 				text = text.replace(/\[.*?::.*?\]/g, '').trim();
+
+				console.log(date);
+				console.log(this.plannerActions.getTemplateDate(date));
 				
 				currItem = {
-					id: text,
+					id: this.data.getItemFromLabel(this.plannerActions.getTemplateDate(date), text),
 					time: 60,
 					items: [],
 				}

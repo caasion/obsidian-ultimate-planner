@@ -1,7 +1,7 @@
 import { Plugin } from 'obsidian';
 import { PLANNER_VIEW_TYPE, PlannerView } from './ui/PlannerView';
 import { UltimatePlannerPluginTab } from './ui/SettingsTab';
-import { addToTemplate, dayData, getCell, getFloatCell, getItemMeta, getTemplate, removeFromCellsInTemplate, removeFromTemplate, removeTemplate, setCell, setFloatCell, setTemplate, sortedTemplateDates, templates, updateItemMeta } from './state/plannerStore';
+import { addToTemplate, dayData, getCell, getFloatCell, getItemMeta, getTemplate, getItemFromLabel, removeFromCellsInTemplate, removeFromTemplate, removeTemplate, setCell, setFloatCell, setTemplate, sortedTemplateDates, templates, updateItemMeta } from './state/plannerStore';
 import { get, type Unsubscriber } from 'svelte/store';
 import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings } from './types';
 import { CalendarPipeline } from './actions/calendarPipelines';
@@ -11,6 +11,7 @@ import { hashText, generateID, getISODate, addDaysISO, swapArrayItems, getISODat
 import { parseICS, parseICSBetween, normalizeEvent, normalizeOccurrenceEvent, buildEventDictionaries, getEventLabels } from './actions/calendarHelper';
 import { fetchFromUrl, detectFetchChange } from './actions/fetch';
 import { PlaygroundView, PLAYGROUND_VIEW_TYPE } from './playground/PlaygroundView';
+import { PlannerParser } from './lib/parser';
 
 export default class UltimatePlannerPlugin extends Plugin {
 	settings: PluginSettings;
@@ -22,6 +23,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 	public fetchService: FetchService;
 	public plannerActions: PlannerActions;
 	public calendarPipeline: CalendarPipeline;
+	public parserService: PlannerParser;
 
 
 	async onload() {
@@ -45,6 +47,7 @@ export default class UltimatePlannerPlugin extends Plugin {
 			setTemplate,
 			addToTemplate,
 			getTemplate,
+			getItemFromLabel,
 			removeFromTemplate,
 			removeFromCellsInTemplate,
 			removeTemplate,
@@ -92,7 +95,13 @@ export default class UltimatePlannerPlugin extends Plugin {
 			settings: this.settings,
 			data: this.dataService, 
 			helpers: this.helperService, 
-			calendarPipelines: this.calendarPipeline})
+			calendarPipelines: this.calendarPipeline
+		})
+
+		this.parserService = new PlannerParser({
+			data: this.dataService,
+			plannerActions: this.plannerActions,
+		})
 
 		// Add Settings Tab using Obsidian's API
 		this.addSettingTab(new UltimatePlannerPluginTab(this.app, this));

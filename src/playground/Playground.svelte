@@ -1,13 +1,27 @@
 <script lang="ts">  
 import { getAllDailyNotes, getDailyNote } from 'obsidian-daily-notes-interface';
-import { moment } from 'obsidian';
-import { onMount } from 'svelte';
+import { App, moment } from 'obsidian';
+import type { DataService, HelperService, ISODate, ItemData, ItemMeta, PluginSettings } from "src/types";
+import type { CalendarPipeline } from "src/actions/calendarPipelines";
+import type { PlannerActions } from "src/actions/itemActions";
 import { PlannerParser } from 'src/lib/parser';
-import { type ItemData } from 'src/types';
 
+interface ViewProps {
+		app: App;
+		settings: PluginSettings;
+		data: DataService;
+		helper: HelperService;
+		plannerActions: PlannerActions;
+		calendarPipeline: CalendarPipeline;
+    parser: PlannerParser;
+	}
+
+let { app, settings, data, helper, plannerActions, calendarPipeline, parser }: ViewProps = $props();
+
+let today = new Date().toISOString();
 let content = $state('');
 let extracted = $derived<string>(PlannerParser.extractSection(content, "Ultimate Planner"));
-let parsed = $derived<ItemData[]>(PlannerParser.parseSection(extracted));
+let parsed = $derived<ItemData[]>(parser.parseSection(today, extracted));
 
 function getTodayNote() {
   return getDailyNote(moment(), getAllDailyNotes());

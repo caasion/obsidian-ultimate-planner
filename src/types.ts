@@ -122,6 +122,7 @@ export interface DataService {
     setTemplate: (tDate: ISODate, newTemplate: Record<ItemID, ItemMeta>) => void;
     addToTemplate: (tDate: ISODate, id: ItemID, meta: ItemMeta) => boolean;
     getTemplate: (tDate: ISODate) => Record<ItemID, ItemMeta>;
+    getItemFromLabel: (tDate: ISODate, label: string) => ItemID;
     removeFromTemplate: (tDate: ISODate, id: ItemID) => boolean;
     removeFromCellsInTemplate: (tDate: ISODate, id: ItemID) => boolean;
     removeTemplate: (tDate: ISODate) => boolean;

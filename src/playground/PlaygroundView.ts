@@ -25,7 +25,15 @@ export class PlaygroundView extends ItemView {
         const container = this.contentEl;
 		container.empty();
                 
-        mount(Playground, {target: container})
+        mount(Playground, {target: container, props: {
+             app: this.plugin.app,
+            settings: this.plugin.settings,
+            data: this.plugin.dataService,
+            helper: this.plugin.helperService,
+            plannerActions: this.plugin.plannerActions,
+            calendarPipeline: this.plugin.calendarPipeline,
+            parser: this.plugin.parserService,
+        }})
     }
 
     async onClose() {
