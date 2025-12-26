@@ -87,12 +87,12 @@
 		onUpdate(date, itemId, updatedData);
 	}
 
-	function addNewElement() {
+	function addNewElement(isTask: boolean) {
 		const newElement: Element = {
 			raw: "",
 			text: "",
 			children: [],
-			isTask: false
+			isTask: isTask,
 		};
 
 		const updatedData: ItemData = {
@@ -113,6 +113,14 @@
 	{#each itemData.items as element, index}
 		<div class="element-row">
 			{#if isEditing && editingIndex === index}
+                {#if element.isTask}
+                    <input
+                        type="checkbox"
+                        checked={element.checked}
+                        onchange={() => toggleTask(index)}
+                        class="task-checkbox"
+                    />
+                {/if}
 				<input
 					type="text"
 					bind:value={editText}
@@ -148,10 +156,18 @@
 			</div>
 		{/if}
 	{/each}
-	<button class="add-btn" onclick={addNewElement}>+ Add</button>
+    <div class="add-btn-container">
+        <button class="add-btn" onclick={() => addNewElement(false)}>+ Add Event</button>
+        <button class="add-btn" onclick={() => addNewElement(true)}>+ Add Task</button>
+    </div>
+	
 </div>
 
 <style>
+    .add-btn-container {
+        display: flex;
+    }
+
 	.editable-cell {
 		min-height: 40px;
 		width: 100%;
@@ -161,7 +177,6 @@
 		display: flex;
 		align-items: center;
 		gap: 4px;
-		margin-bottom: 4px;
 	}
 
 	.element-content {

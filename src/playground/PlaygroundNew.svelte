@@ -231,8 +231,6 @@
         };
     });
 
-	$inspect(parsedContent);
-
 	// Update handler for editable cells
 	function handleCellUpdate(date: ISODate, itemId: ItemID, updatedData: ItemData) {
 		// Update local state
@@ -367,6 +365,9 @@
 						<div class="cell">-</div>
 					{:else if row < Object.keys(sortedTemplates[tDate]).length}
                         <div class="cell">
+							{#if (col == 0 && sortedTemplates[tDate][row].meta.label !== "") || tDate == date}
+								<div class="row-label">{sortedTemplates[tDate][row].meta.type == "calendar" ? "📅" : ""} {sortedTemplates[tDate][row].meta.label}</div>
+							{/if}
 							{#if (parsedContent[date] && parsedContent[date][sortedTemplates[tDate][row].id])}
 								<EditableCell 
 									date={date}
