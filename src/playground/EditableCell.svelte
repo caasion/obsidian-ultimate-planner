@@ -1,0 +1,254 @@
+<script lang="ts">
+	import type { Element, ItemData, ItemID, ISODate } from "src/types";
+
+	interface EditableCellProps {
+		date: ISODate;
+		itemId: ItemID;
+		itemData: ItemData;
+		onUpdate: (date: ISODate, itemId: ItemID, updatedData: ItemData) => void;
+	}
+
+	let { date, itemId, itemData, onUpdate }: EditableCellProps = $props();
+
+	let isEditing = $state<boolean>(false);
+	let editingIndex = $state<number | null>(null);
+	let editText = $state<string>("");
+
+	function startEdit(index: number, element: Element) {
+		isEditing = true;
+		editingIndex = index;
+		editText = element.text;
+	}
+
+	function cancelEdit() {
+		isEditing = false;
+		editingIndex = null;
+		editText = "";
+	}
+
+	function saveEdit(index: number) {
+		if (editText.trim() === "") {
+			cancelEdit();
+			return;
+		}
+
+		const updatedItems = [...itemData.items];
+		updatedItems[index] = {
+			...updatedItems[index],
+			text: editText.trim()
+		};
+
+		const updatedData: ItemData = {
+			...itemData,
+			items: updatedItems
+		};
+
+		onUpdate(date, itemId, updatedData);
+		cancelEdit();
+	}
+
+	function handleKeydown(e: KeyboardEvent, index: number) {
+		if (e.key === 'Enter' && !e.shiftKey) {
+			e.preventDefault();
+			saveEdit(index);
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			cancelEdit();
+		}
+	}
+
+	function toggleTask(index: number) {
+		const updatedItems = [...itemData.items];
+		const element = updatedItems[index];
+		
+		if (element.isTask) {
+			updatedItems[index] = {
+				...element,
+				checked: !element.checked
+			};
+
+			const updatedData: ItemData = {
+				...itemData,
+				items: updatedItems
+			};
+
+			onUpdate(date, itemId, updatedData);
+		}
+	}
+
+	function deleteElement(index: number) {
+		const updatedItems = itemData.items.filter((_, i) => i !== index);
+		
+		const updatedData: ItemData = {
+			...itemData,
+			items: updatedItems
+		};
+
+		onUpdate(date, itemId, updatedData);
+	}
+
+	function addNewElement() {
+		const newElement: Element = {
+			raw: "",
+			text: "",
+			children: [],
+			isTask: false
+		};
+
+		const updatedData: ItemData = {
+			...itemData,
+			items: [...itemData.items, newElement]
+		};
+
+		onUpdate(date, itemId, updatedData);
+		
+		// Start editing the new element
+		setTimeout(() => {
+			startEdit(itemData.items.length, newElement);
+		}, 10);
+	}
+</script>
+
+<div class="editable-cell">
+	{#each itemData.items as element, index}
+		<div class="element-row">
+			{#if isEditing && editingIndex === index}
+				<input
+					type="text"
+					bind:value={editText}
+					onkeydown={(e) => handleKeydown(e, index)}
+					onblur={() => saveEdit(index)}
+					class="element-input"
+				/>
+			{:else}
+				<div class="element-content" ondblclick={() => startEdit(index, element)} role="button" tabindex="0">
+					{#if element.isTask}
+						<input
+							type="checkbox"
+							checked={element.checked}
+							onchange={() => toggleTask(index)}
+							class="task-checkbox"
+						/>
+					{/if}
+					<span class:checked={element.checked}>{element.text}</span>
+					{#if element.startTime}
+						<span class="time-badge">
+							{element.startTime.hours.toString().padStart(2, '0')}:{element.startTime.minutes.toString().padStart(2, '0')}
+						</span>
+					{/if}
+				</div>
+				<button class="delete-btn" onclick={() => deleteElement(index)} title="Delete">×</button>
+			{/if}
+		</div>
+		{#if element.children.length > 0}
+			<div class="children">
+				{#each element.children as child}
+					<div class="child-item">• {child}</div>
+				{/each}
+			</div>
+		{/if}
+	{/each}
+	<button class="add-btn" onclick={addNewElement}>+ Add</button>
+</div>
+
+<style>
+	.editable-cell {
+		min-height: 40px;
+		width: 100%;
+	}
+
+	.element-row {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		margin-bottom: 4px;
+	}
+
+	.element-content {
+		flex: 1;
+		cursor: text;
+		padding: 2px 4px;
+		border-radius: 2px;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.element-content:hover {
+		background-color: var(--background-modifier-hover);
+	}
+
+	.task-checkbox {
+		cursor: pointer;
+	}
+
+	.checked {
+		text-decoration: line-through;
+		opacity: 0.6;
+	}
+
+	.time-badge {
+		font-size: 0.85em;
+		background-color: var(--interactive-accent);
+		color: white;
+		padding: 2px 6px;
+		border-radius: 3px;
+		margin-left: auto;
+	}
+
+	.element-input {
+		flex: 1;
+		padding: 2px 4px;
+		border: 1px solid var(--interactive-accent);
+		border-radius: 2px;
+		background: var(--background-primary);
+		color: var(--text-normal);
+	}
+
+	.delete-btn {
+		opacity: 0;
+		background: transparent;
+		border: none;
+		color: var(--text-muted);
+		cursor: pointer;
+		font-size: 1.2em;
+		padding: 0 4px;
+		line-height: 1;
+	}
+
+	.element-row:hover .delete-btn {
+		opacity: 1;
+	}
+
+	.delete-btn:hover {
+		color: var(--text-error);
+	}
+
+	.children {
+		margin-left: 20px;
+		font-size: 0.9em;
+		color: var(--text-muted);
+	}
+
+	.child-item {
+		padding: 2px 0;
+	}
+
+	.add-btn {
+		width: 100%;
+		padding: 4px;
+		margin-top: 4px;
+		background: transparent;
+		border: 1px dashed var(--background-modifier-border);
+		color: var(--text-muted);
+		cursor: pointer;
+		border-radius: 2px;
+		font-size: 0.9em;
+	}
+
+	.add-btn:hover {
+		background-color: var(--background-modifier-hover);
+		border-color: var(--interactive-accent);
+		color: var(--text-normal);
+	}
+</style>

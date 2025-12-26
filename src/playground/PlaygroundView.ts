@@ -2,6 +2,7 @@ import { ItemView, WorkspaceLeaf } from "obsidian";
 import { mount } from 'svelte';
 import Playground from './Playground.svelte';
 import UltimatePlannerPlugin from '../main';
+import PlaygroundNew from "./PlaygroundNew.svelte";
 
 export const PLAYGROUND_VIEW_TYPE = "playground-view"
 
@@ -25,7 +26,7 @@ export class PlaygroundView extends ItemView {
         const container = this.contentEl;
 		container.empty();
                 
-        mount(Playground, {target: container, props: {
+        mount(PlaygroundNew, {target: container, props: {
              app: this.plugin.app,
             settings: this.plugin.settings,
             data: this.plugin.dataService,
