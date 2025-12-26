@@ -13,12 +13,27 @@
 	let isEditing = $state<boolean>(false);
 	let editingIndex = $state<number | null>(null);
 	let editText = $state<string>("");
+    
 
 	function startEdit(index: number, element: Element) {
-		isEditing = true;
-		editingIndex = index;
-		editText = element.text;
-	}
+        isEditing = true;
+        editingIndex = index;
+        
+        // Build the raw text including time info
+        editText = element.text;
+        
+        if (element.startTime && element.duration && element.durationUnit) {
+            const hours = element.startTime.hours.toString().padStart(2, '0');
+            const minutes = element.startTime.minutes.toString().padStart(2, '0');
+            editText += ` @ ${hours}:${minutes} (${element.duration} ${element.durationUnit})`;
+        } else if (element.startTime) {
+            const hours = element.startTime.hours.toString().padStart(2, '0');
+            const minutes = element.startTime.minutes.toString().padStart(2, '0');
+            editText += ` @ ${hours}:${minutes}`;
+        } else if (element.duration && element.durationUnit) {
+            editText += ` (${element.duration} ${element.durationUnit})`;
+        }
+    }
 
 	function cancelEdit() {
 		isEditing = false;
@@ -33,10 +48,43 @@
 		}
 
 		const updatedItems = [...itemData.items];
-		updatedItems[index] = {
-			...updatedItems[index],
-			text: editText.trim()
+		
+		// Parse the text for time info: "Task @ 10:00 (2 hr)", "Task @ 10:00", or "Task (2 hr)"
+		const withFullTimeMatch = editText.match(/(.*?) @ (\d{1,2}):(\d{2})\s*\((\d+)\s*(h|hr|hrs|m|min|mins)\)/);
+		const withStartTimeMatch = editText.match(/(.*?) @ (\d{1,2}):(\d{2})/);
+		const withDurationMatch = editText.match(/(.*?)\s*\((\d+)\s*(h|hr|hrs|m|min|mins)\)/);
+		
+		const updatedElement: Element = {
+			...updatedItems[index]
 		};
+		
+		if (withFullTimeMatch) {
+			const [, text, hours, minutes, rawDuration, units] = withFullTimeMatch;
+			updatedElement.text = text.trim();
+			updatedElement.startTime = { hours: parseInt(hours), minutes: parseInt(minutes) };
+			updatedElement.duration = parseInt(rawDuration);
+			updatedElement.durationUnit = units.startsWith('h') ? 'hr' : 'min';
+		} else if (withStartTimeMatch) {
+			const [, text, hours, minutes] = withStartTimeMatch;
+			updatedElement.text = text.trim();
+			updatedElement.startTime = { hours: parseInt(hours), minutes: parseInt(minutes) };
+			delete updatedElement.duration;
+			delete updatedElement.durationUnit;
+		} else if (withDurationMatch) {
+			const [, text, rawDuration, units] = withDurationMatch;
+			updatedElement.text = text.trim();
+			delete updatedElement.startTime;
+			updatedElement.duration = parseInt(rawDuration);
+			updatedElement.durationUnit = units.startsWith('h') ? 'hr' : 'min';
+		} else {
+			// No time info
+			updatedElement.text = editText.trim();
+			delete updatedElement.startTime;
+			delete updatedElement.duration;
+			delete updatedElement.durationUnit;
+		}
+		
+		updatedItems[index] = updatedElement;
 
 		const updatedData: ItemData = {
 			...itemData,
@@ -139,11 +187,21 @@
 						/>
 					{/if}
 					<span class:checked={element.checked}>{element.text}</span>
-					{#if element.startTime}
+					{#if element.startTime && element.duration && element.durationUnit}
+						<span class="time-badge">
+							{element.startTime.hours.toString().padStart(2, '0')}:{element.startTime.minutes.toString().padStart(2, '0')}
+							({element.duration} {element.durationUnit})
+						</span>
+					{:else if element.startTime}
 						<span class="time-badge">
 							{element.startTime.hours.toString().padStart(2, '0')}:{element.startTime.minutes.toString().padStart(2, '0')}
 						</span>
+					{:else if element.duration && element.durationUnit}
+						<span class="time-badge">
+							{element.duration} {element.durationUnit}
+						</span>
 					{/if}
+                    
 				</div>
 				<button class="delete-btn" onclick={() => deleteElement(index)} title="Delete">×</button>
 			{/if}

@@ -142,7 +142,7 @@
             const newSection = parser.serializeSection(date, items);
             
             // Replace the section
-            const updatedContent = PlannerParser.replaceSection(currentContent, "Ultimate Planner", newSection);
+            const updatedContent = PlannerParser.replaceSection(currentContent, settings.sectionHeading, newSection);
             
             // Write back to file
             await app.vault.modify(dailyNoteFile, updatedContent);
@@ -180,7 +180,7 @@
             return {};
         }
         
-        const extracted = PlannerParser.extractSection(contents, "Ultimate Planner");
+        const extracted = PlannerParser.extractSection(contents, settings.sectionHeading);
         const parsed = parser.parseSection(date, extracted);
         
         return parsed;

@@ -30,7 +30,8 @@ export interface Element {
 	isTask: boolean;
 	checked?: boolean;
 	startTime?: Time; // in ISO time
-	duration?: number; // in minutes
+	duration?: number; // duration value
+	durationUnit?: 'min' | 'hr'; // duration unit
 }
 
 export interface ItemData {
@@ -90,6 +91,7 @@ export interface PluginSettings {
 
     /* Data Saving */
     autosaveDebounceMs: number;
+    sectionHeading: string;
 
     /* Calendar Settings */
     refreshRemoteMs: number;
@@ -103,6 +105,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     weekStartOn: 0,
 
     autosaveDebounceMs: 200,
+    sectionHeading: "Ultimate Planner",
 
     refreshRemoteMs: 5 * 60 * 1000,
     lookaheadDays: 14,

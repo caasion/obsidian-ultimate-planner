@@ -97,8 +97,9 @@ export class PlannerParser {
 	    if (withTimeMatch) {
 	        const [, id, checkmark, text, timeStr] = withTimeMatch;
 	        
-	        // Parse time: format like "10:00 (2 hr)" or "12:00 (30 min)"
-	        const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*\((\d+)\s*(h|hr|hrs|m|min|mins)\)/);
+	        // Parse time: format like "10:00 (2 hr)" or "12:00 (30 min)" or just "10:00"
+	        const timeWithDurationMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*\((\d+)\s*(h|hr|hrs|m|min|mins)\)/);
+	        const timeOnlyMatch = timeStr.match(/(\d{1,2}):(\d{2})$/);
 	        
 	        const element: Element = {
 	            raw: line,
@@ -108,13 +109,48 @@ export class PlannerParser {
 	            checked: id.includes('[x]'),
 	        };
 	        
-	        if (timeMatch) {
-	            const [, hours, minutes, rawDuration, units] = timeMatch;
+	        if (timeWithDurationMatch) {
+	            const [, hours, minutes, rawDuration, units] = timeWithDurationMatch;
 	            element.startTime = { hours: parseInt(hours), minutes: parseInt(minutes) };
-	            element.duration = units.startsWith('h') ? parseInt(rawDuration) * 60 : parseInt(rawDuration);
+	            element.duration = parseInt(rawDuration);
+	            element.durationUnit = units.startsWith('h') ? 'hr' : 'min';
+	        } else if (timeOnlyMatch) {
+	            const [, hours, minutes] = timeOnlyMatch;
+	            element.startTime = { hours: parseInt(hours), minutes: parseInt(minutes) };
 	        }
 	        
 	        return element;
+	    }
+	    
+	    // Try to match with start time only (no duration) - fallback if @ doesn't have time after it
+	    const startTimeOnlyMatch = line.match(/^\t(- \[(.?)\] |- )(.*?) @ (\d{1,2}):(\d{2})$/);
+	    
+	    if (startTimeOnlyMatch) {
+	        const [, id, checkmark, text, hours, minutes] = startTimeOnlyMatch;
+	        return {
+	            raw: line,
+	            text: text.trim(),
+	            children: [],
+	            isTask: id.includes('[ ]') || id.includes('[x]'),
+	            checked: id.includes('[x]'),
+	            startTime: { hours: parseInt(hours), minutes: parseInt(minutes) },
+	        };
+	    }
+	    
+	    // Try to match with duration only (no start time)
+	    const durationOnlyMatch = line.match(/^\t(- \[(.?)\] |- )(.*?)\s*\((\d+)\s*(h|hr|hrs|m|min|mins)\)/);
+	    
+	    if (durationOnlyMatch) {
+	        const [, id, checkmark, text, rawDuration, units] = durationOnlyMatch;
+	        return {
+	            raw: line,
+	            text: text.trim(),
+	            children: [],
+	            isTask: id.includes('[ ]') || id.includes('[x]'),
+	            checked: id.includes('[x]'),
+	            duration: parseInt(rawDuration),
+	            durationUnit: units.startsWith('h') ? 'hr' : 'min',
+	        };
 	    }
 	    
 	    // Handle without time information
@@ -155,12 +191,16 @@ export class PlannerParser {
         line += element.text;
         
         // Add time information if available
-        if (element.startTime && element.duration) {
+        if (element.startTime && element.duration && element.durationUnit) {
             const hours = element.startTime.hours.toString().padStart(2, '0');
             const minutes = element.startTime.minutes.toString().padStart(2, '0');
-            const durationValue = element.duration >= 60 ? element.duration / 60 : element.duration;
-            const durationUnit = element.duration >= 60 ? 'hr' : 'min';
-            line += ` @ ${hours}:${minutes} (${durationValue} ${durationUnit})`;
+            line += ` @ ${hours}:${minutes} (${element.duration} ${element.durationUnit})`;
+        } else if (element.startTime) {
+            const hours = element.startTime.hours.toString().padStart(2, '0');
+            const minutes = element.startTime.minutes.toString().padStart(2, '0');
+            line += ` @ ${hours}:${minutes}`;
+        } else if (element.duration && element.durationUnit) {
+            line += ` (${element.duration} ${element.durationUnit})`;
         }
         
         let result = line + '\n';
