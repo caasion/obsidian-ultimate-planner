@@ -1,6 +1,5 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { mount } from 'svelte';
-import Playground from './Playground.svelte';
 import UltimatePlannerPlugin from '../main';
 import PlaygroundNew from "./PlaygroundNew.svelte";
 

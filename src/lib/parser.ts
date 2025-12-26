@@ -60,12 +60,6 @@ export class PlannerParser {
 				// Initialize the new item
 				let text = line.replace(/^- (\[.\] )?/, '').trim();
 				
-				// Strip metadata like [🕛:: 2 hours]
-				text = text.replace(/\[.*?::.*?\]/g, '').trim();
-
-				console.log(date);
-				console.log(this.plannerActions.getTemplateDate(date));
-				
 				currItem = {
 					id: this.data.getItemFromLabel(this.plannerActions.getTemplateDate(date), text),
 					time: 60,
