@@ -1,5 +1,5 @@
 import type { App, EventRef, TFile } from "obsidian";
-import type { Element, ISODate, PluginSettings, TrackData } from "src/plugin/types";
+import type { Element, ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
 import { getAllDailyNotes, getDailyNote, createDailyNote } from "obsidian-daily-notes-interface";
 import moment from "moment";
 import { Notice } from "obsidian";
@@ -10,12 +10,14 @@ export interface DailyNoteServiceDeps {
     app: App;
     settings: PluginSettings;
     parser: PlannerParser;
+    getTrackMetaSnapshot: () => Record<string, Track>;
 }
 
 export class DailyNoteService {
     private app: App;
     private settings: PluginSettings;
     private parser: PlannerParser;
+    private getTrackMetaSnapshot: () => Record<string, Track>;
     
     private isWriting: boolean = false;
     private writeTimer: NodeJS.Timeout | null = null;
@@ -30,6 +32,7 @@ export class DailyNoteService {
         this.app = deps.app;
         this.settings = deps.settings;
         this.parser = deps.parser;
+        this.getTrackMetaSnapshot = deps.getTrackMetaSnapshot;
     }
 
     // ===== Read operations ===== //
@@ -44,7 +47,7 @@ export class DailyNoteService {
     }
 
     /** Load and parse content from a daily note */
-    async loadDailyNoteContent(date: ISODate): Promise<Record<string, TrackData>> {
+    async loadDailyNoteContent(date: ISODate, trackMeta?: Record<string, Track>): Promise<Record<string, TrackData>> {
         const dailyNoteFile = getDailyNote(moment(date), getAllDailyNotes());
         const contents = await this.getDailyNoteContents(dailyNoteFile);
         
@@ -53,7 +56,8 @@ export class DailyNoteService {
         }
         
         const extracted = PlannerParser.extractSection(contents, this.settings.sectionHeading);
-        const parsed = this.parser.parseTrackSection(date, extracted);
+        const tracks = trackMeta ?? this.getTrackMetaSnapshot();
+        const parsed = this.parser.parseTrackSection(date, extracted, tracks);
         
         return parsed;
     }
@@ -79,10 +83,11 @@ export class DailyNoteService {
         
         const result: Record<ISODate, Record<string, TrackData>> = {};
         const journalResult: Record<ISODate, Record<string, string>> = {};
+        const trackMeta = this.getTrackMetaSnapshot();
         
         await Promise.all(
             dates.map(async (date) => {
-                result[date] = await this.loadDailyNoteContent(date);
+                result[date] = await this.loadDailyNoteContent(date, trackMeta);
                 journalResult[date] = await this.loadJournalContent(date);
             })
         );
@@ -106,7 +111,8 @@ export class DailyNoteService {
             }
             
             const currentContent = await this.app.vault.read(dailyNoteFile);
-            const newSection = this.parser.serializeTrackSection(date, tracks);
+            const trackMeta = this.getTrackMetaSnapshot();
+            const newSection = this.parser.serializeTrackSection(date, trackMeta, tracks);
             const updatedContent = PlannerParser.replaceSection(currentContent, this.settings.sectionHeading, newSection);
             
             await this.app.vault.modify(dailyNoteFile, updatedContent); // Write back to file

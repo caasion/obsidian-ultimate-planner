@@ -94,7 +94,8 @@ export default class HolosPlugin extends Plugin {
 		this.dailyNoteService = new DailyNoteService({
 			app: this.app,
 			settings: this.settings,
-			parser: this.parserService
+			parser: this.parserService,
+			getTrackMetaSnapshot: () => this.trackNoteService ? get(this.trackNoteService.parsedTracksContent) : { }
 		});
 
 		await this.initializeTrackNoteService();
