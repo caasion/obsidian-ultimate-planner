@@ -2,7 +2,7 @@
 	import type { App } from "obsidian";
 	import type { CalendarPipeline } from "src/calendar/calendarPipelines";
 	import type { TemplateActions } from "src/templates/templateActions";
-	import type { DataService, HelperService, ISODate, ItemData, PluginSettings, Track } from "src/plugin/types";
+	import type { DataService, Element, HelperService, ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
 	import { PlannerParser } from "src/planner/logic/parser";
 	import { DailyNoteService } from "src/planner/logic/dailyNote";
 	import TemplateEditor from "src/templates/Templates.svelte";
@@ -51,7 +51,7 @@
 	let parsedContentStore = $derived(dailyNoteService.parsedContent);
 	let parsedJournalContentStore = $derived(dailyNoteService.parsedJournalContent);
 
-	let parsedContent = $derived<Record<ISODate, Record<string, ItemData>>>($parsedContentStore);
+	let parsedContent = $derived<Record<ISODate, Record<string, TrackData>>>($parsedContentStore);
 	let parsedJournalContent = $derived<Record<ISODate, Record<string, string>>>($parsedJournalContentStore)
 	
 	// Load daily note content when dates change
@@ -86,13 +86,13 @@
   });
 
 	// Update handler for editable cells
-	function handleCellUpdate(date: ISODate, trackId: string, updatedData: ItemData) {
-		dailyNoteService.updateCell(date, trackId, updatedData);
+	function handleCellUpdate(date: ISODate, trackId: string, updatedData: TrackData) {
+		dailyNoteService.updateTrackCell(date, trackId, updatedData);
 	}
 
-	// Add new item to an empty cell
-	async function addNewItemToCell(date: ISODate, trackId: string, trackMeta: Track) {
-		await dailyNoteService.addNewItemToCell(date, trackId, trackMeta.timeCommitment);
+	// Add new track to an empty cell
+	async function addNewTrackToCell(date: ISODate, trackId: string, trackMeta: Track) {
+		await dailyNoteService.addNewTrackToCell(date, trackId, trackMeta.timeCommitment);
 	}
 
 	// Open daily note for a specific date
@@ -135,7 +135,7 @@
 	{parsedContent}
 	{parsedJournalContent}
 	onUpdate={handleCellUpdate}
-	onAdd={addNewItemToCell}
+	onAdd={addNewTrackToCell}
 	{openDailyNote}
 />
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Element, ItemData, ISODate, Track } from "src/plugin/types";
+	import type { Element, ISODate, Track, TrackData } from "src/plugin/types";
 	import TaskElement from "./TaskElement.svelte";
 	import { dndzone } from 'svelte-dnd-action';
 	import { flip } from "svelte/animate";
@@ -10,8 +10,8 @@
 		showLabel: boolean;
 		trackMeta: Track;
 		trackId: string;
-		trackData: ItemData;
-		onUpdate: (date: ISODate, trackId: string, updatedData: ItemData) => void;
+		trackData: TrackData;
+		onUpdate: (date: ISODate, trackId: string, updatedData: TrackData) => void;
 	}
 
 	let { date, showLabel, trackMeta, trackId, trackData, onUpdate }: EditableCellProps = $props();
@@ -35,7 +35,7 @@
 			raw
 		};
 
-		const updatedData: ItemData = {
+		const updatedData: TrackData = {
 			...trackData,
 			items: updatedItems
 		};
@@ -67,7 +67,7 @@
 				raw
 			};
 
-			const updatedData: ItemData = {
+			const updatedData: TrackData = {
 				...trackData,
 				items: updatedItems
 			};
@@ -100,7 +100,7 @@
 				raw
 			};
 
-			const updatedData: ItemData = {
+			const updatedData: TrackData = {
 				...trackData,
 				items: updatedItems
 			};
@@ -112,7 +112,7 @@
 	function deleteElement(index: number) {
 		const updatedItems = trackData.items.filter((_, i) => i !== index);
 		
-		const updatedData: ItemData = {
+		const updatedData: TrackData = {
 			...trackData,
 			items: updatedItems
 		};
@@ -128,7 +128,7 @@
 			isTask: isTask,
 		};
 
-		const updatedData: ItemData = {
+		const updatedData: TrackData = {
 			...trackData,
 			items: [...trackData.items, newElement]
 		};
@@ -165,7 +165,7 @@
   function handleDndFinalize(e: { detail: { items: any[]; }; }) {
 		isDragging = false;
 		const reorderedElements = e.detail.items.map(item => item.element);
-		const updatedData: ItemData = {
+		const updatedData: TrackData = {
 			...trackData,
 			items: reorderedElements
 		};

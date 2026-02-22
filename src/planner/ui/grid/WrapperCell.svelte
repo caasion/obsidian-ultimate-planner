@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ISODate, ItemData, Track } from 'src/plugin/types';
+    import type { Element, ISODate, Track, TrackData } from 'src/plugin/types';
     import EditableCell from './EditableCell.svelte';
     import EmptyCell from './EmptyCell.svelte';
     import { calculateTotalTimeSpent, formatTimeArguments } from 'src/plugin/helpers';
@@ -10,9 +10,9 @@
         showLabel: boolean;
         trackId: string;
         trackMeta: Track;
-        trackData: ItemData | undefined;
+        trackData: TrackData | undefined;
         journalData: string | undefined;
-        onUpdate: (date: ISODate, trackId: string, updatedData: ItemData) => void;
+        onUpdate: (date: ISODate, trackId: string, updatedData: TrackData) => void;
         onAdd: (date: ISODate, trackId: string, trackMeta: Track) => void;
     }
     

@@ -1,5 +1,5 @@
 import type { App, EventRef, TFile } from "obsidian";
-import type { ISODate, ItemData, ItemID, PluginSettings } from "src/plugin/types";
+import type { Element, ISODate, PluginSettings, TrackData } from "src/plugin/types";
 import { getAllDailyNotes, getDailyNote, createDailyNote } from "obsidian-daily-notes-interface";
 import moment from "moment";
 import { Notice } from "obsidian";
@@ -20,7 +20,7 @@ export class DailyNoteService {
     private isWriting: boolean = false;
     private writeTimer: NodeJS.Timeout | null = null;
     
-    public parsedContent: Writable<Record<ISODate, Record<ItemID, ItemData>>> = writable({});
+    public parsedContent: Writable<Record<ISODate, Record<string, TrackData>>> = writable({});
     public parsedJournalContent: Writable<Record<ISODate, Record<string, string>>> = writable({});
     
     private fileModifyRef: EventRef | null = null;
@@ -44,7 +44,7 @@ export class DailyNoteService {
     }
 
     /** Load and parse content from a daily note */
-    async loadDailyNoteContent(date: ISODate): Promise<Record<ItemID, ItemData>> {
+    async loadDailyNoteContent(date: ISODate): Promise<Record<string, TrackData>> {
         const dailyNoteFile = getDailyNote(moment(date), getAllDailyNotes());
         const contents = await this.getDailyNoteContents(dailyNoteFile);
         
@@ -53,7 +53,7 @@ export class DailyNoteService {
         }
         
         const extracted = PlannerParser.extractSection(contents, this.settings.sectionHeading);
-        const parsed = this.parser.parseSection(date, extracted);
+        const parsed = this.parser.parseTrackSection(date, extracted);
         
         return parsed;
     }
@@ -77,7 +77,7 @@ export class DailyNoteService {
     async loadMultipleDates(dates: ISODate[]): Promise<void> {
         if (this.isWriting) return;
         
-        const result: Record<ISODate, Record<ItemID, ItemData>> = {};
+        const result: Record<ISODate, Record<string, TrackData>> = {};
         const journalResult: Record<ISODate, Record<string, string>> = {};
         
         await Promise.all(
@@ -94,7 +94,7 @@ export class DailyNoteService {
     // ===== Write operations ===== //
 
     /** Write content back to a daily note */
-    async writeDailyNote(date: ISODate, items: Record<ItemID, ItemData>): Promise<void> {
+    async writeDailyNote(date: ISODate, tracks: Record<string, TrackData>): Promise<void> {
         this.isWriting = true;
         
         try {
@@ -106,7 +106,7 @@ export class DailyNoteService {
             }
             
             const currentContent = await this.app.vault.read(dailyNoteFile);
-            const newSection = this.parser.serializeSection(date, items);
+            const newSection = this.parser.serializeTrackSection(date, tracks);
             const updatedContent = PlannerParser.replaceSection(currentContent, this.settings.sectionHeading, newSection);
             
             await this.app.vault.modify(dailyNoteFile, updatedContent); // Write back to file
@@ -123,13 +123,13 @@ export class DailyNoteService {
     }
 
     /** Debounced write function */
-    debouncedWrite(date: ISODate, items: Record<ItemID, ItemData>): void {
+    debouncedWrite(date: ISODate, tracks: Record<string, TrackData>): void {
         if (this.writeTimer) {
             clearTimeout(this.writeTimer);
         }
         
         this.writeTimer = setTimeout(() => {
-            this.writeDailyNote(date, items);
+            this.writeDailyNote(date, tracks);
         }, 500);
     }
 
@@ -177,12 +177,12 @@ export class DailyNoteService {
     // ===== Update operations ===== //
 
     /** Update cell content */
-    updateCell(date: ISODate, itemId: ItemID, updatedData: ItemData): void {
+    updateTrackCell(date: ISODate, trackId: string, updatedData: TrackData): void {
         this.parsedContent.update(content => ({
             ...content,
             [date]: {
                 ...content[date],
-                [itemId]: updatedData
+                [trackId]: updatedData
             }
         }));
         
@@ -195,7 +195,7 @@ export class DailyNoteService {
     }
 
     /** Add a new item to an empty cell */
-    async addNewItemToCell(date: ISODate, itemId: ItemID, timeCommitment?: number): Promise<boolean> {
+    async addNewTrackToCell(date: ISODate, trackId: string, timeCommitment?: number): Promise<boolean> {
         // Check if daily note exists
         let dailyNoteFile = getDailyNote(moment(date), getAllDailyNotes());
         
@@ -214,8 +214,8 @@ export class DailyNoteService {
             }
         }
         
-        const newItemData: ItemData = {
-            id: itemId,
+        const newTrackData: TrackData = {
+            id: trackId,
             time: timeCommitment ?? 0,
             items: [{
                 raw: "New Item",
@@ -230,12 +230,12 @@ export class DailyNoteService {
             ...content,
             [date]: {
                 ...content[date] || {},
-                [itemId]: newItemData
+                [trackId]: newTrackData
             }
         }));
         
         // Get current content and write immediately
-        let currentDateContent: Record<ItemID, ItemData> = {};
+        let currentDateContent: Record<string, TrackData> = {};
         this.parsedContent.subscribe(content => {
             if (content[date]) {
                 currentDateContent = content[date];

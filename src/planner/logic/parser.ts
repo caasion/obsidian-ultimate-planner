@@ -1,7 +1,7 @@
 // PURPOSE: Provides tools to extract the desired section header and the information from the header section
 
 import { formatProgressDuration, formatTime } from "src/plugin/helpers";
-import type { DataService, Element, Habit, ISODate, ItemData, ItemID, LineInfo, Time } from "src/plugin/types";
+import type { DataService, Element, Habit, ISODate, LineInfo, Time, TrackData } from "src/plugin/types";
 import type { TemplateActions } from "src/templates/templateActions";
 import { RRuleService } from "src/tracks/logic/rrule";
 
@@ -168,10 +168,10 @@ export class PlannerParser {
         return tasks;
     }
     
-    parseSection(date: ISODate, section: string): Record<ItemID, ItemData> {
+    parseTrackSection(date: ISODate, section: string): Record<string, TrackData> {
 	    const lines = section.split('\n');
-		const itemData: Record<ItemID, ItemData> = {};
-		let currItem: ItemData | null = null;
+        const trackData: Record<string, TrackData> = {};
+        let currTrack: TrackData | null = null;
 		let currElement: Element | null = null; 
 		
 		for (let line of lines) {
@@ -181,8 +181,8 @@ export class PlannerParser {
 			// If the line starts with a bullet point with no tab, then start a new item.
 			if (line.match(/^- /)) { 
 				// Push the old element or item if it exists
-				if (currElement && currItem) currItem.items.push(currElement);
-				if (currItem) itemData[currItem.id] = currItem;
+                if (currElement && currTrack) currTrack.items.push(currElement);
+                if (currTrack) trackData[currTrack.id] = currTrack;
 				
 				// Prepare for new item: reset & initialize
 				currElement = null;
@@ -201,7 +201,7 @@ export class PlannerParser {
 				}
 				
 				const templateDate = this.plannerActions?.getTemplateDate(date) ?? date;
-				currItem = {
+                currTrack = {
 					id: this.data.getItemFromLabel(templateDate, text),
 					time: timeCommitment,
 					items: [],
@@ -209,7 +209,7 @@ export class PlannerParser {
 				
 			} else if (line.match(/^\t- /)) {
 				// Push the old element if it exists
-				if (currElement && currItem) currItem.items.push(currElement);
+                if (currElement && currTrack) currTrack.items.push(currElement);
 				
 				// Initialize the new element
 				currElement = PlannerParser.parseElementLine(line);
@@ -223,14 +223,14 @@ export class PlannerParser {
 		}
 
         // Push the old element if it exists
-        if (currElement && currItem) currItem.items.push(currElement);
+        if (currElement && currTrack) currTrack.items.push(currElement);
 
         // Push the old item if it exists
-        if (currItem) itemData[currItem.id] = currItem;
+        if (currTrack) trackData[currTrack.id] = currTrack;
 
-        return itemData;
+        return trackData;
     }
-    
+
     static parseElementLine(line: string): Element {
 		let text = line.replace(/^\s+- /, '');
 
@@ -312,28 +312,28 @@ export class PlannerParser {
         return result;
     }
     
-    // Serialize a single ItemData back to string
-    private static serializeItem(itemMeta: any, itemData: ItemData): string {
+    // Serialize a single track cell back to string
+    private static serializeTrack(trackMeta: any, trackData: TrackData): string {
         let result = '';
         
-        // Add item header with label
-        result += `- ${itemMeta.label}`;
+        // Add track header with label
+        result += `- ${trackMeta.label}`;
         
         // Add time commitment if not default (60 minutes)
-        if (itemData.time && itemData.time !== 60) {
-            if (itemData.time % 60 === 0) {
+        if (trackData.time && trackData.time !== 60) {
+            if (trackData.time % 60 === 0) {
                 // Display in hours if it's a whole number of hours
-                result += ` (${itemData.time / 60} hr)`;
+                result += ` (${trackData.time / 60} hr)`;
             } else {
                 // Display in minutes
-                result += ` (${itemData.time} min)`;
+                result += ` (${trackData.time} min)`;
             }
         }
         
         result += '\n';
         
         // Add all elements
-        for (const element of itemData.items) {
+        for (const element of trackData.items) {
             result += PlannerParser.serializeElement(element);
         }
         
@@ -341,12 +341,12 @@ export class PlannerParser {
     }
     
     // Serialize entire section back to string
-    serializeSection(date: ISODate, items: Record<ItemID, ItemData>): string {
+    serializeTrackSection(date: ISODate, tracks: Record<string, TrackData>): string {
         const templateDate = this.plannerActions?.getTemplateDate(date) ?? date;
         const template = this.data.getTemplate(templateDate);
         
         // Sort items by order from template
-        const sortedItemIds = Object.keys(items).sort((a, b) => {
+        const sortedTrackIds = Object.keys(tracks).sort((a, b) => {
             const orderA = template[a]?.order ?? 999;
             const orderB = template[b]?.order ?? 999;
             return orderA - orderB;
@@ -354,12 +354,12 @@ export class PlannerParser {
         
         let result = '';
         
-        for (const itemId of sortedItemIds) {
-            const itemMeta = template[itemId];
-            const itemData = items[itemId];
+        for (const trackId of sortedTrackIds) {
+            const trackMeta = template[trackId];
+            const trackData = tracks[trackId];
             
-            if (itemMeta && itemData) {
-                result += PlannerParser.serializeItem(itemMeta, itemData);
+            if (trackMeta && trackData) {
+                result += PlannerParser.serializeTrack(trackMeta, trackData);
             }
         }
         

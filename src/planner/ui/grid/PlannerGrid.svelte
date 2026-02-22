@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ISODate, ItemData, Track } from "src/plugin/types";
+    import type { ISODate, Track, TrackData } from "src/plugin/types";
 	import HeaderCell from "./HeaderCell.svelte";
 	import WrapperCell from "./WrapperCell.svelte";
 
@@ -7,11 +7,11 @@
         dates: ISODate[];
         tracksByDate: Record<ISODate, string[]>;
         parsedTracks: Record<string, Track>;
-        parsedContent: Record<ISODate, Record<string, ItemData>>;
+        parsedContent: Record<ISODate, Record<string, TrackData>>;
         parsedJournalContent: Record<ISODate, Record<string, string>>;
         blocks: number;
         columns: number;
-        onUpdate: (date: ISODate, trackId: string, updatedData: ItemData) => void;
+        onUpdate: (date: ISODate, trackId: string, updatedData: TrackData) => void;
         onAdd: (date: ISODate, trackId: string, trackMeta: Track) => void;
         openDailyNote: (date: ISODate) => void;
     }
