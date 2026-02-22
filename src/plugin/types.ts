@@ -80,6 +80,12 @@ export interface Track {
     projects: Record<string, Project>;
 }
 
+export interface TrackSnapshot {
+    generatedAt: number;
+    tracksHash?: string;
+    tracks: Record<string, Track>;
+}
+
 export interface TrackFileFrontmatter {
     id: string;
     order: number;
@@ -127,6 +133,7 @@ export interface PluginData {
     version: number;
     settings: PluginSettings;
     planner: PlannerState;
+    trackSnapshot?: TrackSnapshot;
 }
 
 export interface PluginSettings {
