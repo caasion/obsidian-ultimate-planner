@@ -1,7 +1,7 @@
 // PURPOSE: Provides tools to extract the desired section header and the information from the header section
 
 import { formatProgressDuration, formatTime } from "src/plugin/helpers";
-import type { DataService, Element, Habit, ISODate, LineInfo, Time, TrackData } from "src/plugin/types";
+import type { DataService, Element, Habit, ISODate, LineInfo, Time, Track, TrackData } from "src/plugin/types";
 import type { TemplateActions } from "src/templates/templateActions";
 import { RRuleService } from "src/tracks/logic/rrule";
 
@@ -167,8 +167,23 @@ export class PlannerParser {
 
         return tasks;
     }
+
+    private resolveTrackId(date: ISODate, label: string, tracks: Record<string, Track>): string {
+        const normalizedLabel = label.trim().toLocaleLowerCase();
+
+        if (tracks[label]) return label;
+        if (tracks[label.trim()]) return label.trim();
+
+        for (const [trackId, trackMeta] of Object.entries(tracks)) {
+            if (trackMeta.label.trim().toLocaleLowerCase() === normalizedLabel) {
+                return trackId;
+            }
+        }
+
+        return label.trim();
+    }
     
-    parseTrackSection(date: ISODate, section: string): Record<string, TrackData> {
+	parseTrackSection(date: ISODate, section: string, tracks: Record<string, Track>): Record<string, TrackData> {
 	    const lines = section.split('\n');
         const trackData: Record<string, TrackData> = {};
         let currTrack: TrackData | null = null;
@@ -200,9 +215,8 @@ export class PlannerParser {
 					text = text.replace(fullMatch, '').trim();
 				}
 				
-				const templateDate = this.plannerActions?.getTemplateDate(date) ?? date;
                 currTrack = {
-					id: this.data.getItemFromLabel(templateDate, text),
+                    id: this.resolveTrackId(date, text, tracks),
 					time: timeCommitment,
 					items: [],
 				}
@@ -313,7 +327,7 @@ export class PlannerParser {
     }
     
     // Serialize a single track cell back to string
-    private static serializeTrack(trackMeta: any, trackData: TrackData): string {
+    private static serializeTrack(trackMeta: Track, trackData: TrackData): string {
         let result = '';
         
         // Add track header with label
@@ -341,22 +355,21 @@ export class PlannerParser {
     }
     
     // Serialize entire section back to string
-    serializeTrackSection(date: ISODate, tracks: Record<string, TrackData>): string {
-        const templateDate = this.plannerActions?.getTemplateDate(date) ?? date;
-        const template = this.data.getTemplate(templateDate);
-        
+    serializeTrackSection(date: ISODate, tracks: Record<string, Track>, tracksData: Record<string, TrackData>): string {
+
+
         // Sort items by order from template
         const sortedTrackIds = Object.keys(tracks).sort((a, b) => {
-            const orderA = template[a]?.order ?? 999;
-            const orderB = template[b]?.order ?? 999;
+            const orderA = tracks[a]?.order ?? 999;
+            const orderB = tracks[b]?.order ?? 999;
             return orderA - orderB;
         });
         
         let result = '';
         
         for (const trackId of sortedTrackIds) {
-            const trackMeta = template[trackId];
-            const trackData = tracks[trackId];
+            const trackMeta = tracks[trackId];
+            const trackData = tracksData[trackId];
             
             if (trackMeta && trackData) {
                 result += PlannerParser.serializeTrack(trackMeta, trackData);
