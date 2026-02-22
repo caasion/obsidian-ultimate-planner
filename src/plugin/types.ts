@@ -6,6 +6,10 @@ import type { RequestUrlResponse } from "obsidian";
 
 /* Plugin Data Types */
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
+export type CalendarID = string;
+export type TrackID = string;
+export type ItemID = TrackID;
+export type ItemType = "track";
 
 /* Plugin Daydata Datatypes */
 export type Time = {
@@ -40,6 +44,21 @@ export interface ItemData {
 	time: number; // default: retrieves from template, but can be modified otherwise
 	items: Element[];
 }
+
+export interface ItemMeta {
+    id: ItemID;
+    label: string;
+    color: string;
+    timeCommitment: number;
+    journalHeader: string;
+    order?: number;
+    type?: ItemType | string;
+    innerMeta?: {
+        timeCommitment: number;
+    };
+}
+
+export type ItemDict = Record<ItemID, ItemData>;
 
 /* NEW Plugin Template Datatypes */
 export interface DateInterval {

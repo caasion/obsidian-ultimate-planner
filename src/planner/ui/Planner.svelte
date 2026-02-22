@@ -1,22 +1,14 @@
 <script lang="ts">
-	import { format, parseISO } from "date-fns";
 	import type { App } from "obsidian";
 	import type { CalendarPipeline } from "src/calendar/calendarPipelines";
 	import type { TemplateActions } from "src/templates/templateActions";
-	import type { BlockMeta, DataService, DateMapping, HelperService, ISODate, Item, ItemData, ItemDict, ItemID, ItemMeta, PluginSettings, TDate } from "src/plugin/types";
+	import type { DataService, HelperService, ISODate, ItemData, PluginSettings, Track } from "src/plugin/types";
 	import { PlannerParser } from "src/planner/logic/parser";
 	import { DailyNoteService } from "src/planner/logic/dailyNote";
-	import FloatBlock from "src/planner/ui/float/FloatBlock.svelte";
 	import TemplateEditor from "src/templates/Templates.svelte";
-	import EditableCell from "./grid/EditableCell.svelte";
 	import { getISODate, getISODates, getLabelFromDateRange } from "src/plugin/helpers";
-	import DebugBlock from "src/playground/DebugBlock.svelte";
-	import { getBlocksMeta, getDateMappings } from "../logic/rendering";
 	import Navbar from "./Navbar.svelte";
-	import HeaderCell from "./grid/HeaderCell.svelte";
-	import EmptyCell from "./grid/EmptyCell.svelte";
 	import PlannerGrid from "./grid/PlannerGrid.svelte";
-	import { compiledTemplateItems, sortedTemplateDates as sortedTemplateDatesStore } from "../../templates/templatesStore";
 	import type { TrackNoteService } from "src/tracks/logic/trackNote";
 
 	// Purpose: To provide a UI to interact with the objects storing the information. The view reads the objects to generate an appropriate table.
@@ -40,8 +32,10 @@
 	let inTemplateEditor = $state<boolean>(false);
 
 	/* === Table Rendering === */
-	// Simplify settings
-	const { weekFormat, columns, blocks, weekStartOn} = settings;
+	let weekFormat = $derived(settings.weekFormat);
+	let columns = $derived(settings.columns);
+	let blocks = $derived(settings.blocks);
+	let weekStartOn = $derived(settings.weekStartOn);
 
 	// Set default anchor date to today
 	const today = getISODate(new Date());
@@ -50,21 +44,14 @@
 	// Create an array of relevant ISODates from function getISODates()
 	let dates = $derived<ISODate[]>(weekFormat ? getISODates(anchor, blocks, weekStartOn) : getISODates(anchor, columns * blocks))
 
-	// Create a dictionary of each date mapped to its respective template date
-	let dateMappings: DateMapping[] = $derived(getDateMappings(dates, $sortedTemplateDatesStore));
-
-	// Consume precompiled template items (sorted once on template changes)
-	const tracksByDateStore = trackNoteService.tracksByDate;
+	let tracksByDateStore = $derived(trackNoteService.tracksByDate);
 	let tracksByDate = $derived<Record<ISODate, string[]>>($tracksByDateStore);
-	
-	// Calculate the number of rows needed and derive the dates involved in each block
-	let blocksMeta: BlockMeta[] = $derived(getBlocksMeta(blocks, columns, dateMappings, sortedTemplateDates));
 
 	// Get parsed content from the service store
-	const parsedContentStore = dailyNoteService.parsedContent;
-	const parsedJournalContentStore = dailyNoteService.parsedJournalContent;
+	let parsedContentStore = $derived(dailyNoteService.parsedContent);
+	let parsedJournalContentStore = $derived(dailyNoteService.parsedJournalContent);
 
-	let parsedContent = $derived<Record<ISODate, Record<ItemID, ItemData>>>($parsedContentStore);
+	let parsedContent = $derived<Record<ISODate, Record<string, ItemData>>>($parsedContentStore);
 	let parsedJournalContent = $derived<Record<ISODate, Record<string, string>>>($parsedJournalContentStore)
 	
 	// Load daily note content when dates change
@@ -81,8 +68,8 @@
 		};
 	});
 
-	const trackStore = trackNoteService.parsedTracksContent;
-  const parsedTracks = $derived($trackStore);
+	let trackStore = $derived(trackNoteService.parsedTracksContent);
+	const parsedTracks = $derived($trackStore);
 
   // Load track content when component mounts
   $effect(() => {
@@ -99,13 +86,13 @@
   });
 
 	// Update handler for editable cells
-	function handleCellUpdate(date: ISODate, itemId: ItemID, updatedData: ItemData) {
-		dailyNoteService.updateCell(date, itemId, updatedData);
+	function handleCellUpdate(date: ISODate, trackId: string, updatedData: ItemData) {
+		dailyNoteService.updateCell(date, trackId, updatedData);
 	}
 
 	// Add new item to an empty cell
-	async function addNewItemToCell(date: ISODate, itemId: ItemID, itemMeta: ItemMeta) {
-		await dailyNoteService.addNewItemToCell(date, itemId, itemMeta.innerMeta.timeCommitment);
+	async function addNewItemToCell(date: ISODate, trackId: string, trackMeta: Track) {
+		await dailyNoteService.addNewItemToCell(date, trackId, trackMeta.timeCommitment);
 	}
 
 	// Open daily note for a specific date
@@ -135,7 +122,7 @@
 
 {#if inTemplateEditor}
 
-<TemplateEditor {app} templatesAct={templateActions} {helper} />
+<TemplateEditor {app} templatesAct={templateActions} />
 
 {:else}
 
@@ -147,8 +134,8 @@
 	{blocks}
 	{parsedContent}
 	{parsedJournalContent}
-	{handleCellUpdate}
-	{addNewItemToCell}
+	onUpdate={handleCellUpdate}
+	onAdd={addNewItemToCell}
 	{openDailyNote}
 />
 

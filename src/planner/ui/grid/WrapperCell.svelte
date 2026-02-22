@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ISODate, ItemData, ItemID, ItemMeta } from 'src/plugin/types';
+	import type { ISODate, ItemData, Track } from 'src/plugin/types';
     import EditableCell from './EditableCell.svelte';
     import EmptyCell from './EmptyCell.svelte';
     import { calculateTotalTimeSpent, formatTimeArguments } from 'src/plugin/helpers';
@@ -8,26 +8,26 @@
     interface Props {
         date: ISODate;
         showLabel: boolean;
-        itemMeta: ItemMeta;
-        itemId: ItemID;
-        itemData: ItemData | undefined;
+        trackId: string;
+        trackMeta: Track;
+        trackData: ItemData | undefined;
         journalData: string | undefined;
-        onUpdate: (date: ISODate, itemId: ItemID, updatedData: ItemData) => void;
-        onAdd: (date: ISODate, itemId: ItemID, itemMeta: ItemMeta) => void;
+        onUpdate: (date: ISODate, trackId: string, updatedData: ItemData) => void;
+        onAdd: (date: ISODate, trackId: string, trackMeta: Track) => void;
     }
     
-    let {date, showLabel, itemMeta, itemId, itemData, journalData, onUpdate, onAdd}: Props = $props();
+    let {date, showLabel, trackId, trackMeta, trackData, journalData, onUpdate, onAdd}: Props = $props();
     
-    const totalTimeSpent = $derived(itemData ? calculateTotalTimeSpent(itemData.items) : 0);
+    const totalTimeSpent = $derived(trackData ? calculateTotalTimeSpent(trackData.items) : 0);
 
-    const totalTimeCommitment = $derived(itemData ? itemData.time : 0);
+    const totalTimeCommitment = $derived(trackData ? trackData.time : trackMeta.timeCommitment);
 </script>
 
-<div class="cell" style={`background-color: ${itemMeta.color}10;`}>
+<div class="cell" style={`background-color: ${trackMeta.color}10;`}>
     <div class="cell-header">
         {#if showLabel}
-            <div class="row-label" style={`background-color: ${itemMeta.color}80; color: white;`}>
-                {itemMeta.type == "calendar" ? "📅" : ""} {itemMeta.label}
+            <div class="row-label" style={`background-color: ${trackMeta.color}80; color: white;`}>
+                {trackMeta.label}
             </div>
         {/if}
         
@@ -38,7 +38,7 @@
                 <span class="journal-icon" title={journalData}>📜</span>
             </div>
             {/if}
-            {#if itemData}
+            {#if trackData}
             {@const {dividend: progress, divisor: duration, unit} = formatTimeArguments(totalTimeSpent, totalTimeCommitment)}
             <div class="progress-circle">
                 <CircularProgress
@@ -47,7 +47,7 @@
                     {unit}
                     size={20}
                 />
-                <span class="time-badge" style={`background-color: ${itemMeta.color}80;`}>
+                <span class="time-badge" style={`background-color: ${trackMeta.color}80;`}>
                     {duration} {unit}
                 </span>
             </div>
@@ -56,10 +56,10 @@
         
     </div>
 
-{#if itemData}
-    <EditableCell {date} showLabel={false} {itemMeta} {itemId} {itemData} {onUpdate} />
+{#if trackData}
+    <EditableCell {date} showLabel={false} {trackMeta} {trackId} {trackData} {onUpdate} />
 {:else}
-    <EmptyCell onAdd={() => onAdd(date, itemId, itemMeta)} label="+ Add" color={itemMeta.color} />
+    <EmptyCell onAdd={() => onAdd(date, trackId, trackMeta)} label="+ Add" color={trackMeta.color} />
 {/if}
 </div>
 
@@ -93,7 +93,7 @@
         grid-column: 2;
         display: flex;
         align-items: center;
-        gap: px;
+        gap: 4px;
     }
 
     .progress-circle {
