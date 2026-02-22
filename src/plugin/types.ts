@@ -8,8 +8,6 @@ import type { RequestUrlResponse } from "obsidian";
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
 export type CalendarID = string;
 export type TrackID = string;
-export type ItemID = TrackID;
-export type ItemType = "track";
 
 /* Plugin Daydata Datatypes */
 export type Time = {
@@ -38,27 +36,6 @@ export interface Element {
     duration?: number;
 	timeUnit?: 'min' | 'hr';
 }
-
-export interface ItemData {
-	id: string; // ActionItemID + date
-	time: number; // default: retrieves from template, but can be modified otherwise
-	items: Element[];
-}
-
-export interface ItemMeta {
-    id: ItemID;
-    label: string;
-    color: string;
-    timeCommitment: number;
-    journalHeader: string;
-    order?: number;
-    type?: ItemType | string;
-    innerMeta?: {
-        timeCommitment: number;
-    };
-}
-
-export type ItemDict = Record<ItemID, ItemData>;
 
 /* NEW Plugin Template Datatypes */
 export interface DateInterval {
@@ -113,6 +90,12 @@ export interface TrackFileFrontmatter {
     journalHeader: string;
 }
 
+export interface TrackData {
+    id: string;
+    time?: number;
+    items: Element[];
+}
+
 /* Plugin Template Datatypes */
 export type TDate = ISODate;
 
@@ -133,11 +116,6 @@ export interface PlannerState {
 export interface DateMapping {
     date: ISODate;
     tDate: TDate;
-}
-
-export interface Item {
-    id: ItemID;
-    meta: ItemMeta;
 }
 
 export interface BlockMeta {
@@ -196,7 +174,7 @@ export type CalendarStatus = "idle" | "fetching" | "unchanged" | "updated" | "er
 /* Core Data Service */
 export interface DataService {
     // Svelte Stores (The Writable objects themselves)
-    templates: Writable<Record<ISODate, Record<ItemID, ItemMeta>>>;
+    templates: Writable<Record<ISODate, Record<string, Track>>>;
     calendarState: Writable<CalendarState>;
     fetchToken: Writable<number>;
 }
@@ -210,7 +188,7 @@ export interface HelperService {
     getLabelFromDateRange: (first: ISODate, last: ISODate) => string;
     addDaysISO: (iso: ISODate, n: number) => ISODate;
     swapArrayItems: <T>(array: T[], a: number, b: number) => T[]; 
-    idUsedInTemplates: (templates: Record<ISODate, Record<ItemID, ItemMeta>>, rowID: ItemID) => boolean;
+    idUsedInTemplates: (templates: Record<ISODate, Record<string, Track>>, rowID: string) => boolean;
 }
 
 export interface CalendarHelperService {
