@@ -20,7 +20,7 @@
     
     const totalTimeSpent = $derived(trackData ? calculateTotalTimeSpent(trackData.items) : 0);
 
-    const totalTimeCommitment = $derived(trackData ? trackData.time : trackMeta.timeCommitment);
+    const totalTimeCommitment = $derived(trackData ? trackData.time ? trackData.time : trackMeta.timeCommitment : trackMeta.timeCommitment);
 </script>
 
 <div class="cell" style={`background-color: ${trackMeta.color}10;`}>
