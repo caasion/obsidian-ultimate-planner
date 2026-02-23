@@ -2,7 +2,7 @@ import { Plugin } from 'obsidian';
 import { PLANNER_VIEW_TYPE, PlannerView } from './planner/PlannerView';
 import { TRACKS_VIEW_TYPE, TracksView } from './tracks/TracksView';
 import { HolosSettingsTab } from './plugin/SettingsTab';
-import { get, type Unsubscriber } from 'svelte/store';
+import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
 import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings, type Track, type TrackSnapshot } from './plugin/types';
 import { CalendarPipeline } from './calendar/calendarPipelines';
 import { calendarState, fetchToken } from './calendar/calendarState';
@@ -27,12 +27,14 @@ export default class HolosPlugin extends Plugin {
 	public calendarPipeline: CalendarPipeline;
 	public dailyNoteService: DailyNoteService;
 	public trackNoteService: TrackNoteService;
+	private parsedTracksContent: Writable<Record<string, Track>> = writable<Record<string, Track>>({});
 
 	async onload() {
 		await this.loadPersisted();
 		const trackFolder = this.app.vault.getFolderByPath(this.settings.trackFolder);
 		const currentTracksHash = trackFolder ? hashTrackFolder(trackFolder) : undefined;
 		const bootstrapSnapshot = resolveBootstrapTrackSnapshot(this.trackSnapshot, currentTracksHash);
+		this.parsedTracksContent = writable<Record<string, Track>>(bootstrapSnapshot?.tracks ?? {});
 
 		this.helperService = {
 			hashText,
@@ -131,7 +133,7 @@ export default class HolosPlugin extends Plugin {
 		this.trackNoteService = new TrackNoteService({
 			app: this.app,
 			settings: this.settings,
-			parsedTracksContent: parsedTracksContent,
+			parsedTracksContent: this.parsedTracksContent,
 			bootstrapTracks: bootstrapSnapshot?.tracks,
 			onTracksSnapshot: (snapshot: TrackSnapshot) => {
 				this.trackSnapshot = snapshot;
