@@ -158,22 +158,12 @@ export default class HolosPlugin extends Plugin {
 		const data: PluginData = await this.loadData() ?? {};
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings) // Populate Settings
 		this.trackSnapshot = normalizeTrackSnapshot(data.trackSnapshot);
-		
-		// Initialize Stores, Subscribe, and assign unsubscribers
-		templates.set(Object.assign({}, sampleTemplateData, data.planner && data.planner.templates));
-		this.storeSubscriptions = [
-			templates.subscribe(() => this.queueSave()),
-			templates.subscribe((templates) => templates && Object.keys(templates) && sortedTemplateDates.set(Object.keys(templates).sort()))
-		]
 	}
 
 	private snapshot(): PluginData {
 		return {
-			version: 7,
+			version: 8,
 			settings: this.settings,
-			planner: {
-				templates: get(templates),
-			},
 			trackSnapshot: this.trackSnapshot,
 		}
 	}

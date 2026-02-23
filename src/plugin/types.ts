@@ -132,7 +132,6 @@ export interface BlockMeta {
 export interface PluginData {
     version: number;
     settings: PluginSettings;
-    planner: PlannerState;
     trackSnapshot?: TrackSnapshot;
 }
 
