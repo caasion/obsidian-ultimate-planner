@@ -6,7 +6,6 @@ import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
 import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings, type Track, type TrackSnapshot } from './plugin/types';
 import { CalendarPipeline } from './calendar/calendarPipelines';
 import { calendarState, fetchToken } from './calendar/calendarState';
-import { hashText, generateID, getISODate, addDaysISO, swapArrayItems, getISODates, getLabelFromDateRange } from './plugin/helpers';
 import { parseICS, parseICSBetween, normalizeEvent, normalizeOccurrenceEvent, buildEventDictionaries, getEventLabels } from './calendar/calendarHelper';
 import { fetchFromUrl, detectFetchChange } from './calendar/fetch';
 import { PlaygroundView, PLAYGROUND_VIEW_TYPE } from './playground/PlaygroundView';
@@ -36,37 +35,26 @@ export default class HolosPlugin extends Plugin {
 		const bootstrapSnapshot = resolveBootstrapTrackSnapshot(this.trackSnapshot, currentTracksHash);
 		this.parsedTracksContent = writable<Record<string, Track>>(bootstrapSnapshot?.tracks ?? {});
 
-		this.helperService = {
-			hashText,
-			generateID,
-			getISODate,
-			getISODates,
-			getLabelFromDateRange,
-			addDaysISO,
-			swapArrayItems,
-			idUsedInTemplates: () => true, // NOT IMPLEMENTED
-		}
-
-		this.calendarHelperService = {
-			parseICS,
-			parseICSBetween,
-			normalizeEvent,
-			normalizeOccurrenceEvent,
-			buildEventDictionaries,
-			getEventLabels
-		}
+		// this.calendarHelperService = {
+		// 	parseICS,
+		// 	parseICSBetween,
+		// 	normalizeEvent,
+		// 	normalizeOccurrenceEvent,
+		// 	buildEventDictionaries,
+		// 	getEventLabels
+		// }
 
 		this.fetchService = {
 			fetchFromUrl,
 			detectFetchChange
 		}
 		
-		this.calendarPipeline = new CalendarPipeline({
-			data: this.dataService, 
-			fetch: this.fetchService, 
-			helpers: this.helperService, 
-			calHelpers: this.calendarHelperService
-		})
+		// this.calendarPipeline = new CalendarPipeline({
+		// 	data: this.dataService, 
+		// 	fetch: this.fetchService, 
+		// 	helpers: this.helperService, 
+		// 	calHelpers: this.calendarHelperService
+		// })
 
 		this.dailyNoteService = new DailyNoteService({
 			app: this.app,
