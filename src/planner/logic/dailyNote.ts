@@ -9,14 +9,12 @@ import { writable, type Writable } from "svelte/store";
 export interface DailyNoteServiceDeps {
     app: App;
     settings: PluginSettings;
-    parser: PlannerParser;
     getTrackMetaSnapshot: () => Record<string, Track>;
 }
 
 export class DailyNoteService {
     private app: App;
     private settings: PluginSettings;
-    private parser: PlannerParser;
     private getTrackMetaSnapshot: () => Record<string, Track>;
     
     private isWriting: boolean = false;
@@ -31,7 +29,6 @@ export class DailyNoteService {
     constructor(deps: DailyNoteServiceDeps) {
         this.app = deps.app;
         this.settings = deps.settings;
-        this.parser = deps.parser;
         this.getTrackMetaSnapshot = deps.getTrackMetaSnapshot;
     }
 
@@ -57,7 +54,7 @@ export class DailyNoteService {
         
         const extracted = PlannerParser.extractSection(contents, this.settings.sectionHeading);
         const tracks = trackMeta ?? this.getTrackMetaSnapshot();
-        const parsed = this.parser.parseTrackSection(date, extracted, tracks);
+        const parsed = PlannerParser.parseTrackSection(extracted, tracks);
         
         return parsed;
     }
@@ -112,7 +109,7 @@ export class DailyNoteService {
             
             const currentContent = await this.app.vault.read(dailyNoteFile);
             const trackMeta = this.getTrackMetaSnapshot();
-            const newSection = this.parser.serializeTrackSection(date, trackMeta, tracks);
+            const newSection = PlannerParser.serializeTrackSection(trackMeta, tracks);
             const updatedContent = PlannerParser.replaceSection(currentContent, this.settings.sectionHeading, newSection);
             
             await this.app.vault.modify(dailyNoteFile, updatedContent); // Write back to file

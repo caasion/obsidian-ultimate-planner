@@ -5,16 +5,12 @@ import { HolosSettingsTab } from './plugin/SettingsTab';
 import { get, type Unsubscriber } from 'svelte/store';
 import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings, type Track, type TrackSnapshot } from './plugin/types';
 import { CalendarPipeline } from './calendar/calendarPipelines';
-import { TemplateActions } from './templates/templateActions';
 import { calendarState, fetchToken } from './calendar/calendarState';
 import { hashText, generateID, getISODate, addDaysISO, swapArrayItems, getISODates, getLabelFromDateRange } from './plugin/helpers';
 import { parseICS, parseICSBetween, normalizeEvent, normalizeOccurrenceEvent, buildEventDictionaries, getEventLabels } from './calendar/calendarHelper';
 import { fetchFromUrl, detectFetchChange } from './calendar/fetch';
 import { PlaygroundView, PLAYGROUND_VIEW_TYPE } from './playground/PlaygroundView';
-import { PlannerParser } from './planner/logic/parser';
 import { DailyNoteService } from './planner/logic/dailyNote';
-import { sortedTemplateDates, templates, parsedTracksContent } from './templates/templatesStore';
-import { sampleTemplateData } from './templates/sampleTemplateData';
 import { TrackNoteService } from './tracks/logic/trackNote';
 import { hashTrackFolder } from './tracks/logic/trackSnapshotHash';
 import { normalizeTrackSnapshot, resolveBootstrapTrackSnapshot } from './tracks/logic/trackSnapshot';
@@ -28,9 +24,7 @@ export default class HolosPlugin extends Plugin {
 	public helperService: HelperService;
 	public calendarHelperService: CalendarHelperService;
 	public fetchService: FetchService;
-	public templateActions: TemplateActions;
 	public calendarPipeline: CalendarPipeline;
-	public parserService: PlannerParser;
 	public dailyNoteService: DailyNoteService;
 	public trackNoteService: TrackNoteService;
 
@@ -39,24 +33,6 @@ export default class HolosPlugin extends Plugin {
 		const trackFolder = this.app.vault.getFolderByPath(this.settings.trackFolder);
 		const currentTracksHash = trackFolder ? hashTrackFolder(trackFolder) : undefined;
 		const bootstrapSnapshot = resolveBootstrapTrackSnapshot(this.trackSnapshot, currentTracksHash);
-
-		// this.dataService = {
-		// 	templates,
-		// 	calendarState,
-		// 	fetchToken,
-			
-		// 	setTemplate,
-		// 	addToTemplate,
-		// 	getTemplate,
-		// 	getItemFromLabel,
-		// 	removeFromTemplate,
-		// 	removeFromCellsInTemplate: () => false, // NOT IMPLEMENTED
-		// 	removeTemplate,
-		// 	getItemMeta,
-		// 	updateItemMeta,
-		// 	setFloatCell,
-		// 	getFloatCell,
-		// }
 
 		this.helperService = {
 			hashText,
@@ -89,18 +65,10 @@ export default class HolosPlugin extends Plugin {
 			helpers: this.helperService, 
 			calHelpers: this.calendarHelperService
 		})
-		
-		this.templateActions = new TemplateActions();
-
-		this.parserService = new PlannerParser({
-			data: this.dataService,
-			plannerActions: this.templateActions,
-		})
 
 		this.dailyNoteService = new DailyNoteService({
 			app: this.app,
 			settings: this.settings,
-			parser: this.parserService,
 			getTrackMetaSnapshot: () => this.trackNoteService ? get(this.trackNoteService.parsedTracksContent) : { }
 		});
 
