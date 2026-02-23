@@ -48,6 +48,8 @@
 	let tracksByDate = $derived<Record<ISODate, string[]>>($tracksByDateStore);
 
 	// Get parsed content from the service store
+	let trackMetaRevisionStore = $derived(trackNoteService.trackMetaRevision);
+	const trackMetaRevision = $derived($trackMetaRevisionStore);
 	let parsedContentStore = $derived(dailyNoteService.parsedContent);
 	let parsedJournalContentStore = $derived(dailyNoteService.parsedJournalContent);
 
@@ -56,6 +58,7 @@
 	
 	// Load daily note content when dates change
 	$effect(() => {
+		trackMetaRevision;
 		dailyNoteService.loadMultipleDates(dates);
 	});
 
