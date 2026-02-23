@@ -3,7 +3,7 @@ import { PLANNER_VIEW_TYPE, PlannerView } from './planner/PlannerView';
 import { TRACKS_VIEW_TYPE, TracksView } from './tracks/TracksView';
 import { HolosSettingsTab } from './plugin/SettingsTab';
 import { get, type Unsubscriber } from 'svelte/store';
-import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings } from './plugin/types';
+import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings, type Track, type TrackSnapshot } from './plugin/types';
 import { CalendarPipeline } from './calendar/calendarPipelines';
 import { TemplateActions } from './templates/templateActions';
 import { calendarState, fetchToken } from './calendar/calendarState';
@@ -16,11 +16,14 @@ import { DailyNoteService } from './planner/logic/dailyNote';
 import { sortedTemplateDates, templates, parsedTracksContent } from './templates/templatesStore';
 import { sampleTemplateData } from './templates/sampleTemplateData';
 import { TrackNoteService } from './tracks/logic/trackNote';
+import { hashTrackFolder } from './tracks/logic/trackSnapshotHash';
+import { normalizeTrackSnapshot, resolveBootstrapTrackSnapshot } from './tracks/logic/trackSnapshot';
 
 export default class HolosPlugin extends Plugin {
 	settings: PluginSettings;
 	private saveTimer: number | null = null;
 	private storeSubscriptions: Unsubscriber[] = [];
+	private trackSnapshot: TrackSnapshot | undefined;
 	public dataService: DataService;
 	public helperService: HelperService;
 	public calendarHelperService: CalendarHelperService;
@@ -33,6 +36,9 @@ export default class HolosPlugin extends Plugin {
 
 	async onload() {
 		await this.loadPersisted();
+		const trackFolder = this.app.vault.getFolderByPath(this.settings.trackFolder);
+		const currentTracksHash = trackFolder ? hashTrackFolder(trackFolder) : undefined;
+		const bootstrapSnapshot = resolveBootstrapTrackSnapshot(this.trackSnapshot, currentTracksHash);
 
 		// this.dataService = {
 		// 	templates,
@@ -98,8 +104,8 @@ export default class HolosPlugin extends Plugin {
 			getTrackMetaSnapshot: () => this.trackNoteService ? get(this.trackNoteService.parsedTracksContent) : { }
 		});
 
-		await this.initializeTrackNoteService();
-		await this.trackNoteService.initializeTracksByDate();
+		await this.initializeTrackNoteService(bootstrapSnapshot);
+		this.initializeTrackMetadataLoad();
 
 		// Add Settings Tab using Obsidian's API
 		this.addSettingTab(new HolosSettingsTab(this.app, this));
@@ -151,13 +157,19 @@ export default class HolosPlugin extends Plugin {
 		await this.flushSave(); // Save immediately
 	}
 
-	async initializeTrackNoteService() {
+	async initializeTrackNoteService(bootstrapSnapshot?: TrackSnapshot) {
 		if (this.trackNoteService) return;
 
 		this.trackNoteService = new TrackNoteService({
 			app: this.app,
 			settings: this.settings,
-			parsedTracksContent: parsedTracksContent
+			parsedTracksContent: parsedTracksContent,
+			bootstrapTracks: bootstrapSnapshot?.tracks,
+			onTracksSnapshot: (snapshot: TrackSnapshot) => {
+				this.trackSnapshot = snapshot;
+
+				this.queueSave();
+			}
 		});
 	}
 
@@ -177,6 +189,7 @@ export default class HolosPlugin extends Plugin {
 	async loadPersisted() {
 		const data: PluginData = await this.loadData() ?? {};
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings) // Populate Settings
+		this.trackSnapshot = normalizeTrackSnapshot(data.trackSnapshot);
 		
 		// Initialize Stores, Subscribe, and assign unsubscribers
 		templates.set(Object.assign({}, sampleTemplateData, data.planner && data.planner.templates));
@@ -193,7 +206,23 @@ export default class HolosPlugin extends Plugin {
 			planner: {
 				templates: get(templates),
 			},
+			trackSnapshot: this.trackSnapshot,
 		}
+	}
+
+	private initializeTrackMetadataLoad(): void {
+		const loadTracks = async () => {
+			try {
+				await this.trackNoteService.initializeTracksByDate();
+			} catch (error) {
+				console.error('[Holos] Failed to initialize tracks by date', error);
+			}
+		};
+
+		void loadTracks();
+		this.app.workspace.onLayoutReady(() => {
+			void loadTracks();
+		});
 	}
 
 	public queueSave() {

@@ -2,8 +2,9 @@ import { eachDayOfInterval, isValid, parseISO } from "date-fns";
 import { TFolder, type App, TFile, getAllTags, type FrontMatterCache, type EventRef, Menu, Notice } from "obsidian";
 import { PlannerParser } from "src/planner/logic/parser";
 import { getISODate } from "src/plugin/helpers";
-import type { DateInterval, Element, Habit, ISODate, PluginSettings, Project, Track, TrackFileFrontmatter } from "src/plugin/types";
+import type { DateInterval, Element, Habit, ISODate, PluginSettings, Project, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
 import { type Writable, get, writable } from "svelte/store";
+import { hashTrackFileCacheEntries } from "./trackSnapshotHash";
 
 interface TrackFiles {
     id: string | null;
@@ -16,6 +17,8 @@ export interface TrackNoteServiceDeps {
     app: App;
     settings: PluginSettings;
     parsedTracksContent: Writable<Record<string, Track>>;
+    bootstrapTracks?: Record<string, Track>;
+    onTracksSnapshot?: (snapshot: TrackSnapshot) => void;
 }
 
 export class TrackNoteService {
@@ -24,8 +27,11 @@ export class TrackNoteService {
 
     public parsedTracksContent: Writable<Record<string, Track>>;
     public tracksByDate: Writable<Record<ISODate, string[]>>;
+    public trackMetaRevision: Writable<number>;
 
     private trackFileCache: Record<string, TrackFiles> = {};
+    private revisionCounter = 0;
+    private onTracksSnapshot?: (snapshot: TrackSnapshot) => void;
     
     // Flag to prevent file watcher from overwriting our own programmatic updates
     private isUpdatingInternally = false;
@@ -39,8 +45,49 @@ export class TrackNoteService {
     constructor(deps: TrackNoteServiceDeps) {
         this.app = deps.app;
         this.settings = deps.settings;
-        this.parsedTracksContent = writable<Record<string, Track>>({});
+        this.parsedTracksContent = deps.parsedTracksContent;
         this.tracksByDate = writable<Record<ISODate, string[]>>({});
+        this.trackMetaRevision = writable<number>(0);
+        this.onTracksSnapshot = deps.onTracksSnapshot;
+
+        if (deps.bootstrapTracks && Object.keys(deps.bootstrapTracks).length > 0) {
+            this.hydrateFromSnapshot(deps.bootstrapTracks);
+        }
+    }
+
+    private buildTracksByDateIndex(tracks: Record<string, Track>): Record<ISODate, string[]> {
+        const index: Record<ISODate, string[]> = {};
+
+        for (const [trackId, track] of Object.entries(tracks)) {
+            this.addToTracksByDate(index, trackId, track.effective);
+        }
+
+        return index;
+    }
+
+    private publishTrackState(
+        tracks: Record<string, Track>,
+        tracksByDate: Record<ISODate, string[]>,
+        persistSnapshot: boolean
+    ): void {
+        this.parsedTracksContent.set(tracks);
+        this.tracksByDate.set(tracksByDate);
+
+        this.revisionCounter += 1;
+        this.trackMetaRevision.set(this.revisionCounter);
+
+        if (persistSnapshot && this.onTracksSnapshot) {
+            this.onTracksSnapshot({
+                generatedAt: Date.now(),
+                tracksHash: hashTrackFileCacheEntries(Object.values(this.trackFileCache)),
+                tracks,
+            });
+        }
+    }
+
+    private hydrateFromSnapshot(tracks: Record<string, Track>): void {
+        const tracksByDate = this.buildTracksByDateIndex(tracks);
+        this.publishTrackState(tracks, tracksByDate, false);
     }
 
     private normalizeISODate(value: unknown): string | null {
@@ -123,8 +170,7 @@ export class TrackNoteService {
             this.addToTracksByDate(tracksByDate, key, track.effective);
         }
 
-        this.parsedTracksContent.set(tracks);
-        this.tracksByDate.set(tracksByDate);
+        this.publishTrackState(tracks, tracksByDate, true);
     }
 
     async populateFileCache(): Promise<void> {
@@ -300,10 +346,13 @@ export class TrackNoteService {
             return;
         }
 
-        this.parsedTracksContent.update(tracks => ({
-            ...tracks,
+        const nextTracks = {
+            ...get(this.parsedTracksContent),
             [trackId]: track
-        }));
+        };
+
+        const nextTracksByDate = this.buildTracksByDateIndex(nextTracks);
+        this.publishTrackState(nextTracks, nextTracksByDate, true);
     }
 
     /** Find the track ID for a given file path */
