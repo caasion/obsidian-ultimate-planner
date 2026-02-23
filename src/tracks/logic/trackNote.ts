@@ -308,8 +308,8 @@ export class TrackNoteService {
         const habitSection = PlannerParser.extractSection(projectContent, "Habits");
         const habits = PlannerParser.parseHabitSection(habitSection);
 
-        const taskSection = PlannerParser.extractSection(projectContent, "Tasks");
-        const tasks = PlannerParser.parseTaskSection(taskSection);
+        const dataSection = PlannerParser.extractSection(projectContent, "Data") || PlannerParser.extractSection(projectContent, "Tasks");
+        const data = PlannerParser.parseTaskSection(dataSection);
         
         const description = PlannerParser.extractFirstSection(projectContent);
         
@@ -319,7 +319,7 @@ export class TrackNoteService {
             description,
             startDate,
             endDate,
-            tasks,
+            data,
             habits
         };
     }
@@ -689,7 +689,7 @@ export class TrackNoteService {
             description: '',
             startDate: today,
             habits: {},
-            tasks: [],
+            data: [],
         }
     }
 
@@ -716,10 +716,10 @@ export class TrackNoteService {
         }
         lines.push('');
 
-        // Tasks section
-        lines.push('## Tasks');
+        // Data section
+        lines.push('## Data');
         lines.push('');
-        for (const element of project.tasks) {
+        for (const element of project.data) {
             const taskMarker = element.isTask ? `[${element.taskStatus || ' '}] ` : '';
             lines.push(`- ${taskMarker}${element.text}`);
             
@@ -1080,7 +1080,7 @@ export class TrackNoteService {
         });
     }
 
-    // ===== Project Task operations ===== //
+    // ===== Project data operations ===== //
 
     /** Serialize elements array to string for Data section */
     private serializeDataSection(elements: Element[]): string {
@@ -1091,8 +1091,8 @@ export class TrackNoteService {
         return result;
     }
 
-    /** Add a new element (task) to a project */
-    async addProjectElement(trackId: string, projectId: string): Promise<void> {
+    /** Add a new data element to a project */
+    async addProjectData(trackId: string, projectId: string): Promise<void> {
         const projectFile = this.trackFileCache[trackId]?.projects[projectId];
         if (!projectFile) {
             console.warn(`Project ${projectId} not found in track ${trackId}`);
@@ -1144,8 +1144,8 @@ export class TrackNoteService {
         });
     }
 
-    /** Update a specific element in a project */
-    async updateProjectElement(trackId: string, projectId: string, elementIndex: number, updatedElement: Partial<Element>): Promise<void> {
+    /** Update a specific data element in a project */
+    async updateProjectData(trackId: string, projectId: string, elementIndex: number, updatedElement: Partial<Element>): Promise<void> {
         const projectFile = this.trackFileCache[trackId]?.projects[projectId];
         if (!projectFile) {
             console.warn(`Project ${projectId} not found in track ${trackId}`);
@@ -1196,8 +1196,8 @@ export class TrackNoteService {
         });
     }
 
-    /** Delete an element from a project */
-    async deleteProjectElement(trackId: string, projectId: string, elementIndex: number): Promise<void> {
+    /** Delete a data element from a project */
+    async deleteProjectData(trackId: string, projectId: string, elementIndex: number): Promise<void> {
         const projectFile = this.trackFileCache[trackId]?.projects[projectId];
         if (!projectFile) {
             console.warn(`Project ${projectId} not found in track ${trackId}`);

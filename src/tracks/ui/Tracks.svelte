@@ -71,7 +71,7 @@
       onEndDateEdit: (date) => trackNoteService.updateProjectEndDate(trackId, projectId, date),
       onDelete: () => trackNoteService.deleteProject(trackId, projectId),
       onHabitAdd: () => trackNoteService.addProjectHabit(trackId, projectId),
-      onElementAdd: () => trackNoteService.addProjectElement(trackId, projectId),
+      onDataAdd: () => trackNoteService.addProjectData(trackId, projectId),
     });
   }
 

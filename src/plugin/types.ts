@@ -56,7 +56,7 @@ export interface Project {
 	startDate: ISODate;
     endDate?: ISODate;
     habits: Record<string, Habit>; 
-	tasks: Element[];
+    data: Element[];
 }
 
 export interface CalendarMeta {

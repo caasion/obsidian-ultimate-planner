@@ -15,7 +15,7 @@
 		
 		// These are not project-specific, but handled at the project level
 		onHabitAdd: () => void;
-		onElementAdd: () => void;
+		onDataAdd: () => void;
 	}
 
 	interface ProjectCardProps {
@@ -109,14 +109,14 @@
       <h4 class="section-title">Tasks</h4>
       <button 
         class="add-button" 
-        onclick={projectFunctions.onElementAdd}
+				onclick={projectFunctions.onDataAdd}
         title="Add a new task"
       >
         +
       </button>
     </div>
-    {#if project.tasks.length > 0}
-			{#each project.tasks as element, index}
+	{#if project.data.length > 0}
+			{#each project.data as element, index}
         <TaskElement
           element={element}
           index={index}
