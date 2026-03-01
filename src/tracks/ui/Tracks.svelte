@@ -55,6 +55,7 @@
     return {
       onLabelEdit: (label: string) => trackNoteService.updateTrackLabel(trackId, label),
       onDescriptionEdit: (description: string) => trackNoteService.updateTrackDescription(trackId, description),
+      onColorEdit: (color: string) => trackNoteService.updateTrackColor(trackId, color),
       onFrontmatterEdit: (frontmatter) => trackNoteService.updateTrackFrontmatter(trackId, frontmatter),
       onDelete: () => trackNoteService.deleteTrack(trackId),
       onProjectAdd: () => trackNoteService.createProject(trackId, trackNoteService.newProjectFactory(trackId)),

@@ -13,6 +13,7 @@
   export interface TrackCardFunctions {
     onLabelEdit: (label: string) => void;
     onDescriptionEdit: (label: string) => void;
+    onColorEdit: (color: string) => void;
     onFrontmatterEdit: (frontmatter: Partial<TrackFileFrontmatter>) => void;
     onDelete: () => void;
     onProjectAdd: () => void;
@@ -58,6 +59,13 @@
       "Removing the track will delete the entire track folder and all its projects."
    ).open();
   }
+
+  function handleColorEdit(event: Event) {
+    const target = event.currentTarget as HTMLInputElement | null;
+    if (!target) return;
+
+    trackFunctions.onColorEdit(target.value);
+  }
 </script>
 
 <div class="card" style={`background-color: ${track.color}10; --track-color: ${track.color};`}>
@@ -90,6 +98,12 @@
     </div>
     
     <div class="card-data-container">
+      <input
+        type="color"
+        value={track.color}
+        onchange={handleColorEdit}
+        title="Edit track color"
+      />
       <button 
         class="card-header clickable journal-icon" 
         onclick={handleJournalHeaderEdit}

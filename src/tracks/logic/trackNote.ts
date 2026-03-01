@@ -591,6 +591,15 @@ export class TrackNoteService {
         return true;
     }
 
+    /** Update track color. */
+    async updateTrackColor(trackId: string, color: string): Promise<boolean> {
+        const nextColor = color.trim();
+        if (!nextColor) return false;
+
+        const success = await this.updateTrackFrontmatter(trackId, { color: nextColor });
+        return success;
+    }
+
     /** Update track description. */
     async updateTrackDescription(trackId: string, description: string) {
         try {
