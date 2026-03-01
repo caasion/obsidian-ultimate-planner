@@ -483,7 +483,7 @@ export class TrackNoteService {
         lines.push('  - holos/track');
         lines.push(`id: ${track.id}`);
         lines.push(`order: ${track.order}`);
-        lines.push(`color: ${track.color}`);
+        lines.push(`color: "${track.color}"`);
         lines.push('effective:');
         for (const interval of track.effective) {
             lines.push(`  - start: ${interval.start}`);
