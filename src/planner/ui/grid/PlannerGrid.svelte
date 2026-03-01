@@ -80,7 +80,6 @@
 		display: grid;
 		/* grid-template-columns is set dynamically in the Svelte component */
 		border-bottom: 2px solid #ccc;
-		padding: 8px 0;
 		background-color: var(--background-primary);
 	}
 
