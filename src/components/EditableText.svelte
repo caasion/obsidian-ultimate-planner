@@ -2,6 +2,8 @@
 	interface EditableTextProps {
 		value: string;
 		onSave: (newValue: string) => void;
+		onCtrlClick?: () => void;
+		ctrlClickHint?: string;
 		placeholder?: string;
 		multiline?: boolean;
 		class?: string;
@@ -10,6 +12,8 @@
 	let { 
 		value, 
 		onSave, 
+		onCtrlClick,
+		ctrlClickHint = "Ctrl/Cmd+Click to open file",
 		placeholder = "", 
 		multiline = false, 
 		class: customClass = "" 
@@ -67,6 +71,14 @@
 			skipBlur = true;
 		}
 	}
+
+	function handleDisplayClick(e: MouseEvent) {
+		if ((e.ctrlKey || e.metaKey) && onCtrlClick) {
+			e.preventDefault();
+			e.stopPropagation();
+			onCtrlClick();
+		}
+	}
 </script>
 
 {#if isEditing}
@@ -92,7 +104,9 @@
 	{/if}
 {:else}
 	<div 
-		class={`editable-display ${customClass}`}
+		class={`editable-display ${onCtrlClick ? 'has-ctrl-click' : ''} ${customClass}`}
+		data-ctrl-hint={onCtrlClick ? ctrlClickHint : ''}
+		onclick={handleDisplayClick}
 		ondblclick={startEdit} 
 		role="button" 
 		tabindex="0"
@@ -113,6 +127,26 @@
 
 	.editable-display:hover {
 		background-color: var(--background-modifier-hover);
+	}
+
+	.editable-display.has-ctrl-click {
+		position: relative;
+	}
+
+	.editable-display.has-ctrl-click:hover::after {
+		content: attr(data-ctrl-hint);
+		position: absolute;
+		left: 0;
+		top: calc(100% + 2px);
+		font-size: 0.72em;
+		color: var(--text-muted);
+		background: var(--background-primary-alt);
+		border: 1px solid var(--background-modifier-border);
+		border-radius: 4px;
+		padding: 2px 6px;
+		white-space: nowrap;
+		pointer-events: none;
+		z-index: 2;
 	}
 
 	.editable-input {

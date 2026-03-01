@@ -9,6 +9,7 @@
 	export interface ProjectCardFunctions {
 		onLabelEdit: (label: string) => void;
 		onDescriptionEdit: (description: string) => void;
+		onOpenFile: () => void;
 		onStartDateEdit: (date: ISODate) => void;
 		onEndDateEdit: (date: ISODate) => void;
 		onDelete: () => void;
@@ -58,6 +59,7 @@
 				<EditableText 
 					value={project.label}
 					onSave={(newLabel) => projectFunctions.onLabelEdit(newLabel)}
+					onCtrlClick={projectFunctions.onOpenFile}
 					placeholder="Project name..."
 					class="project-title" 
 				/>

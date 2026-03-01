@@ -14,6 +14,7 @@
     onLabelEdit: (label: string) => void;
     onDescriptionEdit: (label: string) => void;
     onColorEdit: (color: string) => void;
+    onOpenFile: () => void;
     onFrontmatterEdit: (frontmatter: Partial<TrackFileFrontmatter>) => void;
     onDelete: () => void;
     onProjectAdd: () => void;
@@ -75,6 +76,7 @@
         <EditableText 
           value={track.label}
           onSave={(newLabel) => trackFunctions.onLabelEdit(newLabel)}
+          onCtrlClick={trackFunctions.onOpenFile}
           placeholder="Track name..."
           class="track-title" 
         />
