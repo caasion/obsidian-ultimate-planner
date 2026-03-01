@@ -120,12 +120,6 @@
 	toggleView={() => inTemplateEditor = !inTemplateEditor}
 />
 
-{#if inTemplateEditor}
-
-<TemplateEditor {app} templatesAct={templateActions} />
-
-{:else}
-
 <PlannerGrid 
 	{dates}
 	{tracksByDate}
@@ -138,5 +132,3 @@
 	onAdd={addNewTrackToCell}
 	{openDailyNote}
 />
-
-{/if}
