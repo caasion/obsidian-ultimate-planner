@@ -26,7 +26,8 @@ export class TracksView extends ItemView {
 		container.empty();
         
         mount(TracksComponent, {target: container, props: {
-            trackNoteService: this.plugin.trackNoteService
+            app: this.plugin.app,
+            trackNoteService: this.plugin.trackNoteService,
         }});
     }
 

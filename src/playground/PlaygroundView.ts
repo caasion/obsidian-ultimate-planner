@@ -1,7 +1,6 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { mount } from 'svelte';
 import HolosPlugin from '../main';
-import Templates from "src/templates/Templates.svelte";
 import Tracks from "src/tracks/ui/Tracks.svelte";
 import TracksGridView from "./TracksGridView.svelte";
 

@@ -1,8 +1,6 @@
 <script lang="ts">
 	import type { App } from "obsidian";
-	import type { CalendarPipeline } from "src/calendar/calendarPipelines";
-	import type { TemplateActions } from "src/templates/templateActions";
-	import type { DataService, Element, HelperService, ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
+	import type { ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
 	import { DailyNoteService } from "src/planner/logic/dailyNote";
 	import { getISODate, getISODates, getLabelFromDateRange } from "src/plugin/helpers";
 	import Navbar from "./Navbar.svelte";
@@ -14,15 +12,11 @@
 	interface ViewProps {
 		app: App;
 		settings: PluginSettings;
-		data: DataService;
-		helper: HelperService;
-		templateActions: TemplateActions;
-		calendarPipeline: CalendarPipeline;
 		dailyNoteService: DailyNoteService;
 		trackNoteService: TrackNoteService;
 	}
 
-	let { app, settings, data, helper, templateActions, calendarPipeline, dailyNoteService, trackNoteService }: ViewProps = $props();
+	let { app, settings, dailyNoteService, trackNoteService }: ViewProps = $props();
 
 	
 	/* === View Rendering === */
