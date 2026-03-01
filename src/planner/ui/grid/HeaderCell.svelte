@@ -3,14 +3,14 @@
 	import { getISODate } from "src/plugin/helpers";
 	import type { ISODate } from "src/plugin/types";
 
-    interface ViewProps {
-        date: ISODate;
-        openDailyNote: (date: ISODate) => void;
-    }
+	interface ViewProps {
+		date: ISODate;
+		openDailyNote: (date: ISODate) => void;
+	}
 
-    let {date, openDailyNote} = $props();
+	let {date, openDailyNote} = $props();
 
-    // Check if a date is today
+	// Check if a date is today
 	function isToday(date: ISODate): boolean {
 		return date === getISODate(new Date());
 	}
@@ -47,16 +47,16 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		background-color: var(--interactive-accent);
+		background-color: none;
 		opacity: 0.7;
+		border: 2px solid var(--text-muted);
 		border-radius: 8px;
-		padding: 4px;
+		padding: 4px 12px;
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 		transition: all 0.2s;
-		border: none;
 		cursor: pointer;
-		width: 100%;
-		height: 100%;
+		width: fit-content;
+		height: fit-content;
 	}
 
 	.date-card:hover {
@@ -68,6 +68,7 @@
 	.date-card.today {
 		opacity: 1;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+		background-color: var(--interactive-accent);
 		border: 2px solid var(--text-accent);
 	}
 
