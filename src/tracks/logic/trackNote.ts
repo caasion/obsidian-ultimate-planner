@@ -46,6 +46,7 @@ export class TrackNoteService {
         this.app = deps.app;
         this.settings = deps.settings;
         this.parsedTracksContent = deps.parsedTracksContent;
+
         this.tracksByDate = writable<Record<ISODate, RenderTrack[]>>({});
         this.trackMetaRevision = writable<number>(0);
         this.onTracksSnapshot = deps.onTracksSnapshot;
@@ -65,6 +66,27 @@ export class TrackNoteService {
         return index;
     }
 
+    private stripFileReferences(tracks: Record<string, Track>): Record<string, Track> {
+        const stripped: Record<string, Track> = {};
+
+        for (const [trackId, track] of Object.entries(tracks)) {
+            const { file: _trackFile, projects, ...trackWithoutFile } = track;
+            const sanitizedProjects: Record<string, Project> = {};
+
+            for (const [projectId, project] of Object.entries(projects)) {
+                const { file: _projectFile, ...projectWithoutFile } = project;
+                sanitizedProjects[projectId] = projectWithoutFile;
+            }
+
+            stripped[trackId] = {
+                ...trackWithoutFile,
+                projects: sanitizedProjects,
+            };
+        }
+
+        return stripped;
+    }
+
     private publishTrackState(
         tracks: Record<string, Track>,
         tracksByDate: Record<ISODate, RenderTrack[]>,
@@ -80,7 +102,7 @@ export class TrackNoteService {
             this.onTracksSnapshot({
                 generatedAt: Date.now(),
                 tracksHash: hashTrackFileCacheEntries(Object.values(this.trackFileCache)),
-                tracks,
+                tracks: this.stripFileReferences(tracks),
             });
         }
     }
@@ -283,6 +305,7 @@ export class TrackNoteService {
             effective,
             timeCommitment,
             journalHeader,
+            file: trackFile,
             
             label: trackFile.basename,
             description,
@@ -318,6 +341,7 @@ export class TrackNoteService {
         return {
             id,
             label: projectFile.basename,
+            file: projectFile,
             description,
             startDate,
             endDate,
@@ -355,6 +379,28 @@ export class TrackNoteService {
 
         const nextTracksByDate = this.buildTracksByDateIndex(nextTracks);
         this.publishTrackState(nextTracks, nextTracksByDate, true);
+    }
+
+    async openTrackFile(trackId: string): Promise<boolean> {
+        const trackFile = this.trackFileCache[trackId]?.track;
+        if (!trackFile) {
+            new Notice(`Track file not found for ${trackId}`);
+            return false;
+        }
+
+        await this.app.workspace.getLeaf(false).openFile(trackFile);
+        return true;
+    }
+
+    async openProjectFile(trackId: string, projectId: string): Promise<boolean> {
+        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
+        if (!projectFile) {
+            new Notice(`Project file not found for ${projectId}`);
+            return false;
+        }
+
+        await this.app.workspace.getLeaf(false).openFile(projectFile);
+        return true;
     }
 
     /** Find the track ID for a given file path */

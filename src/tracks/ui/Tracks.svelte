@@ -56,6 +56,7 @@
       onLabelEdit: (label: string) => trackNoteService.updateTrackLabel(trackId, label),
       onDescriptionEdit: (description: string) => trackNoteService.updateTrackDescription(trackId, description),
       onColorEdit: (color: string) => trackNoteService.updateTrackColor(trackId, color),
+      onOpenFile: () => trackNoteService.openTrackFile(trackId),
       onFrontmatterEdit: (frontmatter) => trackNoteService.updateTrackFrontmatter(trackId, frontmatter),
       onDelete: () => trackNoteService.deleteTrack(trackId),
       onProjectAdd: () => trackNoteService.createProject(trackId, trackNoteService.newProjectFactory(trackId)),
@@ -68,6 +69,7 @@
     return (projectId: string): ProjectCardFunctions => ({
       onLabelEdit: (label: string) => trackNoteService.updateProjectLabel(trackId, projectId, label),
       onDescriptionEdit: (description: string) => trackNoteService.updateProjectDescription(trackId, projectId, description),
+      onOpenFile: () => trackNoteService.openProjectFile(trackId, projectId),
       onStartDateEdit: (date) => trackNoteService.updateProjectStartDate(trackId, projectId, date),
       onEndDateEdit: (date) => trackNoteService.updateProjectEndDate(trackId, projectId, date),
       onDelete: () => trackNoteService.deleteProject(trackId, projectId),
