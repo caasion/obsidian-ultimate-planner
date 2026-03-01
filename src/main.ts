@@ -81,6 +81,14 @@ export default class HolosPlugin extends Plugin {
 			}
 		});
 
+		this.addCommand({
+			id: 'open-tracks-view',
+			name: 'Open Holos Tracks View',
+			callback: () => {
+				this.activateView(TRACKS_VIEW_TYPE);
+			}
+		});
+
 		if (this.settings.debug) {
 			this.registerView(PLAYGROUND_VIEW_TYPE, (leaf) => new PlaygroundView(leaf, this));
 
