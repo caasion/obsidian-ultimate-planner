@@ -101,6 +101,11 @@ export interface TrackData {
     items: Element[];
 }
 
+export interface RenderTrack {
+    id: string;
+    isStartOfInterval: boolean;
+}
+
 /* Plugin Template Datatypes */
 export type TDate = ISODate;
 

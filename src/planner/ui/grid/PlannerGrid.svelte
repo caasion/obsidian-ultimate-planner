@@ -1,11 +1,11 @@
 <script lang="ts">
-    import type { ISODate, Track, TrackData } from "src/plugin/types";
+    import type { ISODate, RenderTrack, Track, TrackData } from "src/plugin/types";
 	import HeaderCell from "./HeaderCell.svelte";
 	import WrapperCell from "./WrapperCell.svelte";
 
     interface Props {
         dates: ISODate[];
-        tracksByDate: Record<ISODate, string[]>;
+        tracksByDate: Record<ISODate, RenderTrack[]>;
         parsedTracks: Record<string, Track>;
         parsedContent: Record<ISODate, Record<string, TrackData>>;
         parsedJournalContent: Record<ISODate, Record<string, string>>;
@@ -38,22 +38,25 @@
 
         <!-- Data Grid -->
         <div class="data-grid" style={`grid-template-columns: repeat(${columns}, 1fr); grid-template-rows: repeat(${rows}, minmax(40px, auto)); grid-auto-flow: column;`}>
-            {#each blockDates as date (date)}
+            {#each blockDates as date, col (date)}
             {#each {length: rows} as _, row (row)}
-            {@const trackId = tracksByDate[date]?.[row]}
-            {@const track = trackId ? parsedTracks[trackId] : undefined}
+            
+            {#if tracksByDate[date]?.[row]}
+                {@const {id: trackId, isStartOfInterval} = tracksByDate[date]?.[row]}
+                {@const track = trackId ? parsedTracks[trackId] : undefined}
 
-            {#if trackId && track}
-                <WrapperCell
-                    {date}
-                    showLabel={false}
-                    {trackId}
-                    trackMeta={track}
-                    trackData={parsedContent[date]?.[trackId]}
-                    journalData={parsedJournalContent[date]?.[track.journalHeader]}
-                    onUpdate={onUpdate}
-                    onAdd={onAdd}
-                />
+                {#if trackId && track}
+                    <WrapperCell
+                        {date}
+                        showLabel={isStartOfInterval || col == 0}
+                        {trackId}
+                        trackMeta={track}
+                        trackData={parsedContent[date]?.[trackId]}
+                        journalData={parsedJournalContent[date]?.[track.journalHeader]}
+                        onUpdate={onUpdate}
+                        onAdd={onAdd}
+                    />
+                {/if}
             {:else}
                 <div class="cell">-</div>
             {/if}

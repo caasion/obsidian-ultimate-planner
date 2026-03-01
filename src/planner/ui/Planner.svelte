@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { App } from "obsidian";
-	import type { ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
+	import type { ISODate, PluginSettings, RenderTrack, Track, TrackData } from "src/plugin/types";
 	import { DailyNoteService } from "src/planner/logic/dailyNote";
 	import { getISODate, getISODates, getLabelFromDateRange } from "src/plugin/helpers";
 	import Navbar from "./Navbar.svelte";
@@ -36,7 +36,7 @@
 	let dates = $derived<ISODate[]>(weekFormat ? getISODates(anchor, blocks, weekStartOn) : getISODates(anchor, columns * blocks))
 
 	let tracksByDateStore = $derived(trackNoteService.tracksByDate);
-	let tracksByDate = $derived<Record<ISODate, string[]>>($tracksByDateStore);
+	let tracksByDate = $derived<Record<ISODate, RenderTrack[]>>($tracksByDateStore);
 
 	// Get parsed content from the service store
 	let trackMetaRevisionStore = $derived(trackNoteService.trackMetaRevision);

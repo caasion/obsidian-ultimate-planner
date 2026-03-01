@@ -2,7 +2,7 @@ import { eachDayOfInterval, isValid, parseISO } from "date-fns";
 import { TFolder, type App, TFile, getAllTags, type FrontMatterCache, type EventRef, Menu, Notice } from "obsidian";
 import { PlannerParser } from "src/planner/logic/parser";
 import { getISODate } from "src/plugin/helpers";
-import type { DateInterval, Element, Habit, ISODate, PluginSettings, Project, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
+import type { DateInterval, Element, Habit, ISODate, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
 import { type Writable, get, writable } from "svelte/store";
 import { hashTrackFileCacheEntries } from "./trackSnapshotHash";
 
@@ -26,7 +26,7 @@ export class TrackNoteService {
     private settings: PluginSettings;
 
     public parsedTracksContent: Writable<Record<string, Track>>;
-    public tracksByDate: Writable<Record<ISODate, string[]>>;
+    public tracksByDate: Writable<Record<ISODate, RenderTrack[]>>;
     public trackMetaRevision: Writable<number>;
 
     private trackFileCache: Record<string, TrackFiles> = {};
@@ -46,7 +46,7 @@ export class TrackNoteService {
         this.app = deps.app;
         this.settings = deps.settings;
         this.parsedTracksContent = deps.parsedTracksContent;
-        this.tracksByDate = writable<Record<ISODate, string[]>>({});
+        this.tracksByDate = writable<Record<ISODate, RenderTrack[]>>({});
         this.trackMetaRevision = writable<number>(0);
         this.onTracksSnapshot = deps.onTracksSnapshot;
 
@@ -55,8 +55,8 @@ export class TrackNoteService {
         }
     }
 
-    private buildTracksByDateIndex(tracks: Record<string, Track>): Record<ISODate, string[]> {
-        const index: Record<ISODate, string[]> = {};
+    private buildTracksByDateIndex(tracks: Record<string, Track>): Record<ISODate, RenderTrack[]> {
+        const index: Record<ISODate, RenderTrack[]> = {};
 
         for (const [trackId, track] of Object.entries(tracks)) {
             this.addToTracksByDate(index, trackId, track.effective);
@@ -67,7 +67,7 @@ export class TrackNoteService {
 
     private publishTrackState(
         tracks: Record<string, Track>,
-        tracksByDate: Record<ISODate, string[]>,
+        tracksByDate: Record<ISODate, RenderTrack[]>,
         persistSnapshot: boolean
     ): void {
         this.parsedTracksContent.set(tracks);
@@ -125,7 +125,7 @@ export class TrackNoteService {
     
     // ===== Rendering logic ===== //
 
-    private addToTracksByDate(index: Record<ISODate, string[]>, trackId: string, effective: DateInterval[]): void {
+    private addToTracksByDate(index: Record<ISODate, RenderTrack[]>, trackId: string, effective: DateInterval[]): void {
         const today = getISODate(new Date());
 
         for (const interval of effective) {
@@ -141,8 +141,10 @@ export class TrackNoteService {
                 const iso = getISODate(date);
                 index[iso] ??= [];
 
-                if (!index[iso].includes(trackId)) {
-                    index[iso].push(trackId);
+                const isStartOfInterval = getISODate(date) === interval.start;
+
+                if (!index[iso].some((track => track.id === trackId))) {
+                    index[iso].push({ id: trackId, isStartOfInterval });
                 }
             })
         }
@@ -160,7 +162,7 @@ export class TrackNoteService {
         }
 
         const tracks: Record<string, Track> = {};
-        const tracksByDate: Record<ISODate, string[]> = {};
+        const tracksByDate: Record<ISODate, RenderTrack[]> = {};
 
         for (const key in this.trackFileCache) {
             const track = await this.loadTrackContent(key, this.trackFileCache[key])
