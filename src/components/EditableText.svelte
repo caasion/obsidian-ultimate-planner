@@ -105,7 +105,7 @@
 <style>
 	.editable-display {
 		cursor: text;
-		padding: 2px 4px;
+		padding-top: 2px;
 		border-radius: 2px;
 		min-height: 1.5em;
 		width: 100%;

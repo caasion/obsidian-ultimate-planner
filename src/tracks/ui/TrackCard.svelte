@@ -78,13 +78,6 @@
           placeholder="Track name..."
           class="track-title" 
         />
-        <EditableText 
-          value={track.description}
-          onSave={(newDescription) => trackFunctions.onDescriptionEdit(newDescription)}
-          placeholder="Track description..."
-          multiline={true}
-          class="track-description" 
-        />
         <div class="effective-list" title="Effective date intervals">
           {#if track.effective.length > 0}
             {#each track.effective as interval}
@@ -94,10 +87,17 @@
             <div class="effective-empty">No effective intervals</div>
           {/if}
         </div>
+        <EditableText 
+          value={track.description}
+          onSave={(newDescription) => trackFunctions.onDescriptionEdit(newDescription)}
+          placeholder="Edit Track description..."
+          multiline={true}
+          class="track-description" 
+        />
       </div>
     </div>
     
-    <div class="card-data-container">
+    <div class="card-data-container card-actions-container">
       <input
         type="color"
         value={track.color}
@@ -160,12 +160,16 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
 
   .card-data-container {
     display: flex;
-    align-items: center;
+    gap: 2px;
+  }
+
+  .card-actions-container {
+    align-self: flex-start;
   }
 
   .clickable {

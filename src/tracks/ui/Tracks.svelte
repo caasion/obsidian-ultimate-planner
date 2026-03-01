@@ -108,7 +108,7 @@
     {/each}
   </div>
 
-  <h2>Schedule Tracks</h2>
+  <!-- <h2>Schedule Tracks</h2> -->
 
 </div>
 
