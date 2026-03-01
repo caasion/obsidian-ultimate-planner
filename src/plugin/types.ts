@@ -2,7 +2,7 @@ import type { Day } from "date-fns";
 import type { Writable } from "svelte/store";
 import ICAL from "ical.js";
 import type { occurrenceDetails } from "ical.js/dist/types/types";
-import type { RequestUrlResponse } from "obsidian";
+import type { RequestUrlResponse, TFile } from "obsidian";
 
 /* Plugin Data Types */
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
@@ -57,6 +57,8 @@ export interface Project {
     endDate?: ISODate;
     habits: Record<string, Habit>; 
     data: Element[];
+    
+    file?: TFile;
 }
 
 export interface CalendarMeta {
@@ -74,6 +76,8 @@ export interface Track {
     effective: DateInterval[];
     timeCommitment: number; 
 	journalHeader: string;
+
+    file?: TFile;
     
     label: string;
     description: string;
