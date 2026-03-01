@@ -43,9 +43,6 @@
 		<span class="week-label">{label}</span>
 		<input type="date" bind:value={navBarAnchor} />
 	</div>
-	<div class="view-switcher">
-		<button onclick={toggleView}>{view}</button>
-	</div>
 </div>
 
 <style>
