@@ -16,10 +16,7 @@
   let { app, trackNoteService }: TracksProps = $props();
 
   const trackStore = trackNoteService.parsedTracksContent;
-
   const parsedTracks = $derived($trackStore);
-
-  $inspect(parsedTracks)
 
   // Load track content when component mounts
   $effect(() => {
@@ -58,6 +55,7 @@
     return {
       onLabelEdit: (label: string) => trackNoteService.updateTrackLabel(trackId, label),
       onDescriptionEdit: (description: string) => trackNoteService.updateTrackDescription(trackId, description),
+      onColorEdit: (color: string) => trackNoteService.updateTrackColor(trackId, color),
       onFrontmatterEdit: (frontmatter) => trackNoteService.updateTrackFrontmatter(trackId, frontmatter),
       onDelete: () => trackNoteService.deleteTrack(trackId),
       onProjectAdd: () => trackNoteService.createProject(trackId, trackNoteService.newProjectFactory(trackId)),
@@ -74,7 +72,7 @@
       onEndDateEdit: (date) => trackNoteService.updateProjectEndDate(trackId, projectId, date),
       onDelete: () => trackNoteService.deleteProject(trackId, projectId),
       onHabitAdd: () => trackNoteService.addProjectHabit(trackId, projectId),
-      onElementAdd: () => trackNoteService.addProjectElement(trackId, projectId),
+      onDataAdd: () => trackNoteService.addProjectData(trackId, projectId),
     });
   }
 
@@ -110,7 +108,7 @@
     {/each}
   </div>
 
-  <h2>Schedule Tracks</h2>
+  <!-- <h2>Schedule Tracks</h2> -->
 
 </div>
 

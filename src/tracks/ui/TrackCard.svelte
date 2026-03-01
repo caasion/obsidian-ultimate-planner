@@ -13,6 +13,7 @@
   export interface TrackCardFunctions {
     onLabelEdit: (label: string) => void;
     onDescriptionEdit: (label: string) => void;
+    onColorEdit: (color: string) => void;
     onFrontmatterEdit: (frontmatter: Partial<TrackFileFrontmatter>) => void;
     onDelete: () => void;
     onProjectAdd: () => void;
@@ -58,6 +59,13 @@
       "Removing the track will delete the entire track folder and all its projects."
    ).open();
   }
+
+  function handleColorEdit(event: Event) {
+    const target = event.currentTarget as HTMLInputElement | null;
+    if (!target) return;
+
+    trackFunctions.onColorEdit(target.value);
+  }
 </script>
 
 <div class="card" style={`background-color: ${track.color}10; --track-color: ${track.color};`}>
@@ -70,17 +78,32 @@
           placeholder="Track name..."
           class="track-title" 
         />
+        <div class="effective-list" title="Effective date intervals">
+          {#if track.effective.length > 0}
+            {#each track.effective as interval}
+              <div class="effective-item">{interval.start} → {interval.end ?? 'Present'}</div>
+            {/each}
+          {:else}
+            <div class="effective-empty">No effective intervals</div>
+          {/if}
+        </div>
         <EditableText 
           value={track.description}
           onSave={(newDescription) => trackFunctions.onDescriptionEdit(newDescription)}
-          placeholder="Track description..."
+          placeholder="Edit Track description..."
           multiline={true}
           class="track-description" 
         />
       </div>
     </div>
     
-    <div class="card-data-container">
+    <div class="card-data-container card-actions-container">
+      <input
+        type="color"
+        value={track.color}
+        onchange={handleColorEdit}
+        title="Edit track color"
+      />
       <button 
         class="card-header clickable journal-icon" 
         onclick={handleJournalHeaderEdit}
@@ -137,12 +160,16 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
 
   .card-data-container {
     display: flex;
-    align-items: center;
+    gap: 2px;
+  }
+
+  .card-actions-container {
+    align-self: flex-start;
   }
 
   .clickable {
@@ -172,6 +199,19 @@
     font-size: 0.9em;
     color: var(--text-muted);
     font-style: italic;
+  }
+
+  .effective-list {
+    margin-top: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .effective-item,
+  .effective-empty {
+    font-size: 0.8em;
+    color: var(--text-muted);
   }
 
   .journal-icon {

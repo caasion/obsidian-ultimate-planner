@@ -2,100 +2,68 @@ import { Plugin } from 'obsidian';
 import { PLANNER_VIEW_TYPE, PlannerView } from './planner/PlannerView';
 import { TRACKS_VIEW_TYPE, TracksView } from './tracks/TracksView';
 import { HolosSettingsTab } from './plugin/SettingsTab';
-import { get, type Unsubscriber } from 'svelte/store';
-import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings } from './plugin/types';
+import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
+import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings, type Track, type TrackSnapshot } from './plugin/types';
 import { CalendarPipeline } from './calendar/calendarPipelines';
-import { TemplateActions } from './templates/templateActions';
 import { calendarState, fetchToken } from './calendar/calendarState';
-import { hashText, generateID, getISODate, addDaysISO, swapArrayItems, getISODates, getLabelFromDateRange } from './plugin/helpers';
 import { parseICS, parseICSBetween, normalizeEvent, normalizeOccurrenceEvent, buildEventDictionaries, getEventLabels } from './calendar/calendarHelper';
 import { fetchFromUrl, detectFetchChange } from './calendar/fetch';
 import { PlaygroundView, PLAYGROUND_VIEW_TYPE } from './playground/PlaygroundView';
-import { PlannerParser } from './planner/logic/parser';
 import { DailyNoteService } from './planner/logic/dailyNote';
-import { sortedTemplateDates, templates, parsedTracksContent } from './templates/templatesStore';
-import { sampleTemplateData } from './templates/sampleTemplateData';
 import { TrackNoteService } from './tracks/logic/trackNote';
+import { hashTrackFolder } from './tracks/logic/trackSnapshotHash';
+import { normalizeTrackSnapshot, resolveBootstrapTrackSnapshot } from './tracks/logic/trackSnapshot';
 
 export default class HolosPlugin extends Plugin {
 	settings: PluginSettings;
 	private saveTimer: number | null = null;
 	private storeSubscriptions: Unsubscriber[] = [];
+	private trackSnapshot: TrackSnapshot | undefined;
 	public dataService: DataService;
 	public helperService: HelperService;
 	public calendarHelperService: CalendarHelperService;
 	public fetchService: FetchService;
-	public templateActions: TemplateActions;
 	public calendarPipeline: CalendarPipeline;
-	public parserService: PlannerParser;
 	public dailyNoteService: DailyNoteService;
 	public trackNoteService: TrackNoteService;
+	private parsedTracksContent: Writable<Record<string, Track>> = writable<Record<string, Track>>({});
 
 	async onload() {
 		await this.loadPersisted();
+		const trackFolder = this.app.vault.getFolderByPath(this.settings.trackFolder);
+		const currentTracksHash = trackFolder ? hashTrackFolder(trackFolder) : undefined;
+		const bootstrapSnapshot = resolveBootstrapTrackSnapshot(this.trackSnapshot, currentTracksHash);
+		this.parsedTracksContent = writable<Record<string, Track>>(bootstrapSnapshot?.tracks ?? {});
 
-		// this.dataService = {
-		// 	templates,
-		// 	calendarState,
-		// 	fetchToken,
-			
-		// 	setTemplate,
-		// 	addToTemplate,
-		// 	getTemplate,
-		// 	getItemFromLabel,
-		// 	removeFromTemplate,
-		// 	removeFromCellsInTemplate: () => false, // NOT IMPLEMENTED
-		// 	removeTemplate,
-		// 	getItemMeta,
-		// 	updateItemMeta,
-		// 	setFloatCell,
-		// 	getFloatCell,
+		// this.calendarHelperService = {
+		// 	parseICS,
+		// 	parseICSBetween,
+		// 	normalizeEvent,
+		// 	normalizeOccurrenceEvent,
+		// 	buildEventDictionaries,
+		// 	getEventLabels
 		// }
-
-		this.helperService = {
-			hashText,
-			generateID,
-			getISODate,
-			getISODates,
-			getLabelFromDateRange,
-			addDaysISO,
-			swapArrayItems,
-			idUsedInTemplates: () => true, // NOT IMPLEMENTED
-		}
-
-		this.calendarHelperService = {
-			parseICS,
-			parseICSBetween,
-			normalizeEvent,
-			normalizeOccurrenceEvent,
-			buildEventDictionaries,
-			getEventLabels
-		}
 
 		this.fetchService = {
 			fetchFromUrl,
 			detectFetchChange
 		}
 		
-		this.calendarPipeline = new CalendarPipeline({
-			data: this.dataService, 
-			fetch: this.fetchService, 
-			helpers: this.helperService, 
-			calHelpers: this.calendarHelperService
-		})
-		
-		this.templateActions = new TemplateActions();
-
-		this.parserService = new PlannerParser({
-			data: this.dataService,
-			plannerActions: this.templateActions,
-		})
+		// this.calendarPipeline = new CalendarPipeline({
+		// 	data: this.dataService, 
+		// 	fetch: this.fetchService, 
+		// 	helpers: this.helperService, 
+		// 	calHelpers: this.calendarHelperService
+		// })
 
 		this.dailyNoteService = new DailyNoteService({
 			app: this.app,
 			settings: this.settings,
-			parser: this.parserService
+			getTrackMetaSnapshot: () => this.trackNoteService ? get(this.trackNoteService.parsedTracksContent) : { }
 		});
+
+		await this.initializeTrackNoteService(bootstrapSnapshot);
+		this.initializeTrackMetadataLoad();
 
 		// Add Settings Tab using Obsidian's API
 		this.addSettingTab(new HolosSettingsTab(this.app, this));
@@ -110,6 +78,14 @@ export default class HolosPlugin extends Plugin {
 			name: 'Open Holos Planner',
 			callback: () => {
 				this.activateView(PLANNER_VIEW_TYPE);
+			}
+		});
+
+		this.addCommand({
+			id: 'open-tracks-view',
+			name: 'Open Holos Tracks View',
+			callback: () => {
+				this.activateView(TRACKS_VIEW_TYPE);
 			}
 		});
 
@@ -147,13 +123,19 @@ export default class HolosPlugin extends Plugin {
 		await this.flushSave(); // Save immediately
 	}
 
-	async initializeTrackNoteService() {
+	async initializeTrackNoteService(bootstrapSnapshot?: TrackSnapshot) {
 		if (this.trackNoteService) return;
 
 		this.trackNoteService = new TrackNoteService({
 			app: this.app,
 			settings: this.settings,
-			parsedTracksContent: parsedTracksContent
+			parsedTracksContent: this.parsedTracksContent,
+			bootstrapTracks: bootstrapSnapshot?.tracks,
+			onTracksSnapshot: (snapshot: TrackSnapshot) => {
+				this.trackSnapshot = snapshot;
+
+				this.queueSave();
+			}
 		});
 	}
 
@@ -173,23 +155,30 @@ export default class HolosPlugin extends Plugin {
 	async loadPersisted() {
 		const data: PluginData = await this.loadData() ?? {};
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings) // Populate Settings
-		
-		// Initialize Stores, Subscribe, and assign unsubscribers
-		templates.set(Object.assign({}, sampleTemplateData, data.planner && data.planner.templates));
-		this.storeSubscriptions = [
-			templates.subscribe(() => this.queueSave()),
-			templates.subscribe((templates) => templates && Object.keys(templates) && sortedTemplateDates.set(Object.keys(templates).sort()))
-		]
+		this.trackSnapshot = normalizeTrackSnapshot(data.trackSnapshot);
 	}
 
 	private snapshot(): PluginData {
 		return {
-			version: 7,
+			version: 8,
 			settings: this.settings,
-			planner: {
-				templates: get(templates),
-			},
+			trackSnapshot: this.trackSnapshot,
 		}
+	}
+
+	private initializeTrackMetadataLoad(): void {
+		const loadTracks = async () => {
+			try {
+				await this.trackNoteService.initializeTracksByDate();
+			} catch (error) {
+				console.error('[Holos] Failed to initialize tracks by date', error);
+			}
+		};
+
+		void loadTracks();
+		this.app.workspace.onLayoutReady(() => {
+			void loadTracks();
+		});
 	}
 
 	public queueSave() {

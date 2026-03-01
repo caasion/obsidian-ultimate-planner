@@ -1,20 +1,19 @@
 <script lang="ts">
 	import { addDaysISO, getISODate } from "src/plugin/helpers";
-	import type { HelperService, ISODate, PluginSettings } from "src/plugin/types";
-    import { addDays } from "date-fns";
+	import type { ISODate } from "src/plugin/types";
 
-    interface ViewProps {
-        goTo: (date: ISODate) => void;
-        incrementAmount: number;
+	interface ViewProps {
+		goTo: (date: ISODate) => void;
+		incrementAmount: number;
 
-        label: string;
-        anchor: ISODate;
+		label: string;
+		anchor: ISODate;
 
-        view: string;
-        toggleView: () => void;
-    }
+		view: string;
+		toggleView: () => void;
+	}
 
-    let {goTo, incrementAmount, label, anchor, view, toggleView}: ViewProps = $props();
+    let {goTo, incrementAmount, label, anchor}: ViewProps = $props();
 
     const today = getISODate(new Date());
 
@@ -43,16 +42,13 @@
 		<span class="week-label">{label}</span>
 		<input type="date" bind:value={navBarAnchor} />
 	</div>
-	<div class="view-switcher">
-		<button onclick={toggleView}>{view}</button>
-	</div>
 </div>
 
 <style>
 		/* Navigation Menu */
 	.header {
 		display: grid;
-    	grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr auto 1fr;
 	}
 
 	.week {
@@ -91,10 +87,5 @@
 
 	.week input[type="date"]::-webkit-datetime-edit {
 		display: none;
-	}
-
-	.view-switcher {
-		display: flex;
-		justify-content: flex-end;
 	}
 </style>

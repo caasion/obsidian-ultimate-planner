@@ -1,8 +1,10 @@
+import { eachDayOfInterval, isValid, parseISO } from "date-fns";
 import { TFolder, type App, TFile, getAllTags, type FrontMatterCache, type EventRef, Menu, Notice } from "obsidian";
 import { PlannerParser } from "src/planner/logic/parser";
 import { getISODate } from "src/plugin/helpers";
-import type { Element, Habit, PluginSettings, Project, Track, TrackFileFrontmatter } from "src/plugin/types";
-import { type Writable, get } from "svelte/store";
+import type { DateInterval, Element, Habit, ISODate, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
+import { type Writable, get, writable } from "svelte/store";
+import { hashTrackFileCacheEntries } from "./trackSnapshotHash";
 
 interface TrackFiles {
     id: string | null;
@@ -15,6 +17,8 @@ export interface TrackNoteServiceDeps {
     app: App;
     settings: PluginSettings;
     parsedTracksContent: Writable<Record<string, Track>>;
+    bootstrapTracks?: Record<string, Track>;
+    onTracksSnapshot?: (snapshot: TrackSnapshot) => void;
 }
 
 export class TrackNoteService {
@@ -22,8 +26,12 @@ export class TrackNoteService {
     private settings: PluginSettings;
 
     public parsedTracksContent: Writable<Record<string, Track>>;
+    public tracksByDate: Writable<Record<ISODate, RenderTrack[]>>;
+    public trackMetaRevision: Writable<number>;
 
     private trackFileCache: Record<string, TrackFiles> = {};
+    private revisionCounter = 0;
+    private onTracksSnapshot?: (snapshot: TrackSnapshot) => void;
     
     // Flag to prevent file watcher from overwriting our own programmatic updates
     private isUpdatingInternally = false;
@@ -38,6 +46,112 @@ export class TrackNoteService {
         this.app = deps.app;
         this.settings = deps.settings;
         this.parsedTracksContent = deps.parsedTracksContent;
+        this.tracksByDate = writable<Record<ISODate, RenderTrack[]>>({});
+        this.trackMetaRevision = writable<number>(0);
+        this.onTracksSnapshot = deps.onTracksSnapshot;
+
+        if (deps.bootstrapTracks && Object.keys(deps.bootstrapTracks).length > 0) {
+            this.hydrateFromSnapshot(deps.bootstrapTracks);
+        }
+    }
+
+    private buildTracksByDateIndex(tracks: Record<string, Track>): Record<ISODate, RenderTrack[]> {
+        const index: Record<ISODate, RenderTrack[]> = {};
+
+        for (const [trackId, track] of Object.entries(tracks)) {
+            this.addToTracksByDate(index, trackId, track.effective);
+        }
+
+        return index;
+    }
+
+    private publishTrackState(
+        tracks: Record<string, Track>,
+        tracksByDate: Record<ISODate, RenderTrack[]>,
+        persistSnapshot: boolean
+    ): void {
+        this.parsedTracksContent.set(tracks);
+        this.tracksByDate.set(tracksByDate);
+
+        this.revisionCounter += 1;
+        this.trackMetaRevision.set(this.revisionCounter);
+
+        if (persistSnapshot && this.onTracksSnapshot) {
+            this.onTracksSnapshot({
+                generatedAt: Date.now(),
+                tracksHash: hashTrackFileCacheEntries(Object.values(this.trackFileCache)),
+                tracks,
+            });
+        }
+    }
+
+    private hydrateFromSnapshot(tracks: Record<string, Track>): void {
+        const tracksByDate = this.buildTracksByDateIndex(tracks);
+        this.publishTrackState(tracks, tracksByDate, false);
+    }
+
+    private normalizeISODate(value: unknown): string | null {
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            return trimmed ? trimmed : null;
+        }
+
+        if (typeof value === 'number') {
+            return String(value);
+        }
+
+        return null;
+    }
+
+    private parseEffective(frontmatter?: FrontMatterCache['frontmatter']): DateInterval[] {
+        const rawEffective = frontmatter?.effective;
+        if (!Array.isArray(rawEffective)) return [];
+
+        const effective: DateInterval[] = [];
+
+        for (const interval of rawEffective) {
+            if (!interval || typeof interval !== 'object') continue;
+
+            const record = interval as Record<string, unknown>;
+            const start = this.normalizeISODate(record.start);
+            const end = this.normalizeISODate(record.end);
+
+            if (!start) continue;
+            effective.push(end ? { start, end } : { start });
+        }
+
+        return effective;
+    }
+    
+    // ===== Rendering logic ===== //
+
+    private addToTracksByDate(index: Record<ISODate, RenderTrack[]>, trackId: string, effective: DateInterval[]): void {
+        const today = getISODate(new Date());
+
+        for (const interval of effective) {
+            const intervalEnd = interval.end ?? today;
+
+            const start = parseISO(interval.start);
+            const end = parseISO(intervalEnd);
+            if (!isValid(start) || !isValid(end)) continue;
+
+            const dates = eachDayOfInterval({ start, end });
+
+            dates.forEach(date => {
+                const iso = getISODate(date);
+                index[iso] ??= [];
+
+                const isStartOfInterval = getISODate(date) === interval.start;
+
+                if (!index[iso].some((track => track.id === trackId))) {
+                    index[iso].push({ id: trackId, isStartOfInterval });
+                }
+            })
+        }
+    }
+
+    async initializeTracksByDate(): Promise<void> {
+        await this.loadAllTrackContent();
     }
     
     // ===== Read operations ===== //
@@ -48,13 +162,17 @@ export class TrackNoteService {
         }
 
         const tracks: Record<string, Track> = {};
+        const tracksByDate: Record<ISODate, RenderTrack[]> = {};
 
         for (const key in this.trackFileCache) {
             const track = await this.loadTrackContent(key, this.trackFileCache[key])
-            if (track) tracks[key] = track;
+            if (!track) continue;
+
+            tracks[key] = track;
+            this.addToTracksByDate(tracksByDate, key, track.effective);
         }
 
-        this.parsedTracksContent.set(tracks);
+        this.publishTrackState(tracks, tracksByDate, true);
     }
 
     async populateFileCache(): Promise<void> {
@@ -141,7 +259,8 @@ export class TrackNoteService {
             return null;
         }
 
-        const { order, timeCommitment, journalHeader} = frontmatter;
+        const { order, timeCommitment, journalHeader } = frontmatter;
+        const effective = this.parseEffective(frontmatter);
 
         const color = frontmatter.color ?? "#cccccc";
 
@@ -161,6 +280,7 @@ export class TrackNoteService {
             id,
             order,
             color,
+            effective,
             timeCommitment,
             journalHeader,
             
@@ -190,8 +310,8 @@ export class TrackNoteService {
         const habitSection = PlannerParser.extractSection(projectContent, "Habits");
         const habits = PlannerParser.parseHabitSection(habitSection);
 
-        const taskSection = PlannerParser.extractSection(projectContent, "Tasks");
-        const tasks = PlannerParser.parseTaskSection(taskSection);
+        const dataSection = PlannerParser.extractSection(projectContent, "Data") || PlannerParser.extractSection(projectContent, "Tasks");
+        const data = PlannerParser.parseTaskSection(dataSection);
         
         const description = PlannerParser.extractFirstSection(projectContent);
         
@@ -201,7 +321,7 @@ export class TrackNoteService {
             description,
             startDate,
             endDate,
-            tasks,
+            data,
             habits
         };
     }
@@ -228,10 +348,13 @@ export class TrackNoteService {
             return;
         }
 
-        this.parsedTracksContent.update(tracks => ({
-            ...tracks,
+        const nextTracks = {
+            ...get(this.parsedTracksContent),
             [trackId]: track
-        }));
+        };
+
+        const nextTracksByDate = this.buildTracksByDateIndex(nextTracks);
+        this.publishTrackState(nextTracks, nextTracksByDate, true);
     }
 
     /** Find the track ID for a given file path */
@@ -360,7 +483,14 @@ export class TrackNoteService {
         lines.push('  - holos/track');
         lines.push(`id: ${track.id}`);
         lines.push(`order: ${track.order}`);
-        lines.push(`color: ${track.color}`);
+        lines.push(`color: "${track.color}"`);
+        lines.push('effective:');
+        for (const interval of track.effective) {
+            lines.push(`  - start: ${interval.start}`);
+            if (interval.end) {
+                lines.push(`    end: ${interval.end}`);
+            }
+        }
         lines.push(`timeCommitment: ${track.timeCommitment}`);
         lines.push(`journalHeader: ${track.journalHeader}`);
         lines.push('---');
@@ -459,6 +589,15 @@ export class TrackNoteService {
         });
 
         return true;
+    }
+
+    /** Update track color. */
+    async updateTrackColor(trackId: string, color: string): Promise<boolean> {
+        const nextColor = color.trim();
+        if (!nextColor) return false;
+
+        const success = await this.updateTrackFrontmatter(trackId, { color: nextColor });
+        return success;
     }
 
     /** Update track description. */
@@ -561,7 +700,7 @@ export class TrackNoteService {
             description: '',
             startDate: today,
             habits: {},
-            tasks: [],
+            data: [],
         }
     }
 
@@ -588,10 +727,10 @@ export class TrackNoteService {
         }
         lines.push('');
 
-        // Tasks section
-        lines.push('## Tasks');
+        // Data section
+        lines.push('## Data');
         lines.push('');
-        for (const element of project.tasks) {
+        for (const element of project.data) {
             const taskMarker = element.isTask ? `[${element.taskStatus || ' '}] ` : '';
             lines.push(`- ${taskMarker}${element.text}`);
             
@@ -952,7 +1091,7 @@ export class TrackNoteService {
         });
     }
 
-    // ===== Project Task operations ===== //
+    // ===== Project data operations ===== //
 
     /** Serialize elements array to string for Data section */
     private serializeDataSection(elements: Element[]): string {
@@ -963,8 +1102,8 @@ export class TrackNoteService {
         return result;
     }
 
-    /** Add a new element (task) to a project */
-    async addProjectElement(trackId: string, projectId: string): Promise<void> {
+    /** Add a new data element to a project */
+    async addProjectData(trackId: string, projectId: string): Promise<void> {
         const projectFile = this.trackFileCache[trackId]?.projects[projectId];
         if (!projectFile) {
             console.warn(`Project ${projectId} not found in track ${trackId}`);
@@ -1016,8 +1155,8 @@ export class TrackNoteService {
         });
     }
 
-    /** Update a specific element in a project */
-    async updateProjectElement(trackId: string, projectId: string, elementIndex: number, updatedElement: Partial<Element>): Promise<void> {
+    /** Update a specific data element in a project */
+    async updateProjectData(trackId: string, projectId: string, elementIndex: number, updatedElement: Partial<Element>): Promise<void> {
         const projectFile = this.trackFileCache[trackId]?.projects[projectId];
         if (!projectFile) {
             console.warn(`Project ${projectId} not found in track ${trackId}`);
@@ -1068,8 +1207,8 @@ export class TrackNoteService {
         });
     }
 
-    /** Delete an element from a project */
-    async deleteProjectElement(trackId: string, projectId: string, elementIndex: number): Promise<void> {
+    /** Delete a data element from a project */
+    async deleteProjectData(trackId: string, projectId: string, elementIndex: number): Promise<void> {
         const projectFile = this.trackFileCache[trackId]?.projects[projectId];
         if (!projectFile) {
             console.warn(`Project ${projectId} not found in track ${trackId}`);

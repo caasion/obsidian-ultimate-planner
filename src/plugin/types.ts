@@ -6,6 +6,7 @@ import type { RequestUrlResponse } from "obsidian";
 
 /* Plugin Data Types */
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
+export type CalendarID = string;
 
 /* Plugin Daydata Datatypes */
 export type Time = {
@@ -35,13 +36,12 @@ export interface Element {
 	timeUnit?: 'min' | 'hr';
 }
 
-export interface ItemData {
-	id: string; // ActionItemID + date
-	time: number; // default: retrieves from template, but can be modified otherwise
-	items: Element[];
+/* NEW Plugin Template Datatypes */
+export interface DateInterval {
+    start: ISODate;
+    end?: ISODate;
 }
 
-/* NEW Plugin Template Datatypes */
 export interface Habit {
 	id: string;
     raw: string;
@@ -56,7 +56,7 @@ export interface Project {
 	startDate: ISODate;
     endDate?: ISODate;
     habits: Record<string, Habit>; 
-	tasks: Element[];
+    data: Element[];
 }
 
 export interface CalendarMeta {
@@ -71,6 +71,7 @@ export interface Track {
     id: string;
     order: number;
     color: string;
+    effective: DateInterval[];
     timeCommitment: number; 
 	journalHeader: string;
     
@@ -79,12 +80,30 @@ export interface Track {
     projects: Record<string, Project>;
 }
 
+export interface TrackSnapshot {
+    generatedAt: number;
+    tracksHash?: string;
+    tracks: Record<string, Track>;
+}
+
 export interface TrackFileFrontmatter {
     id: string;
     order: number;
     color: string;
+    effective: DateInterval[];
     timeCommitment: number;
     journalHeader: string;
+}
+
+export interface TrackData {
+    id: string;
+    time?: number;
+    items: Element[];
+}
+
+export interface RenderTrack {
+    id: string;
+    isStartOfInterval: boolean;
 }
 
 /* Plugin Template Datatypes */
@@ -109,11 +128,6 @@ export interface DateMapping {
     tDate: TDate;
 }
 
-export interface Item {
-    id: ItemID;
-    meta: ItemMeta;
-}
-
 export interface BlockMeta {
     rows: number;
     dateTDateMapping: DateMapping[];
@@ -123,7 +137,7 @@ export interface BlockMeta {
 export interface PluginData {
     version: number;
     settings: PluginSettings;
-    planner: PlannerState;
+    trackSnapshot?: TrackSnapshot;
 }
 
 export interface PluginSettings {
@@ -170,7 +184,7 @@ export type CalendarStatus = "idle" | "fetching" | "unchanged" | "updated" | "er
 /* Core Data Service */
 export interface DataService {
     // Svelte Stores (The Writable objects themselves)
-    templates: Writable<Record<ISODate, Record<ItemID, ItemMeta>>>;
+    templates: Writable<Record<ISODate, Record<string, Track>>>;
     calendarState: Writable<CalendarState>;
     fetchToken: Writable<number>;
 }
@@ -184,7 +198,7 @@ export interface HelperService {
     getLabelFromDateRange: (first: ISODate, last: ISODate) => string;
     addDaysISO: (iso: ISODate, n: number) => ISODate;
     swapArrayItems: <T>(array: T[], a: number, b: number) => T[]; 
-    idUsedInTemplates: (templates: Record<ISODate, Record<ItemID, ItemMeta>>, rowID: ItemID) => boolean;
+    idUsedInTemplates: (templates: Record<ISODate, Record<string, Track>>, rowID: string) => boolean;
 }
 
 export interface CalendarHelperService {

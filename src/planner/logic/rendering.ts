@@ -1,4 +1,4 @@
-import type { BlockMeta, DateMapping, ISODate, Item, TDate } from "src/plugin/types";
+import type { BlockMeta, DateMapping, ISODate, TDate, Track } from "src/plugin/types";
 
 export function getDateMappings(dates: ISODate[], sortedTemplateDates: TDate[]) {
     if (dates.length === 0) return [];
@@ -25,7 +25,7 @@ export function getDateMappings(dates: ISODate[], sortedTemplateDates: TDate[]) 
     return mappings;
 }
 
-export function getBlocksMeta(blocks: number, columns: number, dateMappings: DateMapping[], sortedTemplates: Record<TDate, Item[]>) {
+export function getBlocksMeta(blocks: number, columns: number, dateMappings: DateMapping[], sortedTemplates: Record<TDate, Track[]>) {
     let meta: BlockMeta[] = [];
 		
     for (let i = 0; i < blocks; i++) {

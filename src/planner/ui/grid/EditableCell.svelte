@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Element, ItemData, ItemID, ISODate, ItemType, ItemMeta } from "src/plugin/types";
+	import type { Element, ISODate, Track, TrackData } from "src/plugin/types";
 	import TaskElement from "./TaskElement.svelte";
 	import { dndzone } from 'svelte-dnd-action';
 	import { flip } from "svelte/animate";
@@ -8,16 +8,16 @@
 	interface EditableCellProps {
 		date: ISODate;
 		showLabel: boolean;
-		itemMeta: ItemMeta;
-		itemId: ItemID;
-		itemData: ItemData;
-		onUpdate: (date: ISODate, itemId: ItemID, updatedData: ItemData) => void;
+		trackMeta: Track;
+		trackId: string;
+		trackData: TrackData;
+		onUpdate: (date: ISODate, trackId: string, updatedData: TrackData) => void;
 	}
 
-	let { date, showLabel, itemMeta, itemData, onUpdate }: EditableCellProps = $props();
+	let { date, showLabel, trackMeta, trackId, trackData, onUpdate }: EditableCellProps = $props();
 
 	function updateElement(index: number, updatedElement: Element) {
-		const updatedItems = [...itemData.items];
+		const updatedItems = [...trackData.items];
 		
 		// Reconstruct raw text from element properties
 		const raw = reconstructRawText(
@@ -35,16 +35,16 @@
 			raw
 		};
 
-		const updatedData: ItemData = {
-			...itemData,
+		const updatedData: TrackData = {
+			...trackData,
 			items: updatedItems
 		};
 
-		onUpdate(date, itemMeta.id, updatedData);
+		onUpdate(date, trackId, updatedData);
 	}
 
 	function toggleTask(index: number) {
-		const updatedItems = [...itemData.items];
+		const updatedItems = [...trackData.items];
 		const element = updatedItems[index];
 		
 		if (element.isTask) {
@@ -67,17 +67,17 @@
 				raw
 			};
 
-			const updatedData: ItemData = {
-				...itemData,
+			const updatedData: TrackData = {
+				...trackData,
 				items: updatedItems
 			};
 
-			onUpdate(date, itemMeta.id, updatedData);
+			onUpdate(date, trackId, updatedData);
 		}
 	}
 
 	function cancelTask(index: number) {
-		const updatedItems = [...itemData.items];
+		const updatedItems = [...trackData.items];
 		const element = updatedItems[index];
 		
 		if (element.isTask) {
@@ -100,24 +100,24 @@
 				raw
 			};
 
-			const updatedData: ItemData = {
-				...itemData,
+			const updatedData: TrackData = {
+				...trackData,
 				items: updatedItems
 			};
 
-			onUpdate(date, itemMeta.id, updatedData);
+			onUpdate(date, trackId, updatedData);
 		}
 	}
 
 	function deleteElement(index: number) {
-		const updatedItems = itemData.items.filter((_, i) => i !== index);
+		const updatedItems = trackData.items.filter((_, i) => i !== index);
 		
-		const updatedData: ItemData = {
-			...itemData,
+		const updatedData: TrackData = {
+			...trackData,
 			items: updatedItems
 		};
 
-		onUpdate(date, itemMeta.id, updatedData);
+		onUpdate(date, trackId, updatedData);
 	}
 
 	function addNewElement(isTask: boolean) {
@@ -128,12 +128,12 @@
 			isTask: isTask,
 		};
 
-		const updatedData: ItemData = {
-			...itemData,
-			items: [...itemData.items, newElement]
+		const updatedData: TrackData = {
+			...trackData,
+			items: [...trackData.items, newElement]
 		};
 
-		onUpdate(date, itemMeta.id, updatedData);
+		onUpdate(date, trackId, updatedData);
 	}
 
   /* Drag and Drop */
@@ -145,7 +145,7 @@
   // Sync items with itemData.items when not dragging
   $effect(() => {
 		if (!isDragging) {
-			items = itemData.items.map((element) => {
+			items = trackData.items.map((element) => {
 				if (!elementToId.has(element)) {
 					elementToId.set(element, nextId++);
 				}
@@ -165,26 +165,26 @@
   function handleDndFinalize(e: { detail: { items: any[]; }; }) {
 		isDragging = false;
 		const reorderedElements = e.detail.items.map(item => item.element);
-		const updatedData: ItemData = {
-			...itemData,
+		const updatedData: TrackData = {
+			...trackData,
 			items: reorderedElements
 		};
 		
-		onUpdate(date, itemMeta.id, updatedData);
+		onUpdate(date, trackId, updatedData);
   }
 
 </script>
 
 <div class="editable-cell">
 	{#if showLabel}
-		<div class="row-label" style={`background-color: ${itemMeta.color}80; color: white;`}>{itemMeta.type == "calendar" ? "📅" : ""} {itemMeta.label}</div>
+		<div class="row-label" style={`background-color: ${trackMeta.color}80; color: white;`}>{trackMeta.label}</div>
 	{/if}
   <div 
     class="elements-container"
     use:dndzone={{
       items,
       flipDurationMs: 200,
-      dropTargetStyle: { outline: `1px dashed ${itemMeta.color}`, background: `${itemMeta.color}15` }
+			dropTargetStyle: { outline: `1px dashed ${trackMeta.color}`, background: `${trackMeta.color}15` }
     }}
     onconsider={handleDndConsider}
     onfinalize={handleDndFinalize}
@@ -194,7 +194,7 @@
       <TaskElement 
         {element}
         {index}
-        {itemMeta}
+				color={trackMeta.color}
         onUpdate={updateElement}
         onDelete={deleteElement}
         onToggle={toggleTask}
