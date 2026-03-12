@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { ISODate, Project } from "src/plugin/types";
-	import TaskElement from "src/planner/ui/grid/TaskElement.svelte";
+	import type { Element, ISODate, Project } from "src/plugin/types";
 	import HabitElement, { type HabitFunctions } from "./HabitElement.svelte";
 	import EditableText from "src/components/EditableText.svelte";
 	import { getISODate } from "src/plugin/helpers";
 	import { format, parseISO } from "date-fns";
+	import DataTaskElement from "./DataTaskElement.svelte";
 
 	export interface ProjectCardFunctions {
 		onLabelEdit: (label: string) => void;
@@ -17,6 +17,10 @@
 		// These are not project-specific, but handled at the project level
 		onHabitAdd: () => void;
 		onDataAdd: () => void;
+		onDataUpdate: (index: number, updatedElement: Element) => void;
+		onDataToggle: (index: number) => void;
+		onDataCancel: (index: number) => void;
+		onDataDelete: (index: number) => void;
 	}
 
 	interface ProjectCardProps {
@@ -119,14 +123,14 @@
     </div>
 	{#if project.data.length > 0}
 			{#each project.data as element, index}
-        <TaskElement
+        <DataTaskElement
           element={element}
           index={index}
           color={color}
-          onUpdate={() => {}}
-          onToggle={() => {}}
-          onCancel={() => {}}
-          onDelete={() => {}}
+          onUpdate={projectFunctions.onDataUpdate}
+          onToggle={projectFunctions.onDataToggle}
+          onCancel={projectFunctions.onDataCancel}
+          onDelete={projectFunctions.onDataDelete}
         />
 			{/each}
 		{:else}

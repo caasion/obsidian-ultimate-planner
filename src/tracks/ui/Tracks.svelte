@@ -75,6 +75,21 @@
       onDelete: () => trackNoteService.deleteProject(trackId, projectId),
       onHabitAdd: () => trackNoteService.addProjectHabit(trackId, projectId),
       onDataAdd: () => trackNoteService.addProjectData(trackId, projectId),
+      onDataUpdate: (index, updatedElement) => trackNoteService.updateProjectData(trackId, projectId, index, updatedElement),
+      onDataToggle: (index) => {
+        const track = trackNoteService.getTrack(trackId);
+        const element = track?.projects[projectId]?.data[index];
+        if (!element?.isTask) return;
+        const newStatus = element.taskStatus === 'x' ? ' ' : 'x';
+        trackNoteService.updateProjectData(trackId, projectId, index, { taskStatus: newStatus });
+      },
+      onDataCancel: (index) => {
+        const track = trackNoteService.getTrack(trackId);
+        const element = track?.projects[projectId]?.data[index];
+        if (!element?.isTask) return;
+        trackNoteService.updateProjectData(trackId, projectId, index, { taskStatus: '-' });
+      },
+      onDataDelete: (index) => trackNoteService.deleteProjectData(trackId, projectId, index),
     });
   }
 
