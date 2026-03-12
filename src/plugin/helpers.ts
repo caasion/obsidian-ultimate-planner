@@ -165,9 +165,10 @@ export function reconstructRawText(
     startTime: Time | undefined,
     progress: number | undefined,
     duration: number | undefined,
-    timeUnit: 'min' | 'hr' | undefined
+    timeUnit: 'min' | 'hr' | undefined,
+    prefix: string = '\t- '
 ): string {
-    let raw = '\t- ';
+    let raw = prefix;
 
     if (isTask && taskStatus) {
         raw += `[${taskStatus}] `;

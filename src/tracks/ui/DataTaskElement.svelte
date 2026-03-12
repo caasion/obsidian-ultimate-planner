@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Element, Time } from "src/plugin/types";
-	import { formatTime } from "src/plugin/helpers";
+	import { formatTime, reconstructRawText } from "src/plugin/helpers";
 	import { longpress } from "src/plugin/actions"
 	import CircularProgress from "src/planner/ui/grid/CircularProgress.svelte";
 
@@ -82,8 +82,11 @@
 			timeUnit = unitMatch as 'min' | 'hr';
 		}
 
+		const raw = reconstructRawText(editText.trim(), isTask, taskStatus, startTime, progress, duration, timeUnit, '- ');
+
 		const updatedElement: Element = {
 			...element,
+			raw,
 			text: editText.trim(),
 			isTask,
 			taskStatus,
