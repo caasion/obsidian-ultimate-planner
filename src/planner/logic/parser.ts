@@ -131,7 +131,7 @@ export class PlannerParser {
             if (!line.trim()) continue;
 
             // Top-level element (no tabs or single-level tabs)
-            if (line.match(/^\t?- /)) {
+            if (line.match(/^- /)) {
                 // Push previous element if exists
                 if (currentElement) {
                     tasks.push(currentElement);
@@ -139,9 +139,9 @@ export class PlannerParser {
                 
                 // Parse new element
                 currentElement = PlannerParser.parseElementLine(line);
-            } else if (line.match(/^\t\t- /) && currentElement) {
+            } else if (line.match(/^\t- /) && currentElement) {
                 // Child item
-                const text = line.replace(/^\t\t- /, '').trim();
+                const text = line.replace(/^\t- /, '').trim();
                 currentElement.children.push(text);
             }
         }
@@ -284,11 +284,22 @@ export class PlannerParser {
 
     // ===== Writing - Serialization ===== // 
 
-    // Serialize an Element back to a string
+    // Serialize an Element back to a string (used for track-level items, indented with \t)
     static serializeElement(element: Element | Omit<Element, 'raw'>): string {
-        let line = '\t- ';
+        return PlannerParser.serializeElementWithIndent(element, '\t- ', '\t\t- ');
+    }
 
-		// Construct the raw string from the element properties when it is changed
+    // Serialize an Element for project data (top-level, no indent)
+    static serializeProjectElement(element: Element | Omit<Element, 'raw'>): string {
+        return PlannerParser.serializeElementWithIndent(element, '- ', '\t- ');
+    }
+
+    private static serializeElementWithIndent(
+        element: Element | Omit<Element, 'raw'>,
+        linePrefix: string,
+        childPrefix: string
+    ): string {
+        let line = linePrefix;
 
 		const { text, children, isTask, taskStatus, startTime, progress, duration, timeUnit } = element;
 
@@ -306,7 +317,7 @@ export class PlannerParser {
 		let result = line + `\n`;
 
 		for (const child of children) {
-            result += `\t\t- ${child}\n`;
+            result += `${childPrefix}${child}\n`;
         }
         
         return result;

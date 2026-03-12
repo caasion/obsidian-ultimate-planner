@@ -781,7 +781,7 @@ export class TrackNoteService {
             lines.push(`- ${taskMarker}${element.text}`);
             
             for (const child of element.children) {
-                lines.push(`\t- ${child}`);
+                lines.push(`- ${child}`);
             }
         }
 
@@ -1143,7 +1143,7 @@ export class TrackNoteService {
     private serializeDataSection(elements: Element[]): string {
         let result = '';
         for (const element of elements) {
-            result += PlannerParser.serializeElement(element);
+            result += PlannerParser.serializeProjectElement(element);
         }
         return result;
     }
@@ -1157,7 +1157,7 @@ export class TrackNoteService {
         }
 
         const newElement: Element = {
-            raw: "\t- [ ] New Task",
+            raw: "- [ ] New Task",
             text: "New Task",
             isTask: true,
             taskStatus: " ",
