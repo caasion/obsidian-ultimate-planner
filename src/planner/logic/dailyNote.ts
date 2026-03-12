@@ -4,7 +4,7 @@ import { getAllDailyNotes, getDailyNote, createDailyNote } from "obsidian-daily-
 import moment from "moment";
 import { Notice } from "obsidian";
 import { PlannerParser } from "./parser";
-import { writable, type Writable } from "svelte/store";
+import { get, writable, type Writable } from "svelte/store";
 
 export interface DailyNoteServiceDeps {
     app: App;
@@ -18,7 +18,7 @@ export class DailyNoteService {
     private getTrackMetaSnapshot: () => Record<string, Track>;
     
     private isWriting: boolean = false;
-    private writeTimer: NodeJS.Timeout | null = null;
+    private writeTimers: Map<ISODate, NodeJS.Timeout> = new Map();
     
     public parsedContent: Writable<Record<ISODate, Record<string, TrackData>>> = writable({});
     public parsedJournalContent: Writable<Record<ISODate, Record<string, string>>> = writable({});
@@ -126,14 +126,21 @@ export class DailyNoteService {
     }
 
     /** Debounced write function */
-    debouncedWrite(date: ISODate, tracks: Record<string, TrackData>): void {
-        if (this.writeTimer) {
-            clearTimeout(this.writeTimer);
+    debouncedWrite(date: ISODate): void {
+        const existingTimer = this.writeTimers.get(date);
+        if (existingTimer) {
+            clearTimeout(existingTimer);
         }
-        
-        this.writeTimer = setTimeout(() => {
-            this.writeDailyNote(date, tracks);
-        }, 500);
+
+        const timer = setTimeout(() => {
+            this.writeTimers.delete(date);
+            const latestByDate = get(this.parsedContent)[date];
+
+            if (!latestByDate) return;
+            this.writeDailyNote(date, latestByDate);
+        }, this.settings.autosaveDebounceMs ?? 500);
+
+        this.writeTimers.set(date, timer);
     }
 
     // ===== File watchers ===== //
@@ -184,17 +191,12 @@ export class DailyNoteService {
         this.parsedContent.update(content => ({
             ...content,
             [date]: {
-                ...content[date],
+                ...(content[date] ?? {}),
                 [trackId]: updatedData
             }
         }));
-        
-        // Get the updated items for this date and write
-        this.parsedContent.subscribe(content => {
-            if (content[date]) {
-                this.debouncedWrite(date, content[date]);
-            }
-        })();
+
+        this.debouncedWrite(date);
     }
 
     /** Add a new item to an empty cell */
@@ -286,8 +288,10 @@ export class DailyNoteService {
     /** Clean up resources */
     destroy(): void {
         this.cleanupFileWatcher();
-        if (this.writeTimer) {
-            clearTimeout(this.writeTimer);
+
+        for (const timer of this.writeTimers.values()) {
+            clearTimeout(timer);
         }
+        this.writeTimers.clear();
     }
 }
