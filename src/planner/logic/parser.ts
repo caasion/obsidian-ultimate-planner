@@ -232,7 +232,7 @@ export class PlannerParser {
     }
 
     static parseElementLine(line: string): Element {
-		let text = line.replace(/^\s+- /, '');
+		let text = line.replace(/^\s*- /, '');
 
 	    let isTask = false;
 		let taskStatus: ' ' | 'x' | '-' | undefined;
