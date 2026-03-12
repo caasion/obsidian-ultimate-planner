@@ -181,20 +181,23 @@ export class DailyNoteService {
 
     /** Update cell content */
     updateTrackCell(date: ISODate, trackId: string, updatedData: TrackData): void {
-        this.parsedContent.update(content => ({
-            ...content,
-            [date]: {
-                ...content[date],
+        let nextDateContent: Record<string, TrackData> | null = null;
+
+        this.parsedContent.update(content => {
+            nextDateContent = {
+                ...(content[date] ?? {}),
                 [trackId]: updatedData
-            }
-        }));
-        
-        // Get the updated items for this date and write
-        this.parsedContent.subscribe(content => {
-            if (content[date]) {
-                this.debouncedWrite(date, content[date]);
-            }
-        })();
+            };
+
+            return {
+                ...content,
+                [date]: nextDateContent
+            };
+        });
+
+        if (nextDateContent) {
+            this.debouncedWrite(date, nextDateContent);
+        }
     }
 
     /** Add a new item to an empty cell */

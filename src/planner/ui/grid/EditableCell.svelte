@@ -157,6 +157,12 @@
 		}
   });
 
+  function getReorderedElements(dndItems: any[]): Element[] {
+		return dndItems
+			.map((item) => item?.element)
+			.filter((element): element is Element => Boolean(element));
+  }
+
   function handleDndConsider(e: { detail: { items: any[]; }; }) {
 		isDragging = true;
 		items = e.detail.items;
@@ -164,7 +170,13 @@
 
   function handleDndFinalize(e: { detail: { items: any[]; }; }) {
 		isDragging = false;
-		const reorderedElements = e.detail.items.map(item => item.element);
+		items = e.detail.items;
+		const reorderedElements = getReorderedElements(e.detail.items);
+
+		if (reorderedElements.length !== trackData.items.length) {
+			return;
+		}
+
 		const updatedData: TrackData = {
 			...trackData,
 			items: reorderedElements
@@ -186,8 +198,8 @@
       flipDurationMs: 200,
 			dropTargetStyle: { outline: `1px dashed ${trackMeta.color}`, background: `${trackMeta.color}15` }
     }}
-    onconsider={handleDndConsider}
-    onfinalize={handleDndFinalize}
+		onconsider={handleDndConsider}
+		onfinalize={handleDndFinalize}
   > 
 	{#each items as {id, element}, index (id)}
     <div animate:flip={{ duration: 200 }}>

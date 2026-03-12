@@ -390,10 +390,13 @@ export class PlannerParser {
         let result: string[] = [];
         let inSection = false;
         let sectionAdded = false;
+        let matchedHeadingLevel = 2;
         
         for (const line of lines) {
             // Check if we hit our target heading
-            if (line.trim() === `## ${sectionHeading}`) {
+            const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+            if (headingMatch && headingMatch[2].trim() === sectionHeading) {
+                matchedHeadingLevel = headingMatch[1].length;
                 result.push(line);
                 result.push(newSectionContent);
                 inSection = true;
@@ -402,8 +405,11 @@ export class PlannerParser {
             }
             
             // If we hit another heading of the same or higher level, stop skipping
-            if (inSection && line.startsWith('##')) {
-                inSection = false;
+            if (inSection && headingMatch) {
+                const currentLevel = headingMatch[1].length;
+                if (currentLevel <= matchedHeadingLevel) {
+                    inSection = false;
+                }
             }
             
             // Skip lines that are in the section (they'll be replaced)
