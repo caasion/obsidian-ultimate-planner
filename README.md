@@ -1,100 +1,64 @@
-<a id="readme-top"></a>
+<img width="1100" height="500" alt="holos_logo3_right" src="https://github.com/user-attachments/assets/8ad471bf-724b-468e-a143-23017f3940c7" />
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
+**An integrated productivity system for Obsidian that bridges the gap between big-picture life planning and daily execution.**
 
-![Holos Screen Shot][product-screenshot]
+Most productivity setups are fragmented — Google Calendar for scheduling, Obsidian for planning, a separate app for tasks. None of them connect "what am I focusing on this season of my life?" to "what am I actually doing today?"
 
-Holos is an [Obsidian](https://obsidian.md) plugin to make long-term planning much simpler. Instead of being stuck with rigid todo lists, you can plan what to do for each action item (i.e. a course or a fitness goal) over the long-term.
+Holos fixes that with a three-tier system built entirely inside Obsidian, with everything stored in plain markdown files you can read and edit directly.
 
-I've started to document my development of this plugin! Please see [devlog]!
+---
 
-### Built With
-[![Svelte][Svelte.dev]][Svelte-url] [![Typescript][Typescript]][Typescript-url]
+## Demo
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+https://github.com/user-attachments/assets/0adbb3cd-8ad8-48ba-8204-7a00708c6e39
 
-## Rationale
-I've found that planning on a day-to-day basis is often too restricting. After all, you can't always do everything in one day. Google Calendar is great for long-term planning, but it also isn't specific enough. There is too much clutter if you were to put down all your task in Google Calendar. After all, it is moreso for events.
+---
 
-I designed and developed this plugin as a hybrid between the two, which allows you to simutaneously plan a task across multiple days but also plan from day to day.
+## How It Works
 
-The advantage of the table format is two fold:
+### Tracks and Projects
+Tracks define what you're focusing on in a current phase of life. Think of them as the high-level areas that matter to you right now — work, health, a side project, a relationship. Each track has its own color, journal header, and time commitment target. Projects live inside tracks and drill into specific areas you're actively working on. Each project has a start and end date, a description, recurring habits, and tasks to complete.
 
-Looking down through a column allows you to see your tasks/plans for a day.
-![Holos Column][column]
+<img width="1669" height="961" alt="image" src="https://github.com/user-attachments/assets/e4a5f169-e8ed-42dc-aca7-e2b72a338572" />
 
-At the same time, it is conducive to long-term planning as you can plan what to do for one action item individually across columns. (An action item is a way to group together tasks based on a common objective that it contributes to, i.e. school, fitness, or family).
-![Holos Row][row]
+### The Planning Grid
+The grid is where everything comes together. Each column is a day, each row is a track. This is your daily view — what you're doing today across every area of your life, all in one place.
 
-I don't intend this calendar format to replace daily planning or google calendar--rather, I want it to act as a bridge between the two, which is why I am working on daily notes integration and google calendar integration. Please see [roadmap]!
+<img width="1919" height="1002" alt="image" src="https://github.com/user-attachments/assets/c37ff102-c4b9-4d9e-964b-8750d9a2cc1c" />
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+Within each grid cell you can:
+- Add tasks using plain text formatting (inspired by markdown — type it, it renders when you click away)
+- Set time labels and durations on individual tasks
+- Track time commitment per cell, automatically tallied in the corner
+- Drag and drop tasks across days or within the same day
+- Navigate infinitely forward and backward through your history
+- Configure how many days are visible at once
 
-## My Design Touches
-I designed the plugin to be a flexible planner, knowing that goals and objectives change over time. There are many features to add, remove, extend action items as time goes on.
+Every cell links back to a markdown file. Everything you see in the grid is real, editable plain text in your vault.
 
-I also implemented some QoL features to make the planner more user friendly:
-- Tab and shift-tab navigation
-- Rename and change color of action items
-- Easy date navigation through weeks
+---
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+## Installation
 
-<!-- CONTRIBUTING -->
-## Contributing
+Holos is not yet in the Obsidian community plugin registry. You can install it manually using [BRAT](https://github.com/TfTHacker/obsidian42-brat).
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+1. Install the BRAT plugin from the Obsidian community plugins
+2. Open BRAT settings and click **Add Beta Plugin**
+3. Enter the repository URL: `https://github.com/caasion/holos`
+4. Enable Holos in your Obsidian plugin settings
 
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
+---
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+## Status
 
-To compile the project, install npm:
-  ```sh
-  npm install npm@latest -g
-  ```
+Holos is actively in development (v3.0.0, 500+ commits). It is stable and usable as a daily driver — I use it every day myself. Some features are still being built out, including deeper Google Calendar integration and project-to-grid linking.
 
-To install:
+Issues, feedback, and contributions are welcome.
 
-1. Clone the repo
-   ```sh
-   git clone https://github.com/caasion/obsidian-holos
-   ```
-2. Install NPM packages
-   ```sh
-   npm install
-   ```
-3. Compile Project
-    ```sh
-    npm run dev
-    ```
+---
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+## Background
 
+Holos started as a personal tool built around my own frustrations. The design went through three complete iterations before landing on what exists today — not just because the architecture evolved, but because understanding how I wanted to organize my life and building the tool to do it had to happen together.
 
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-
-* [Othneil Drew's Best Readme Template](https://github.com/othneildrew/Best-README-Template/tree/main)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-
-[product-screenshot]: docs/sample.png
-[row]: docs/row.jpg
-[column]: docs/column.jpg
-[devlog]: docs/devlog.md
-[roadmap]: docs/roadmap.md
-
-[Svelte.dev]: https://img.shields.io/badge/Svelte-4A4A55?style=for-the-badge&logo=svelte&logoColor=FF3E00
-[Svelte-url]: https://svelte.dev/
-[Typescript]: https://shields.io/badge/TypeScript-3178C6?logo=TypeScript&logoColor=FFF&style=flat-square
-[Typescript-url]: https://typescriptlang.org
+The full story is in the commit history.
