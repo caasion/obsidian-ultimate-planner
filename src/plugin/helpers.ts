@@ -150,7 +150,7 @@ export function formatTime(time: Time): string {
 
 /** [PURE HELPER] Takes progress, duration, and a time unit and returns a well-formatted time string. */
 export function formatProgressDuration(progress: number | undefined, duration: number, unit: 'min' | 'hr'): string {
-    if (progress) {
+    if (progress !== undefined) {
         return `[${progress}/${duration} ${unit}]`;
     } else {
         return `[${duration} ${unit}]`

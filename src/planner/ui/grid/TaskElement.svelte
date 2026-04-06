@@ -152,8 +152,8 @@
 					{/if}
 				</div>
 				<span 
-					class:checked={element.taskStatus == "x" || (!element.progress && element.duration) || (element.progress && element.duration && element.progress >= element.duration)} 
-					class:cancelled={element.taskStatus == "-"}	
+					class:checked={element.taskStatus == "x" || (element.progress === undefined && element.duration) || (element.progress && element.duration && element.progress >= element.duration)} 
+					class:cancelled={element.taskStatus == "-"}	 
 				>
 					{element.text}
 				</span>
