@@ -103,7 +103,7 @@
     {#if orderedRanges.length === 0}
       <div class="empty">No date ranges yet.</div>
     {:else}
-      <div class="range-row">{formatLabel(orderedRanges[0].interval)}</div>
+      <div class="range-row">📅 {formatLabel(orderedRanges[0].interval)}</div>
     {/if}
   </button>
 
@@ -150,9 +150,9 @@
   .trigger {
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
-    background: var(--background-secondary);
-    color: var(--text-normal);
-    padding: 6px 10px;
+    background-color: transparent;
+    color: var(--text-muted);
+    padding: 0;
     cursor: pointer;
   }
 
@@ -165,7 +165,7 @@
     border: 1px solid var(--background-modifier-border);
     border-radius: 10px;
     background: var(--background-primary);
-    box-shadow: var(--shadow-l);
+    box-shadow: var(--shadow-r);
     padding: 10px;
     z-index: 50;
     display: flex;
