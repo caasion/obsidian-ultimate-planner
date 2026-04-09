@@ -206,6 +206,7 @@
 		align-items: center;
 		min-height: 24px;
 		gap: 4px;
+		overflow: scroll;
 	}
 
 	.element-content:hover {
