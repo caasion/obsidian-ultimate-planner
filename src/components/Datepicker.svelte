@@ -24,6 +24,7 @@
     dateFormat = undefined,
     placeholder = "Select date",
     openEndedLabel = "Present",
+    rangeSeparator = " -> ",
     disabled = false,
     required = false,
     inputClass = "",
@@ -35,6 +36,7 @@
     onclear = undefined,
     onapply = undefined,
     btnClass = "",
+    showToggleButton = true,
     inputmode = "none" as HTMLInputElement["inputMode"],
     classes = {},
     class: className = "",
@@ -170,7 +172,13 @@
     elementRef?.setCustomValidity("");
 
     if (range) {
-      const parts = inputValue.split(" - ");
+      const parts = inputValue.includes(rangeSeparator)
+        ? inputValue.split(rangeSeparator)
+        : inputValue.includes(" - ")
+          ? inputValue.split(" - ")
+          : inputValue.includes(" -> ")
+            ? inputValue.split(" -> ")
+            : [];
       if (parts.length === 2) {
         const parsedFrom = tryParseDate(parts[0].trim());
         const parsedToInput = parts[1].trim();
@@ -187,7 +195,7 @@
           onselect?.({ from: rangeFrom, to: rangeTo });
           return;
         } else {
-          elementRef?.setCustomValidity(`Please enter date range in format: ${getDateFormatPattern()} - ${getDateFormatPattern()} (or ${openEndedLabel})`);
+          elementRef?.setCustomValidity(`Please enter date range in format: ${getDateFormatPattern()}${rangeSeparator}${getDateFormatPattern()} (or ${openEndedLabel})`);
           return;
         }
       }
@@ -318,7 +326,7 @@
   const formatDate = (date?: Date): string => date?.toLocaleDateString(locale, dateFormat) ?? "";
   const formatRangeValue = (from?: Date, to?: Date): string => {
     if (!from) return "";
-    return `${formatDate(from)} - ${to ? formatDate(to) : openEndedLabel}`;
+    return `${formatDate(from)}${rangeSeparator}${to ? formatDate(to) : openEndedLabel}`;
   };
   const isSameDate = (date1?: Date, date2?: Date): boolean => (date1 && date2 ? isSameDay(date1, date2) : false);
   const isToday = (day: Date): boolean => isSameDate(day, new Date());
@@ -434,6 +442,19 @@
 <div bind:this={datepickerContainerElement} class={["relative", inline && "inline-block"]}>
   {#if !inline}
     <div class="relative">
+      <button
+        type="button"
+        class={cx("holos-datepicker-toggle", btnClass, classes?.button)}
+        onclick={() => (isOpen = !isOpen)}
+        {disabled}
+        aria-label={isOpen ? "Close date picker" : "Open date picker"}
+      >
+        <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z"
+          ></path>
+        </svg>
+      </button>
       <input
         {...inputProps}
         bind:this={elementRef}
@@ -449,19 +470,6 @@
         inputmode={resolvedInputMode}
         aria-haspopup="dialog"
       />
-      <button
-        type="button"
-        class={cx("holos-datepicker-toggle", btnClass, classes?.button)}
-        onclick={() => (isOpen = !isOpen)}
-        {disabled}
-        aria-label={isOpen ? "Close date picker" : "Open date picker"}
-      >
-        <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v2h20V4ZM0 18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8H0v10Zm5-8h10a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2Z"
-          ></path>
-        </svg>
-      </button>
     </div>
   {/if}
 
@@ -575,11 +583,11 @@
 <style>
   .holos-datepicker-input {
     width: 100%;
-    border: 1px solid var(--background-modifier-border);
+    border: none;
     border-radius: 6px;
-    background: var(--background-primary);
-    color: var(--text-normal);
-    padding: 6px 32px 6px 10px;
+    background: transparent;
+    color: var(--text-muted);
+    padding: 6px 32px 6px 2px;
     font-size: 14px;
   }
 
