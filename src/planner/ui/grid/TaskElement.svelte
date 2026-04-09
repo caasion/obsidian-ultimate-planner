@@ -133,13 +133,18 @@
 		{:else}
 			<div class="element-content" ondblclick={startEdit} role="button" tabindex="0">
 				<div class="element-checkbox-container">
-					{#if element.duration && element.timeUnit}
-						<CircularProgress 
-							progress={element.progress}
-							duration={element.duration} 
-							unit={element.timeUnit}
-							size={20}
-						/>
+					{#if element.taskStatus == "x" && element.duration && element.timeUnit}
+						<button
+							onclick={toggleTask}
+							class="invisible-button"
+						>
+							<CircularProgress 
+								progress={element.progress}
+								duration={element.duration} 
+								unit={element.timeUnit}
+								size={20}
+							/>
+						</button>
 					{:else if element.taskStatus}
 						<input
 							bind:this={checkboxRef}
@@ -152,7 +157,7 @@
 					{/if}
 				</div>
 				<span 
-					class:checked={element.taskStatus == "x" || (element.progress === undefined && element.duration) || (element.progress && element.duration && element.progress >= element.duration)} 
+					class:checked={element.taskStatus == "x" || (element.taskStatus !== " " && element.progress === undefined && element.duration) || (element.progress && element.duration && element.progress >= element.duration)} 
 					class:cancelled={element.taskStatus == "-"}	 
 				>
 					{element.text}
@@ -286,5 +291,14 @@
 
 	.child-item {
 		padding: 2px 0;
+	}
+
+	.invisible-button {
+		background-color: transparent;
+		padding: 0;
+	}
+
+	.invisible-button:hover {
+		box-shadow: none;
 	}
 </style>
