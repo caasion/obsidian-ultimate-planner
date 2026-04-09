@@ -19,10 +19,11 @@
     availableFrom = null,
     availableTo = null,
     locale = "default",
-    translationLocale,
+    translationLocale = undefined,
     firstDayOfWeek = 0,
-    dateFormat,
+    dateFormat = undefined,
     placeholder = "Select date",
+    openEndedLabel = "Present",
     disabled = false,
     required = false,
     inputClass = "",
@@ -30,15 +31,15 @@
     autohide = true,
     showActionButtons = false,
     title = "",
-    onselect,
-    onclear,
-    onapply,
-    btnClass,
+    onselect = undefined,
+    onclear = undefined,
+    onapply = undefined,
+    btnClass = "",
     inputmode = "none" as HTMLInputElement["inputMode"],
-    classes,
-    class: className,
+    classes = {},
+    class: className = "",
     elementRef = $bindable(),
-    actionSlot,
+    actionSlot = undefined,
     inputProps = {}
   } = $props();
 
@@ -171,15 +172,22 @@
     if (range) {
       const parts = inputValue.split(" - ");
       if (parts.length === 2) {
-        const parsedFrom = tryParseDate(parts[0]);
-        const parsedTo = tryParseDate(parts[1]);
+        const parsedFrom = tryParseDate(parts[0].trim());
+        const parsedToInput = parts[1].trim();
+        const isOpenEnded = parsedToInput.toLowerCase() === openEndedLabel.toLowerCase();
+        const parsedTo = isOpenEnded ? undefined : tryParseDate(parsedToInput);
 
-        if (parsedFrom && isValid(parsedFrom) && isDateAvailable(parsedFrom) && parsedTo && isValid(parsedTo) && isDateAvailable(parsedTo)) {
-          [rangeFrom, rangeTo] = parsedFrom > parsedTo ? [parsedTo, parsedFrom] : [parsedFrom, parsedTo];
+        if (parsedFrom && isValid(parsedFrom) && isDateAvailable(parsedFrom) && (isOpenEnded || (parsedTo && isValid(parsedTo) && isDateAvailable(parsedTo)))) {
+          if (parsedTo) {
+            [rangeFrom, rangeTo] = parsedFrom > parsedTo ? [parsedTo, parsedFrom] : [parsedFrom, parsedTo];
+          } else {
+            rangeFrom = parsedFrom;
+            rangeTo = undefined;
+          }
           onselect?.({ from: rangeFrom, to: rangeTo });
           return;
         } else {
-          elementRef?.setCustomValidity(`Please enter date range in format: ${getDateFormatPattern()} - ${getDateFormatPattern()}`);
+          elementRef?.setCustomValidity(`Please enter date range in format: ${getDateFormatPattern()} - ${getDateFormatPattern()} (or ${openEndedLabel})`);
           return;
         }
       }
@@ -308,6 +316,10 @@
 
   // Use locale for formatting (not finalTranslationLocale)
   const formatDate = (date?: Date): string => date?.toLocaleDateString(locale, dateFormat) ?? "";
+  const formatRangeValue = (from?: Date, to?: Date): string => {
+    if (!from) return "";
+    return `${formatDate(from)} - ${to ? formatDate(to) : openEndedLabel}`;
+  };
   const isSameDate = (date1?: Date, date2?: Date): boolean => (date1 && date2 ? isSameDay(date1, date2) : false);
   const isToday = (day: Date): boolean => isSameDate(day, new Date());
   const isInRange = (day: Date): boolean => !!(range && rangeFrom && rangeTo && isWithinInterval(day, { start: rangeFrom, end: rangeTo }));
@@ -428,7 +440,7 @@
         type="text"
         class={cx("holos-datepicker-input", inputClass)}
         {placeholder}
-        value={range ? `${formatDate(rangeFrom)} - ${formatDate(rangeTo)}` : formatDate(value)}
+        value={range ? formatRangeValue(rangeFrom, rangeTo) : formatDate(value)}
         onfocus={() => (isOpen = true)}
         onchange={handleInputChangeWithDateFns}
         onkeydown={handleInputKeydown}
