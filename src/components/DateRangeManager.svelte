@@ -69,6 +69,7 @@
     if (!isOpen) return;
     const target = event.target as Node;
     if (containerEl?.contains(target) || popupEl?.contains(target)) return;
+    if ((target as Element).closest?.('.holos-datepicker-panel')) return;
     closePopup();
   }
 
