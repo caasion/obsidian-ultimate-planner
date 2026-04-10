@@ -75,12 +75,23 @@
 
   onMount(() => {
     if (!inline) {
-      datepickerContainerElement?.ownerDocument.addEventListener("click", handleClickOutside);
+      const doc = datepickerContainerElement?.ownerDocument ?? document;
+      doc.addEventListener("click", handleClickOutside);
+      doc.addEventListener("keydown", handleDocumentKeydown);
       return () => {
-        datepickerContainerElement?.ownerDocument.removeEventListener("click", handleClickOutside);
+        doc.removeEventListener("click", handleClickOutside);
+        doc.removeEventListener("keydown", handleDocumentKeydown);
       };
     }
   });
+
+  function closeDatepicker(restoreInputFocus = false) {
+    isOpen = false;
+    showMonthSelector = false;
+    if (restoreInputFocus) {
+      elementRef?.focus();
+    }
+  }
 
   async function updatePortalPosition() {
     if (inline) return;
@@ -329,8 +340,20 @@
     if (!isOpen) return;
     const target = event.target as Node;
     if (datepickerContainerElement?.contains(target) || calendarRef?.contains(target)) return;
-    isOpen = false;
-    showMonthSelector = false;
+    closeDatepicker();
+  }
+
+  function handleDocumentKeydown(event: KeyboardEvent) {
+    if (!isOpen || event.key !== "Escape") return;
+    event.preventDefault();
+    closeDatepicker(true);
+  }
+
+  function handlePanelKeydown(event: KeyboardEvent) {
+    if (!isOpen || event.key !== "Escape") return;
+    event.preventDefault();
+    event.stopPropagation();
+    closeDatepicker(true);
   }
 
   // Use locale for formatting (not finalTranslationLocale)
@@ -376,10 +399,10 @@
         }
         break;
       case "Escape":
-        isOpen = false;
-        showMonthSelector = false;
-        elementRef?.focus();
-        break;
+        event.preventDefault();
+        event.stopPropagation();
+        closeDatepicker(true);
+        return;
       default:
         return;
     }
@@ -409,6 +432,9 @@
     } else if (event.key === " ") {
       event.preventDefault();
       isOpen = !isOpen;
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      closeDatepicker();
     }
   }
 
@@ -590,6 +616,8 @@
         transition:fade={{ duration: 100 }}
         role="dialog"
         aria-label="Calendar"
+        tabindex="-1"
+        onkeydown={handlePanelKeydown}
       >
         {@render calendarContent()}
       </div>
@@ -603,6 +631,8 @@
           transition:fade={{ duration: 100 }}
           role="dialog"
           aria-label="Calendar"
+          tabindex="-1"
+          onkeydown={handlePanelKeydown}
         >
           {@render calendarContent()}
         </div>

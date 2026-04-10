@@ -56,11 +56,14 @@
     updatePortalPosition();
   }
 
-  function closePopup() {
+  function closePopup(restoreTriggerFocus = false) {
     isOpen = false;
+    if (restoreTriggerFocus) {
+      triggerEl?.focus();
+    }
   }
 
-  let popupEl: HTMLDivElement | undefined;
+  let popupEl = $state<HTMLDivElement | undefined>(undefined);
 
   function handleDocumentClick(event: MouseEvent) {
     if (!isOpen) return;
@@ -69,11 +72,19 @@
     closePopup();
   }
 
+  function handleDocumentKeydown(event: KeyboardEvent) {
+    if (!isOpen || event.key !== "Escape") return;
+    event.preventDefault();
+    closePopup(true);
+  }
+
   onMount(() => {
     const doc = containerEl?.ownerDocument ?? document;
     doc.addEventListener("click", handleDocumentClick);
+    doc.addEventListener("keydown", handleDocumentKeydown);
     return () => {
       doc.removeEventListener("click", handleDocumentClick);
+      doc.removeEventListener("keydown", handleDocumentKeydown);
     };
   });
 
