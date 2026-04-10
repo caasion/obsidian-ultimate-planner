@@ -151,7 +151,7 @@ export class TrackNoteService {
         const today = getISODate(new Date());
 
         for (const interval of effective) {
-            const intervalEnd = interval.end ?? today;
+            const intervalEnd = interval.end ?? interval.start > today ? interval.start : today;
 
             const start = parseISO(interval.start);
             const end = parseISO(intervalEnd);
