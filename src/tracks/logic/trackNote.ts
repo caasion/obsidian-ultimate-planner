@@ -155,7 +155,7 @@ export class TrackNoteService {
         }
 
         for (const interval of effective) {
-            const intervalEnd = interval.end ?? interval.start > today ? interval.start : today;
+            const intervalEnd = interval.end ?? (interval.start > today ? interval.start : today);
 
             const start = parseISO(interval.start);
             const end = parseISO(intervalEnd);
