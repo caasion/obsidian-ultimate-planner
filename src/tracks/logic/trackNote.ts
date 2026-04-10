@@ -150,6 +150,10 @@ export class TrackNoteService {
     private addToTracksByDate(index: Record<ISODate, RenderTrack[]>, trackId: string, effective: DateInterval[]): void {
         const today = getISODate(new Date());
 
+        if (effective.length === 0) {
+            return;
+        }
+
         for (const interval of effective) {
             const intervalEnd = interval.end ?? interval.start > today ? interval.start : today;
 
@@ -323,11 +327,6 @@ export class TrackNoteService {
         if (!projectContent || !frontmatter) return null;
 
         const { startDate, endDate } = frontmatter;
-        
-        if (!startDate) {
-            console.warn(`${projectFile.name} is missing 'startDate' frontmatter field. Aborting.`);
-            return null;
-        }
 
         // Parse habits section
         const habitSection = PlannerParser.extractSection(projectContent, "Habits");

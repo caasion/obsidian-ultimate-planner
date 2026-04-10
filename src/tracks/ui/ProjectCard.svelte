@@ -41,7 +41,7 @@
 	// Check if project is currently active
 	function isProjectActive(): boolean {
 		const now = getISODate(new Date());
-		return now >= project.startDate && project.endDate ? now <= project.endDate : true 
+		return now >= project.startDate && (project.endDate ? now <= project.endDate : true) 
 	}
 
 	function toDate(iso?: ISODate): Date | undefined {
