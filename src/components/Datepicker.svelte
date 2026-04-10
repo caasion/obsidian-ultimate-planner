@@ -6,9 +6,10 @@
 -->
 
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { fade } from "svelte/transition";
   import { parse, isValid, addDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isWithinInterval } from "date-fns";
+  import Portal from "src/components/Portal.svelte";
 
   let {
     value = $bindable(),
@@ -68,6 +69,7 @@
   });
   let focusedDate: Date | null = null;
   let calendarRef: HTMLDivElement | null = $state(null);
+  let portalStyle: string = $state("");
 
   let daysInMonth = $derived(getDaysInMonth(currentMonth));
 
@@ -79,6 +81,14 @@
       };
     }
   });
+
+  async function updatePortalPosition() {
+    if (inline) return;
+    await tick();
+    const rect = datepickerContainerElement?.getBoundingClientRect();
+    if (!rect) return;
+    portalStyle = `position:fixed;top:${rect.bottom + 4}px;left:${rect.left}px;z-index:var(--layer-popover, 100);`;
+  }
 
   function getDaysInMonth(date: Date): Date[] {
     const monthStart = startOfMonth(date);
@@ -316,10 +326,11 @@
   }
 
   function handleClickOutside(event: MouseEvent) {
-    if (isOpen && datepickerContainerElement && !datepickerContainerElement.contains(event.target as Node)) {
-      isOpen = false;
-      showMonthSelector = false;
-    }
+    if (!isOpen) return;
+    const target = event.target as Node;
+    if (datepickerContainerElement?.contains(target) || calendarRef?.contains(target)) return;
+    isOpen = false;
+    showMonthSelector = false;
   }
 
   // Use locale for formatting (not finalTranslationLocale)
@@ -445,7 +456,7 @@
       <button
         type="button"
         class={cx("holos-datepicker-toggle", btnClass, classes?.button)}
-        onclick={() => (isOpen = !isOpen)}
+        onclick={() => { isOpen = !isOpen; if (isOpen) updatePortalPosition(); }}
         {disabled}
         aria-label={isOpen ? "Close date picker" : "Open date picker"}
       >
@@ -462,7 +473,7 @@
         class={cx("holos-datepicker-input", inputClass)}
         {placeholder}
         value={range ? formatRangeValue(rangeFrom, rangeTo) : formatDate(value)}
-        onfocus={() => (isOpen = true)}
+        onfocus={() => { isOpen = true; updatePortalPosition(); }}
         onchange={handleInputChangeWithDateFns}
         onkeydown={handleInputKeydown}
         {disabled}
@@ -473,110 +484,130 @@
     </div>
   {/if}
 
-  {#if isOpen || inline}
-    <div
-      bind:this={calendarRef}
-      id="datepicker-dropdown"
-      class={cx("holos-datepicker-panel", inline && "holos-datepicker-inline", className)}
-      transition:fade={{ duration: 100 }}
-      role="dialog"
-      aria-label="Calendar"
-    >
-      {#if title}
-        <h2 class={cx("holos-datepicker-title", classes?.titleVariant)}>{title}</h2>
-      {/if}
+  {#snippet calendarContent()}
+    {#if title}
+      <h2 class={cx("holos-datepicker-title", classes?.titleVariant)}>{title}</h2>
+    {/if}
 
-      {#if showMonthSelector}
-        <!-- Month/Year Selector View -->
-        <div class={cx("holos-datepicker-nav", classes?.nav)}>
-          {@render yearNavButton(false)}
-          <h3 class={cx("holos-datepicker-current", classes?.polite)} aria-live="polite">
-            {currentMonth.getFullYear()}
-          </h3>
-          {@render yearNavButton(true)}
-        </div>
-        <div class="holos-datepicker-month-grid">
-          {#each monthNames as month, index (index)}
-            <button
-              type="button"
-              class={cx(
-                "holos-datepicker-month-btn",
-                currentMonth.getMonth() === index && "holos-datepicker-month-btn-selected",
-                classes?.monthButton
-              )}
-              onclick={(event: MouseEvent) => selectMonth(index, event)}
-            >
-              {month}
-            </button>
-          {/each}
-        </div>
-      {:else}
-        <div class={cx("holos-datepicker-nav", classes?.nav)}>
-          {@render navButton(false)}
+    {#if showMonthSelector}
+      <!-- Month/Year Selector View -->
+      <div class={cx("holos-datepicker-nav", classes?.nav)}>
+        {@render yearNavButton(false)}
+        <h3 class={cx("holos-datepicker-current", classes?.polite)} aria-live="polite">
+          {currentMonth.getFullYear()}
+        </h3>
+        {@render yearNavButton(true)}
+      </div>
+      <div class="holos-datepicker-month-grid">
+        {#each monthNames as month, index (index)}
           <button
             type="button"
-            class={cx("holos-datepicker-current", classes?.polite)}
-            aria-live="polite"
-            onclick={(event: MouseEvent) => toggleMonthSelector(event)}
+            class={cx(
+              "holos-datepicker-month-btn",
+              currentMonth.getMonth() === index && "holos-datepicker-month-btn-selected",
+              classes?.monthButton
+            )}
+            onclick={(event: MouseEvent) => selectMonth(index, event)}
           >
-            {currentMonth.toLocaleString(finalTranslationLocale, { month: "long", year: "numeric" })}
+            {month}
           </button>
-          {@render navButton(true)}
-        </div>
-        <div class={cx("holos-datepicker-grid", classes?.grid)} role="grid">
-          {#each weekdays as day (day)}
-            <div class={cx("holos-datepicker-column-header", classes?.columnHeader)} role="columnheader">{day}</div>
-          {/each}
-          {#each daysInMonth as day (day)}
-            {@const current = day.getMonth() !== currentMonth.getMonth()}
-            {@const available = isDateAvailable(day)}
-            <button
-              type="button"
-              class={cx(
-                "holos-datepicker-day-btn",
-                current && "holos-datepicker-day-btn-outside",
-                isToday(day) && "holos-datepicker-day-btn-today",
-                isInRange(day) && "holos-datepicker-day-btn-range",
-                isSelected(day) && "holos-datepicker-day-btn-selected",
-                !available && "holos-datepicker-day-btn-disabled",
-                classes?.dayButton
-              )}
-              onclick={() => handleDaySelect(day)}
-              onkeydown={handleCalendarKeydown}
-              aria-label={day.toLocaleDateString(finalTranslationLocale, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-              aria-selected={isSelected(day)}
-              aria-disabled={!available}
-              disabled={!available}
-              role="gridcell"
-            >
-              {day.getDate()}
-            </button>
-          {/each}
-        </div>
-      {/if}
+        {/each}
+      </div>
+    {:else}
+      <div class={cx("holos-datepicker-nav", classes?.nav)}>
+        {@render navButton(false)}
+        <button
+          type="button"
+          class={cx("holos-datepicker-current", classes?.polite)}
+          aria-live="polite"
+          onclick={(event: MouseEvent) => toggleMonthSelector(event)}
+        >
+          {currentMonth.toLocaleString(finalTranslationLocale, { month: "long", year: "numeric" })}
+        </button>
+        {@render navButton(true)}
+      </div>
+      <div class={cx("holos-datepicker-grid", classes?.grid)} role="grid">
+        {#each weekdays as day (day)}
+          <div class={cx("holos-datepicker-column-header", classes?.columnHeader)} role="columnheader">{day}</div>
+        {/each}
+        {#each daysInMonth as day (day)}
+          {@const current = day.getMonth() !== currentMonth.getMonth()}
+          {@const available = isDateAvailable(day)}
+          <button
+            type="button"
+            class={cx(
+              "holos-datepicker-day-btn",
+              current && "holos-datepicker-day-btn-outside",
+              isToday(day) && "holos-datepicker-day-btn-today",
+              isInRange(day) && "holos-datepicker-day-btn-range",
+              isSelected(day) && "holos-datepicker-day-btn-selected",
+              !available && "holos-datepicker-day-btn-disabled",
+              classes?.dayButton
+            )}
+            onclick={() => handleDaySelect(day)}
+            onkeydown={handleCalendarKeydown}
+            aria-label={day.toLocaleDateString(finalTranslationLocale, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            aria-selected={isSelected(day)}
+            aria-disabled={!available}
+            disabled={!available}
+            role="gridcell"
+          >
+            {day.getDate()}
+          </button>
+        {/each}
+      </div>
+    {/if}
 
-      {#if showActionButtons && !showMonthSelector}
-        <div class={cx("holos-datepicker-actions", classes?.actionButtons)}>
-          <button class="holos-datepicker-action-btn" onclick={() => handleDaySelect(new Date())} disabled={!isDateAvailable(new Date())}>Today</button>
-          <button class="holos-datepicker-action-btn" onclick={handleClear}>Clear</button>
-          <button class="holos-datepicker-action-btn holos-datepicker-action-btn-primary" onclick={handleApply}>Apply</button>
-        </div>
-      {/if}
+    {#if showActionButtons && !showMonthSelector}
+      <div class={cx("holos-datepicker-actions", classes?.actionButtons)}>
+        <button class="holos-datepicker-action-btn" onclick={() => handleDaySelect(new Date())} disabled={!isDateAvailable(new Date())}>Today</button>
+        <button class="holos-datepicker-action-btn" onclick={handleClear}>Clear</button>
+        <button class="holos-datepicker-action-btn holos-datepicker-action-btn-primary" onclick={handleApply}>Apply</button>
+      </div>
+    {/if}
 
-      {#if actionSlot}
-        <div class={classes?.actionSlot}>
-          {@render actionSlot({
-            selectedDate: range ? { from: rangeFrom, to: rangeTo } : value,
-            handleClear,
-            handleApply,
-            close: () => {
-              isOpen = false;
-              showMonthSelector = false;
-            }
-          })}
+    {#if actionSlot}
+      <div class={classes?.actionSlot}>
+        {@render actionSlot({
+          selectedDate: range ? { from: rangeFrom, to: rangeTo } : value,
+          handleClear,
+          handleApply,
+          close: () => {
+            isOpen = false;
+            showMonthSelector = false;
+          }
+        })}
+      </div>
+    {/if}
+  {/snippet}
+
+  {#if isOpen || inline}
+    {#if inline}
+      <div
+        bind:this={calendarRef}
+        id="datepicker-dropdown"
+        class={cx("holos-datepicker-panel", "holos-datepicker-inline", className)}
+        transition:fade={{ duration: 100 }}
+        role="dialog"
+        aria-label="Calendar"
+      >
+        {@render calendarContent()}
+      </div>
+    {:else}
+      <Portal>
+        <div
+          bind:this={calendarRef}
+          id="datepicker-dropdown"
+          class={cx("holos-datepicker-panel", className)}
+          style={portalStyle}
+          transition:fade={{ duration: 100 }}
+          role="dialog"
+          aria-label="Calendar"
+        >
+          {@render calendarContent()}
         </div>
-      {/if}
-    </div>
+      </Portal>
+    {/if}
   {/if}
 </div>
 

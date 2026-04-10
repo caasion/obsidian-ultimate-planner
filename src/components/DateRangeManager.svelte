@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { isValid, parseISO } from "date-fns";
   import Datepicker from "src/components/Datepicker.svelte";
+  import Portal from "src/components/Portal.svelte";
   import { getISODate } from "src/plugin/helpers";
   import type { DateInterval } from "src/plugin/types";
 
@@ -19,6 +20,8 @@
 
   let isOpen = $state(false);
   let containerEl: HTMLDivElement | undefined;
+  let triggerEl: HTMLButtonElement | undefined;
+  let portalStyle: string = $state("");
 
   const orderedRanges = $derived(
     [...dateIntervals]
@@ -41,19 +44,29 @@
     onChange?.(next);
   }
 
+  async function updatePortalPosition() {
+    await tick();
+    const rect = triggerEl?.getBoundingClientRect();
+    if (!rect) return;
+    portalStyle = `position:fixed;top:${rect.bottom + 8}px;left:${rect.left}px;z-index:var(--layer-popover, 100);`;
+  }
+
   function openPopup() {
     isOpen = true;
+    updatePortalPosition();
   }
 
   function closePopup() {
     isOpen = false;
   }
 
+  let popupEl: HTMLDivElement | undefined;
+
   function handleDocumentClick(event: MouseEvent) {
-    if (!isOpen || !containerEl) return;
-    if (!containerEl.contains(event.target as Node)) {
-      closePopup();
-    }
+    if (!isOpen) return;
+    const target = event.target as Node;
+    if (containerEl?.contains(target) || popupEl?.contains(target)) return;
+    closePopup();
   }
 
   onMount(() => {
@@ -99,7 +112,7 @@
 </script> 
 
 <div class="range-manager" bind:this={containerEl}>
-  <button class="trigger" type="button" onclick={openPopup}>
+  <button class="trigger" type="button" bind:this={triggerEl} onclick={openPopup}>
     {#if orderedRanges.length === 0}
       <div class="empty">No date ranges yet.</div>
     {:else}
@@ -108,7 +121,8 @@
   </button>
 
   {#if isOpen}
-    <div class="popup" role="dialog" aria-label="Date range manager">
+    <Portal>
+    <div class="popup" role="dialog" aria-label="Date range manager" bind:this={popupEl} style={portalStyle}>
       <div class="header">
         <h3>{title}</h3>
         <div class="header-actions">
@@ -139,6 +153,7 @@
         {/if}
       </div>
     </div>
+    </Portal>
   {/if}
 </div>
 
@@ -157,9 +172,6 @@
   }
 
   .popup {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
     width: 360px;
     height: 420px;
     border: 1px solid var(--background-modifier-border);
