@@ -37,7 +37,7 @@
         </div>
 
         <!-- Data Grid -->
-        <div class="data-grid" style={`grid-template-columns: repeat(${columns}, 1fr); grid-template-rows: repeat(${rows}, minmax(40px, auto)); grid-auto-flow: column;`}>
+        <div class="data-grid" style={`grid-template-columns: repeat(${columns}, minmax(0, 1fr)); grid-template-rows: repeat(${rows}, minmax(40px, auto)); grid-auto-flow: column;`}>
             {#each blockDates as date, col (date)}
             {#each {length: rows} as _, row (row)}
             
