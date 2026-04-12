@@ -9,6 +9,7 @@
 	import type { HabitFunctions } from "./HabitElement.svelte";
 	import { type App } from "obsidian";
 	import { ConfirmationModal } from "src/plugin/ConfirmationModal";
+  import DateRangeManager from "src/components/DateRangeManager.svelte";
 
   export interface TrackCardFunctions {
     onLabelEdit: (label: string) => void;
@@ -67,6 +68,7 @@
 
     trackFunctions.onColorEdit(target.value);
   }
+
 </script>
 
 <div class="card" style={`background-color: ${track.color}10; --track-color: ${track.color};`}>
@@ -81,13 +83,11 @@
           class="track-title" 
         />
         <div class="effective-list" title="Effective date intervals">
-          {#if track.effective.length > 0}
-            {#each track.effective as interval}
-              <div class="effective-item">{interval.start} → {interval.end ?? 'Present'}</div>
-            {/each}
-          {:else}
-            <div class="effective-empty">No effective intervals</div>
-          {/if}
+          <DateRangeManager
+            dateIntervals={track.effective}
+            title="Effective Date Intervals"
+            onChange={(next) => trackFunctions.onFrontmatterEdit({ effective: next })}
+          />
         </div>
         <EditableText 
           value={track.description}
@@ -208,12 +208,6 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-  }
-
-  .effective-item,
-  .effective-empty {
-    font-size: 0.8em;
-    color: var(--text-muted);
   }
 
   .journal-icon {

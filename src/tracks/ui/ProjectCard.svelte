@@ -2,8 +2,9 @@
 	import type { Element, ISODate, Project } from "src/plugin/types";
 	import HabitElement, { type HabitFunctions } from "./HabitElement.svelte";
 	import EditableText from "src/components/EditableText.svelte";
+	import Datepicker from "src/components/Datepicker.svelte";
 	import { getISODate } from "src/plugin/helpers";
-	import { format, parseISO } from "date-fns";
+	import { isValid, parseISO } from "date-fns";
 	import DataTaskElement from "./DataTaskElement.svelte";
 
 	export interface ProjectCardFunctions {
@@ -11,7 +12,7 @@
 		onDescriptionEdit: (description: string) => void;
 		onOpenFile: () => void;
 		onStartDateEdit: (date: ISODate) => void;
-		onEndDateEdit: (date: ISODate) => void;
+		onEndDateEdit: (date: ISODate | null) => void;
 		onDelete: () => void;
 		
 		// These are not project-specific, but handled at the project level
@@ -40,14 +41,21 @@
 	// Check if project is currently active
 	function isProjectActive(): boolean {
 		const now = getISODate(new Date());
-		return now >= project.startDate && project.endDate ? now <= project.endDate : true 
+		return now >= project.startDate && (project.endDate ? now <= project.endDate : true) 
 	}
 
-	// Get formatted date range string
-	function getDateRange(): string {
-		const start = format(parseISO(project.startDate), 'MMM dd, yyyy');
-		const end = project.endDate ? format(parseISO(project.endDate), 'MMM dd, yyyy') : 'now';
-		return `${start} — ${end}`;
+	function toDate(iso?: ISODate): Date | undefined {
+		if (!iso) return undefined;
+		const parsed = parseISO(iso);
+		return isValid(parsed) ? parsed : undefined;
+	}
+
+	function handleProjectRangeSelect(selection: unknown) {
+		const range = selection as { from?: Date; to?: Date } | undefined;
+		if (!range?.from) return;
+
+		projectFunctions.onStartDateEdit(getISODate(range.from));
+		projectFunctions.onEndDateEdit(range.to ? getISODate(range.to) : null);
 	}
 </script>
 
@@ -73,7 +81,17 @@
 			</button>
 		</div>
 		<div class="project-date-range">
-			📅 {getDateRange()}
+			<Datepicker
+				range
+				rangeFrom={toDate(project.startDate)}
+				rangeTo={toDate(project.endDate)}
+				openEndedLabel="Present"
+				rangeSeparator=" -> "
+				onselect={handleProjectRangeSelect}
+				showToggleButton={false}
+				inputProps={{ readonly: true }}
+				inputClass="project-date-trigger-input"
+			/>
 		</div>
 		<EditableText 
 			value={project.description}
@@ -165,8 +183,24 @@
 	}
 
 	.project-date-range {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	:global(.project-date-trigger-input) {
+		width: auto;
+		border: none;
+		background: transparent;
+		padding: 0;
+		text-align: left;
+		cursor: pointer;
 		font-size: 0.85em;
 		color: var(--text-muted);
+	}
+
+	:global(.project-date-trigger-input:hover) {
+		color: var(--text-normal);
 	}
 
 	.project-title-section {

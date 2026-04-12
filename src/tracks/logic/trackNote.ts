@@ -1,4 +1,3 @@
-import { eachDayOfInterval, isValid, parseISO } from "date-fns";
 import { TFolder, type App, TFile, getAllTags, type FrontMatterCache, type EventRef, Menu, Notice } from "obsidian";
 import { PlannerParser } from "src/planner/logic/parser";
 import { getISODate } from "src/plugin/helpers";
@@ -26,7 +25,6 @@ export class TrackNoteService {
     private settings: PluginSettings;
 
     public parsedTracksContent: Writable<Record<string, Track>>;
-    public tracksByDate: Writable<Record<ISODate, RenderTrack[]>>;
     public trackMetaRevision: Writable<number>;
 
     private trackFileCache: Record<string, TrackFiles> = {};
@@ -47,7 +45,6 @@ export class TrackNoteService {
         this.settings = deps.settings;
         this.parsedTracksContent = deps.parsedTracksContent;
 
-        this.tracksByDate = writable<Record<ISODate, RenderTrack[]>>({});
         this.trackMetaRevision = writable<number>(0);
         this.onTracksSnapshot = deps.onTracksSnapshot;
 
@@ -56,11 +53,28 @@ export class TrackNoteService {
         }
     }
 
-    private buildTracksByDateIndex(tracks: Record<string, Track>): Record<ISODate, RenderTrack[]> {
+    /** Compute tracksByDate index on-demand for only the requested dates */
+    getTracksForDates(dates: ISODate[]): Record<ISODate, RenderTrack[]> {
+        const tracks = get(this.parsedTracksContent);
+        const today = getISODate(new Date());
         const index: Record<ISODate, RenderTrack[]> = {};
 
-        for (const [trackId, track] of Object.entries(tracks)) {
-            this.addToTracksByDate(index, trackId, track.effective);
+        for (const date of dates) {
+            index[date] = [];
+
+            for (const [trackId, track] of Object.entries(tracks)) {
+                for (const interval of track.effective) {
+                    const intervalEnd = interval.end ?? (interval.start > today ? interval.start : today);
+
+                    if (date >= interval.start && date <= intervalEnd) {
+                        const isStartOfInterval = date === interval.start;
+                        if (!index[date].some(t => t.id === trackId)) {
+                            index[date].push({ id: trackId, isStartOfInterval });
+                        }
+                        break;
+                    }
+                }
+            }
         }
 
         return index;
@@ -89,11 +103,9 @@ export class TrackNoteService {
 
     private publishTrackState(
         tracks: Record<string, Track>,
-        tracksByDate: Record<ISODate, RenderTrack[]>,
         persistSnapshot: boolean
     ): void {
         this.parsedTracksContent.set(tracks);
-        this.tracksByDate.set(tracksByDate);
 
         this.revisionCounter += 1;
         this.trackMetaRevision.set(this.revisionCounter);
@@ -108,8 +120,7 @@ export class TrackNoteService {
     }
 
     private hydrateFromSnapshot(tracks: Record<string, Track>): void {
-        const tracksByDate = this.buildTracksByDateIndex(tracks);
-        this.publishTrackState(tracks, tracksByDate, false);
+        this.publishTrackState(tracks, false);
     }
 
     private normalizeISODate(value: unknown): string | null {
@@ -145,33 +156,6 @@ export class TrackNoteService {
         return effective;
     }
     
-    // ===== Rendering logic ===== //
-
-    private addToTracksByDate(index: Record<ISODate, RenderTrack[]>, trackId: string, effective: DateInterval[]): void {
-        const today = getISODate(new Date());
-
-        for (const interval of effective) {
-            const intervalEnd = interval.end ?? today;
-
-            const start = parseISO(interval.start);
-            const end = parseISO(intervalEnd);
-            if (!isValid(start) || !isValid(end)) continue;
-
-            const dates = eachDayOfInterval({ start, end });
-
-            dates.forEach(date => {
-                const iso = getISODate(date);
-                index[iso] ??= [];
-
-                const isStartOfInterval = getISODate(date) === interval.start;
-
-                if (!index[iso].some((track => track.id === trackId))) {
-                    index[iso].push({ id: trackId, isStartOfInterval });
-                }
-            })
-        }
-    }
-
     async initializeTracksByDate(): Promise<void> {
         await this.loadAllTrackContent();
     }
@@ -184,17 +168,15 @@ export class TrackNoteService {
         }
 
         const tracks: Record<string, Track> = {};
-        const tracksByDate: Record<ISODate, RenderTrack[]> = {};
 
         for (const key in this.trackFileCache) {
             const track = await this.loadTrackContent(key, this.trackFileCache[key])
             if (!track) continue;
 
             tracks[key] = track;
-            this.addToTracksByDate(tracksByDate, key, track.effective);
         }
 
-        this.publishTrackState(tracks, tracksByDate, true);
+        this.publishTrackState(tracks, true);
     }
 
     async populateFileCache(): Promise<void> {
@@ -323,11 +305,6 @@ export class TrackNoteService {
         if (!projectContent || !frontmatter) return null;
 
         const { startDate, endDate } = frontmatter;
-        
-        if (!startDate) {
-            console.warn(`${projectFile.name} is missing 'startDate' frontmatter field. Aborting.`);
-            return null;
-        }
 
         // Parse habits section
         const habitSection = PlannerParser.extractSection(projectContent, "Habits");
@@ -377,8 +354,7 @@ export class TrackNoteService {
             [trackId]: track
         };
 
-        const nextTracksByDate = this.buildTracksByDateIndex(nextTracks);
-        this.publishTrackState(nextTracks, nextTracksByDate, true);
+        this.publishTrackState(nextTracks, true);
     }
 
     async openTrackFile(trackId: string): Promise<boolean> {
