@@ -1,4 +1,4 @@
-import { TFolder, type App, TFile, getAllTags, type FrontMatterCache, type EventRef, Menu, Notice } from "obsidian";
+import { TFolder, type App, TFile, getAllTags, type FrontMatterCache, type EventRef, Menu, Notice, getFrontMatterInfo, parseYaml } from "obsidian";
 import { PlannerParser } from "src/planner/logic/parser";
 import { getISODate } from "src/plugin/helpers";
 import type { DateInterval, Element, Habit, ISODate, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
@@ -246,7 +246,7 @@ export class TrackNoteService {
         return files;
     }
 
-    private async loadTrackContent(id: string, trackFiles: TrackFiles): Promise<Track | null> {
+    private async loadTrackContent(id: string, trackFiles: TrackFiles, forceFrontmatterUpdate: boolean = false): Promise<Track | null> {
         // Track content
         const trackFile = trackFiles.track ?? null;
         if (!trackFile) return null;
@@ -254,8 +254,19 @@ export class TrackNoteService {
         console.log(`Loading ${id}`)
 
         const cache = this.app.metadataCache.getFileCache(trackFile);
-        const frontmatter = cache?.frontmatter;
+        let frontmatter = cache?.frontmatter;
         const trackContent = await this.app.vault.read(trackFile);
+
+        if (forceFrontmatterUpdate) {
+            const frontmatterInfo = getFrontMatterInfo(trackContent)
+            if (frontmatterInfo.exists) {
+                frontmatter = parseYaml(frontmatterInfo.frontmatter);
+            } else {
+                console.warn("Manual frontmatter read and processing failed")
+            }
+        } 
+
+        console.log(frontmatter)
         if (!trackContent || !frontmatter) return null;
         
         if (!("order" in frontmatter)) {
@@ -274,7 +285,7 @@ export class TrackNoteService {
         const projects: Record<string, Project> = {};
 
         for (const [id, file] of Object.entries(trackFiles.projects)) {
-            const projectData = await this.loadProjectContent(id, file);
+            const projectData = await this.loadProjectContent(id, file, forceFrontmatterUpdate);
             if (!projectData) continue;
 
             projects[id] = projectData;
@@ -295,12 +306,21 @@ export class TrackNoteService {
         }
     }
 
-    private async loadProjectContent(id: string, projectFile: TFile): Promise<Project | null> {
+    private async loadProjectContent(id: string, projectFile: TFile, forceFrontmatterUpdate: boolean = false): Promise<Project | null> {
         console.log(`Loading ${id}`)
 
         const cache = this.app.metadataCache.getFileCache(projectFile);
-        const frontmatter = cache?.frontmatter;
+        let frontmatter = cache?.frontmatter;
         const projectContent = await this.app.vault.read(projectFile);
+        
+        if (forceFrontmatterUpdate) {
+            const frontmatterInfo = getFrontMatterInfo(projectContent)
+            if (frontmatterInfo.exists) {
+                frontmatter = parseYaml(frontmatterInfo.frontmatter);
+            } else {
+                console.warn("Manual frontmatter read and processing failed")
+            }
+        } 
         
         if (!projectContent || !frontmatter) return null;
 
@@ -343,7 +363,7 @@ export class TrackNoteService {
             return;
         }
 
-        const track = await this.loadTrackContent(trackId, trackFiles);
+        const track = await this.loadTrackContent(trackId, trackFiles, true);
         if (!track) {
             console.warn(`Failed to load track ${trackId}`);
             return;
