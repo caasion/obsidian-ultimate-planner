@@ -165,7 +165,7 @@
 				<div class="time-badge-container">
 					{#if element.duration && element.timeUnit}
 						<span class="time-badge" style={`background-color: ${color}80;`}>
-							{element.duration} {element.timeUnit}
+							 {element.duration} {element.timeUnit}
 						</span>
 					{/if}
 					{#if element.startTime}
@@ -208,7 +208,7 @@
 		align-items: center;
 		min-height: 24px;
 		gap: 4px;
-		overflow: scroll;
+		overflow: auto;
 	}
 
 	.element-content:hover {
