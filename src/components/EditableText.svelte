@@ -58,16 +58,20 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			cancelEdit();
+			skipBlur = true;
+			return;
+		}
+
 		if (e.key === 'Enter' && !e.shiftKey && !multiline) {
 			e.preventDefault();
 			saveEdit();
 			skipBlur = true;
 		} else if (e.key === 'Enter' && e.shiftKey && multiline) {
-			// Allow Shift+Enter for new line in multiline
-			return;
-		} else if (e.key === 'Escape') {
 			e.preventDefault();
-			cancelEdit();
+			saveEdit();
 			skipBlur = true;
 		}
 	}
