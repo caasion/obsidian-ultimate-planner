@@ -63,9 +63,9 @@
     const spaceBelow = window.innerHeight - rect.bottom;
     const popupHeight = 500;
     if (spaceBelow >= popupHeight) {
-      popupStyle = `position: fixed; top: ${rect.bottom + 4}px; left: ${rect.left}px; z-index: var(--layer-popover, 100);`;
+      popupStyle = `position: fixed; top: ${rect.bottom + 4}px; left: ${Math.max(380, rect.left)}px; z-index: var(--layer-popover, 100);`;
     } else {
-      popupStyle = `position: fixed; bottom: ${window.innerHeight - rect.top + 4}px; left: ${rect.left}px; z-index: var(--layer-popover, 100);`;
+      popupStyle = `position: fixed; bottom: ${window.innerHeight - rect.top + 4}px; left: ${Math.max(380, rect.left)}px; z-index: var(--layer-popover, 100);`;
     }
   }
 
