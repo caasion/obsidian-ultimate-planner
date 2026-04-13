@@ -12,7 +12,6 @@
     dateToX,
     getViewportWidth,
     packProjectsIntoRows,
-    type Zoom,
   } from "./ganttUtils";
   import GanttProjectBar from "./GanttProjectBar.svelte";
 
@@ -21,7 +20,6 @@
     viewportStart: ISODate;
     viewportEnd: ISODate;
     pxPerDay: number;
-    zoom: Zoom;
     onEffectiveChange: (next: DateInterval[]) => void;
     createProjectFunctions: (projectId: string) => ProjectCardFunctions;
     createHabitFunctions: (projectId: string) => (habitId: string) => HabitFunctions;
@@ -32,7 +30,6 @@
     viewportStart,
     viewportEnd,
     pxPerDay,
-    zoom,
     onEffectiveChange,
     createProjectFunctions,
     createHabitFunctions,

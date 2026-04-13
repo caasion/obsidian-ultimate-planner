@@ -4,15 +4,15 @@
   import type { ProjectCardFunctions } from "src/tracks/ui/ProjectCard.svelte";
   import type { HabitFunctions } from "src/tracks/ui/HabitElement.svelte";
   import type { Track } from "src/plugin/types";
+  import { format, parseISO, addDays } from "date-fns";
   import { getISODate } from "src/plugin/helpers";
   import {
-    getViewportBounds,
-    getViewportTitle,
+    getRollingViewport,
     getViewportWidth,
     getHeaderTicks,
-    navigateViewport,
-    PX_PER_DAY,
-    type Zoom,
+    dateToX,
+    WINDOW_PRESETS,
+    type WindowPreset,
   } from "./gantt/ganttUtils";
   import GanttHeader from "./gantt/GanttHeader.svelte";
   import GanttTrackGroup from "./gantt/GanttTrackGroup.svelte";
@@ -32,40 +32,57 @@
     });
   });
 
-  let zoom = $state<Zoom>("month");
-  let anchor = $state(getISODate(new Date()));
+  // Rolling window state
+  let windowDays = $state<number>(30);
+  let panDays = $state(0); // days offset from today; 0 = today centered
 
-  const viewport = $derived(getViewportBounds(anchor, zoom));
+  // Container width is measured from the scroll inner probe div
+  let containerWidth = $state(0);
+
+  const today = $derived(getISODate(new Date()));
+
+  // Center date shifts when panning
+  const centerDate = $derived(
+    panDays === 0 ? today : getISODate(addDays(parseISO(today), panDays))
+  );
+
+  const viewport = $derived(getRollingViewport(windowDays, centerDate));
   const viewportStart = $derived(viewport.start);
   const viewportEnd = $derived(viewport.end);
-  const pxPerDay = $derived(PX_PER_DAY[zoom]);
-  const totalWidth = $derived(getViewportWidth(viewportStart, viewportEnd, pxPerDay));
-  const title = $derived(getViewportTitle(viewportStart, zoom));
-  const ticks = $derived(getHeaderTicks(viewportStart, viewportEnd, pxPerDay, zoom));
+
+  // pxPerDay fills the container exactly
+  const pxPerDay = $derived(containerWidth > 0 ? containerWidth / windowDays : 0);
+  const totalWidth = $derived(containerWidth);
+
+  const ticks = $derived(getHeaderTicks(viewportStart, viewportEnd, pxPerDay));
+
+  // Today line position (null if today is outside the viewport)
+  const todayX = $derived(
+    today >= viewportStart && today <= viewportEnd
+      ? dateToX(today, viewportStart, pxPerDay) + pxPerDay / 2
+      : null
+  );
+
+  const title = $derived(
+    format(parseISO(viewportStart), "d MMM") +
+      " – " +
+      format(parseISO(viewportEnd), "d MMM yyyy")
+  );
 
   const sortedTracks = $derived(
     Object.values(parsedTracks).sort((a, b) => a.order - b.order)
   );
 
-  const today = $derived(getISODate(new Date()));
-  const todayX = $derived(() => {
-    if (today < viewportStart || today > viewportEnd) return null;
-    const diff =
-      (new Date(today).getTime() - new Date(viewportStart).getTime()) /
-      (1000 * 60 * 60 * 24);
-    return diff * pxPerDay + pxPerDay / 2;
-  });
-
-  function navigate(dir: 1 | -1) {
-    anchor = navigateViewport(anchor, zoom, dir);
+  function pan(direction: 1 | -1) {
+    panDays += direction * Math.floor(windowDays / 2);
   }
 
   function goToToday() {
-    anchor = getISODate(new Date());
+    panDays = 0;
   }
 
-  function toggleZoom() {
-    zoom = zoom === "month" ? "year" : "month";
+  function setWindowDays(days: number) {
+    windowDays = days;
   }
 
   function createProjectFunctionsFactory(trackId: string) {
@@ -115,63 +132,82 @@
           trackNoteService.deleteProjectHabit(trackId, projectId, habitId),
       });
   }
+
+  function presetLabel(days: number): string {
+    if (days === 365) return "1y";
+    if (days >= 30 && days % 30 === 0) return `${days / 30}mo`;
+    return `${days}d`;
+  }
 </script>
 
 <div class="gantt-view">
   <!-- Toolbar -->
   <div class="toolbar">
     <div class="nav-group">
-      <button class="nav-btn" onclick={() => navigate(-1)}>‹</button>
+      <button class="nav-btn" onclick={() => pan(-1)}>‹</button>
       <span class="title">{title}</span>
-      <button class="nav-btn" onclick={() => navigate(1)}>›</button>
+      <button class="nav-btn" onclick={() => pan(1)}>›</button>
     </div>
     <div class="toolbar-right">
-      <button class="today-btn" onclick={goToToday}>Today</button>
-      <button class="zoom-btn" onclick={toggleZoom}>
-        {zoom === "month" ? "Month" : "Year"}
-      </button>
+      {#if panDays !== 0}
+        <button class="today-btn" onclick={goToToday}>Today</button>
+      {/if}
+      <div class="preset-group">
+        {#each WINDOW_PRESETS as preset}
+          <button
+            class="preset-btn"
+            class:active={windowDays === preset}
+            onclick={() => setWindowDays(preset)}
+          >
+            {presetLabel(preset)}
+          </button>
+        {/each}
+      </div>
     </div>
   </div>
 
   <!-- Gantt scroll container -->
   <div class="gantt-scroll">
-    <div class="gantt-inner" style={`width: ${totalWidth}px;`}>
-      <!-- Time axis header -->
-      <GanttHeader
-        {viewportStart}
-        {viewportEnd}
-        {pxPerDay}
-        {zoom}
-        {totalWidth}
-      />
-
-      <!-- Body: grid lines + track groups -->
-      <div class="gantt-body">
-        <!-- Grid lines -->
-        <div class="grid-lines" style={`width: ${totalWidth}px;`}>
-          {#each ticks as tick}
-            <div class="grid-line" style={`left: ${tick.gridX}px;`}></div>
-          {/each}
-          {#if todayX() !== null}
-            <div class="today-line" style={`left: ${todayX()}px;`}></div>
-          {/if}
-        </div>
-
-        <!-- Track groups -->
-        {#each sortedTracks as track (track.id)}
-          <GanttTrackGroup
-            {track}
+    <!-- Width probe: fills the scroll container, reports its pixel width -->
+    <div class="gantt-width-probe" bind:clientWidth={containerWidth}>
+      {#if containerWidth > 0}
+        <div class="gantt-inner" style={`width: ${totalWidth}px;`}>
+          <!-- Time axis header -->
+          <GanttHeader
             {viewportStart}
             {viewportEnd}
             {pxPerDay}
-            {zoom}
-            onEffectiveChange={(next) =>
-              trackNoteService.updateTrackFrontmatter(track.id, { effective: next })}
-            createProjectFunctions={createProjectFunctionsFactory(track.id)}
-            createHabitFunctions={createHabitFunctionsFactory(track.id)}
+            {totalWidth}
           />
-        {/each}
-      </div>
+
+          <!-- Body: grid lines + track groups -->
+          <div class="gantt-body">
+            <!-- Grid lines -->
+            <div class="grid-lines" style={`width: ${totalWidth}px;`}>
+              {#each ticks as tick}
+                <div class="grid-line" style={`left: ${tick.gridX}px;`}></div>
+              {/each}
+              {#if todayX !== null}
+                <div class="today-line" style={`left: ${todayX}px;`}></div>
+              {/if}
+            </div>
+
+            <!-- Track groups -->
+            {#each sortedTracks as track (track.id)}
+              <GanttTrackGroup
+                {track}
+                {viewportStart}
+                {viewportEnd}
+                {pxPerDay}
+                onEffectiveChange={(next) =>
+                  trackNoteService.updateTrackFrontmatter(track.id, { effective: next })}
+                createProjectFunctions={createProjectFunctionsFactory(track.id)}
+                createHabitFunctions={createHabitFunctionsFactory(track.id)}
+              />
+            {/each}
+          </div>
+        </div>
+      {/if}
     </div>
   </div>
 </div>
@@ -192,19 +228,21 @@
     padding: 8px 12px;
     border-bottom: 1px solid var(--background-modifier-border);
     flex-shrink: 0;
+    gap: 8px;
   }
 
   .nav-group {
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
   }
 
   .title {
-    font-size: 1em;
+    font-size: 0.9em;
     font-weight: 600;
-    min-width: 120px;
-    text-align: center;
+    white-space: nowrap;
+    color: var(--text-normal);
   }
 
   .nav-btn {
@@ -220,6 +258,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
   }
 
   .nav-btn:hover {
@@ -228,11 +267,12 @@
 
   .toolbar-right {
     display: flex;
+    align-items: center;
     gap: 8px;
+    flex-shrink: 0;
   }
 
-  .today-btn,
-  .zoom-btn {
+  .today-btn {
     font-size: 0.82em;
     padding: 4px 10px;
     border: 1px solid var(--background-modifier-border);
@@ -240,19 +280,55 @@
     background: var(--background-secondary);
     color: var(--text-normal);
     cursor: pointer;
+    white-space: nowrap;
   }
 
-  .today-btn:hover,
-  .zoom-btn:hover {
+  .today-btn:hover {
     background: var(--background-modifier-hover);
+  }
+
+  .preset-group {
+    display: flex;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .preset-btn {
+    font-size: 0.78em;
+    padding: 4px 8px;
+    border: none;
+    border-right: 1px solid var(--background-modifier-border);
+    background: var(--background-secondary);
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .preset-btn:last-child {
+    border-right: none;
+  }
+
+  .preset-btn:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+  }
+
+  .preset-btn.active {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
   }
 
   /* Scroll area */
   .gantt-scroll {
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: auto;
     flex: 1;
     padding: 12px;
+  }
+
+  .gantt-width-probe {
+    width: 100%;
   }
 
   .gantt-inner {

@@ -1,20 +1,18 @@
 <script lang="ts">
   import type { ISODate } from "src/plugin/types";
-  import { getHeaderTicks, type Zoom } from "./ganttUtils";
+  import { getHeaderTicks } from "./ganttUtils";
 
   interface Props {
     viewportStart: ISODate;
     viewportEnd: ISODate;
     pxPerDay: number;
-    zoom: Zoom;
     totalWidth: number;
   }
 
-  let { viewportStart, viewportEnd, pxPerDay, zoom, totalWidth }: Props =
-    $props();
+  let { viewportStart, viewportEnd, pxPerDay, totalWidth }: Props = $props();
 
   const ticks = $derived(
-    getHeaderTicks(viewportStart, viewportEnd, pxPerDay, zoom)
+    getHeaderTicks(viewportStart, viewportEnd, pxPerDay)
   );
 </script>
 

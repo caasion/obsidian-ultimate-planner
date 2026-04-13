@@ -1,44 +1,40 @@
 import {
+  addMonths,
   differenceInDays,
   eachDayOfInterval,
-  endOfMonth,
-  endOfYear,
+  eachWeekOfInterval,
   format,
   getDaysInMonth,
   parseISO,
   startOfMonth,
-  startOfYear,
 } from "date-fns";
 import { getISODate } from "src/plugin/helpers";
 import type { ISODate, Project } from "src/plugin/types";
-
-export type Zoom = "month" | "year";
-
-export const PX_PER_DAY: Record<Zoom, number> = {
-  month: 38,
-  year: 3.2,
-};
 
 export const ROW_HEIGHT = 36;
 export const PROJECT_BAR_HEIGHT = 28;
 export const TRACK_HEADER_HEIGHT = 44;
 export const TRACK_PADDING_BOTTOM = 16;
 
-export function getViewportBounds(
-  anchor: ISODate,
-  zoom: Zoom
+/** Standard window size presets (days). */
+export const WINDOW_PRESETS = [14, 30, 60, 90, 180, 365] as const;
+export type WindowPreset = (typeof WINDOW_PRESETS)[number];
+
+/**
+ * Returns a viewport centered on `center` (defaults to today) spanning
+ * exactly `windowDays` days.
+ */
+export function getRollingViewport(
+  windowDays: number,
+  center?: ISODate
 ): { start: ISODate; end: ISODate } {
-  const date = parseISO(anchor);
-  if (zoom === "month") {
-    return {
-      start: getISODate(startOfMonth(date)),
-      end: getISODate(endOfMonth(date)),
-    };
-  }
-  return {
-    start: getISODate(startOfYear(date)),
-    end: getISODate(endOfYear(date)),
-  };
+  const centerDate = center ? parseISO(center) : new Date();
+  const half = Math.floor(windowDays / 2);
+  const start = new Date(centerDate);
+  start.setDate(start.getDate() - half);
+  const end = new Date(centerDate);
+  end.setDate(end.getDate() + (windowDays - half - 1));
+  return { start: getISODate(start), end: getISODate(end) };
 }
 
 export function dateToX(
@@ -62,22 +58,30 @@ export function getViewportWidth(
 
 export interface HeaderTick {
   label: string;
-  /** Pixel offset from the left edge of the viewport (centered over the unit). */
+  /** Pixel offset for the centered label. */
   x: number;
-  /** Pixel offset for the grid line (left edge of the unit). */
+  /** Pixel offset for the left-edge grid line. */
   gridX: number;
 }
 
+/**
+ * Generates header ticks whose granularity is inferred from `pxPerDay`:
+ *  - pxPerDay >= 20  → one tick per day
+ *  - pxPerDay >= 5   → one tick per week (Monday-aligned)
+ *  - else            → one tick per month
+ */
 export function getHeaderTicks(
   viewportStart: ISODate,
   viewportEnd: ISODate,
-  pxPerDay: number,
-  zoom: Zoom
+  pxPerDay: number
 ): HeaderTick[] {
+  if (pxPerDay <= 0) return [];
+
   const start = parseISO(viewportStart);
   const end = parseISO(viewportEnd);
 
-  if (zoom === "month") {
+  // ── Daily ──────────────────────────────────────────────────────────────
+  if (pxPerDay >= 20) {
     return eachDayOfInterval({ start, end }).map((day) => {
       const offset = differenceInDays(day, start);
       return {
@@ -88,37 +92,35 @@ export function getHeaderTicks(
     });
   }
 
-  const ticks: HeaderTick[] = [];
-  for (let m = 0; m < 12; m++) {
-    const monthStart = new Date(start.getFullYear(), m, 1);
-    const startOffset = differenceInDays(monthStart, start);
-    const days = getDaysInMonth(monthStart);
-    ticks.push({
-      label: format(monthStart, "MMM"),
-      x: startOffset * pxPerDay + (days * pxPerDay) / 2,
-      gridX: startOffset * pxPerDay,
-    });
-  }
-  return ticks;
-}
-
-export function getViewportTitle(viewportStart: ISODate, zoom: Zoom): string {
-  const date = parseISO(viewportStart);
-  return zoom === "month" ? format(date, "MMMM yyyy") : format(date, "yyyy");
-}
-
-export function navigateViewport(
-  anchor: ISODate,
-  zoom: Zoom,
-  direction: 1 | -1
-): ISODate {
-  const date = parseISO(anchor);
-  if (zoom === "month") {
-    return getISODate(
-      new Date(date.getFullYear(), date.getMonth() + direction, 1)
+  // ── Weekly (Monday-aligned) ────────────────────────────────────────────
+  if (pxPerDay >= 5) {
+    return eachWeekOfInterval({ start, end }, { weekStartsOn: 1 }).map(
+      (monday) => {
+        const offset = differenceInDays(monday, start);
+        return {
+          label: format(monday, "d MMM"),
+          x: offset * pxPerDay + (7 * pxPerDay) / 2,
+          gridX: Math.max(0, offset) * pxPerDay,
+        };
+      }
     );
   }
-  return getISODate(new Date(date.getFullYear() + direction, 0, 1));
+
+  // ── Monthly ────────────────────────────────────────────────────────────
+  const ticks: HeaderTick[] = [];
+  let current = startOfMonth(start);
+  const spansMultipleYears = start.getFullYear() !== end.getFullYear();
+  while (current <= end) {
+    const offset = differenceInDays(current, start);
+    const days = getDaysInMonth(current);
+    ticks.push({
+      label: format(current, spansMultipleYears ? "MMM yy" : "MMM"),
+      x: offset * pxPerDay + (days * pxPerDay) / 2,
+      gridX: Math.max(0, offset) * pxPerDay,
+    });
+    current = addMonths(current, 1);
+  }
+  return ticks;
 }
 
 export interface PackedProject {
