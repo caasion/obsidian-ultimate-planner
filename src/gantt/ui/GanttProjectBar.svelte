@@ -130,7 +130,8 @@
     transition: border-color 0.15s;
     user-select: none;
     z-index: 1;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1)
+    overflow: visible;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
 
   .project-bar:hover {
@@ -142,10 +143,12 @@
   }
 
   .label {
+    position: relative;
+    z-index: 2;
     font-size: 0.78em;
     color: var(--text-normal);
     white-space: nowrap;
-    overflow: clip;
+    overflow: visible;
     pointer-events: none;
   }
 
@@ -160,6 +163,7 @@
   .project-bar.open-ended::before {
     content: '';
     position: absolute;
+    z-index: 1;
     right: -11px;
     top: -1px;
     width: 0;
@@ -184,6 +188,7 @@
   .project-bar.open-ended::after {
     content: '';
     position: absolute;
+    z-index: 1;
     right: -10px;
     top: 0;
     width: 0;
