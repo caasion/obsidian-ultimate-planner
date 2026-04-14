@@ -180,30 +180,32 @@
           />
 
           <!-- Body: grid lines + track groups -->
-          <div class="gantt-body">
-            <!-- Grid lines -->
-            <div class="grid-lines" style={`width: ${totalWidth}px;`}>
-              {#each ticks as tick}
-                <div class="grid-line" style={`left: ${tick.gridX}px;`}></div>
-              {/each}
-              {#if todayX !== null}
-                <div class="today-line" style={`left: ${todayX}px;`}></div>
-              {/if}
-            </div>
+          <div class="gantt-body-scroll">
+            <div class="gantt-body">
+              <!-- Grid lines -->
+              <div class="grid-lines" style={`width: ${totalWidth}px;`}>
+                {#each ticks as tick}
+                  <div class="grid-line" style={`left: ${tick.gridX}px;`}></div>
+                {/each}
+                {#if todayX !== null}
+                  <div class="today-line" style={`left: ${todayX}px;`}></div>
+                {/if}
+              </div>
 
-            <!-- Track groups -->
-            {#each sortedTracks as track (track.id)}
-              <GanttTrackGroup
-                {track}
-                {viewportStart}
-                {viewportEnd}
-                {pxPerDay}
-                onEffectiveChange={(next) =>
-                  trackNoteService.updateTrackFrontmatter(track.id, { effective: next })}
-                createProjectFunctions={createProjectFunctionsFactory(track.id)}
-                createHabitFunctions={createHabitFunctionsFactory(track.id)}
-              />
-            {/each}
+              <!-- Track groups -->
+              {#each sortedTracks as track (track.id)}
+                <GanttTrackGroup
+                  {track}
+                  {viewportStart}
+                  {viewportEnd}
+                  {pxPerDay}
+                  onEffectiveChange={(next) =>
+                    trackNoteService.updateTrackFrontmatter(track.id, { effective: next })}
+                  createProjectFunctions={createProjectFunctionsFactory(track.id)}
+                  createHabitFunctions={createHabitFunctionsFactory(track.id)}
+                />
+              {/each}
+            </div>
           </div>
         </div>
       {/if}
@@ -320,26 +322,37 @@
 
   /* Scroll area */
   .gantt-scroll {
-    overflow-x: hidden;
-    overflow-y: auto;
+    display: flex;
     flex: 1;
+    min-height: 0;
+    overflow: hidden;
     padding: 12px;
   }
 
   .gantt-width-probe {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     width: 100%;
   }
 
   .gantt-inner {
     display: flex;
     flex-direction: column;
+    height: 100%;
     min-height: 100%;
+  }
+
+  .gantt-body-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   /* Body */
   .gantt-body {
     position: relative;
-    flex: 1;
     padding-top: 8px;
   }
 
