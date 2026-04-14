@@ -125,7 +125,6 @@
     display: flex;
     align-items: center;
     padding: 0 8px 0 0;
-    overflow: hidden;
     transition: border-color 0.15s;
     user-select: none;
     z-index: 1;
@@ -143,8 +142,7 @@
     font-size: 0.78em;
     color: var(--text-normal);
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: clip;
     pointer-events: none;
   }
 
