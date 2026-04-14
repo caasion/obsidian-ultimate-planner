@@ -88,7 +88,7 @@
   class="project-bar"
   class:expanded
   class:open-ended={isOpenEnded}
-  style={`left: ${left}px; width: ${width}px; top: ${top}px; height: ${PROJECT_BAR_HEIGHT}px; padding-left: ${labelPaddingLeft}px;`}
+  style={`left: ${left}px; width: ${width}px; top: ${top}px; height: ${PROJECT_BAR_HEIGHT}px; padding-left: ${labelPaddingLeft}px; --project-color: ${color};`}
   bind:this={barEl}
   onclick={toggleExpand}
   role="button"
@@ -120,8 +120,8 @@
 <style>
   .project-bar {
     position: absolute;
-    background: var(--background-modifier-form-field);
-    border: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
+    border: 1px solid var(--text-faint);
     border-radius: 6px;
     cursor: pointer;
     display: flex;
@@ -130,14 +130,15 @@
     transition: border-color 0.15s;
     user-select: none;
     z-index: 1;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1)
   }
 
   .project-bar:hover {
-    border-color: var(--text-muted);
+    border-color: color-mix(in srgb, var(--project-color) 40%, transparent);
   }
 
   .project-bar.expanded {
-    border-color: var(--text-normal);
+    border-color: color-mix(in srgb, var(--project-color) 50%, transparent);
   }
 
   .label {
@@ -166,9 +167,17 @@
     border-style: solid;
     border-top: 15px solid transparent;
     border-bottom: 15px solid transparent;
-    border-left: 11px solid var(--background-modifier-border);
+    border-left: 11px solid var(--text-faint);
     border-right: none;
     transition: border-left-color 0.15s;
+  }
+
+  .project-bar:hover.open-ended::before {
+    border-left-color: color-mix(in srgb, var(--project-color) 40%, transparent);
+  }
+
+  .project-bar.expanded.open-ended::before {
+    border-left-color: color-mix(in srgb, var(--project-color) 50%, transparent);
   }
 
   /* Fill layer of the chevron tip */
@@ -182,17 +191,10 @@
     border-style: solid;
     border-top: 14px solid transparent;
     border-bottom: 14px solid transparent;
-    border-left: 10px solid var(--background-modifier-form-field);
+    border-left: 10px solid var(--background-primary);
     border-right: none;
   }
 
-  .project-bar.open-ended:hover::before {
-    border-left-color: var(--text-muted);
-  }
-
-  .project-bar.open-ended.expanded::before {
-    border-left-color: var(--text-normal);
-  }
 
   .popup {
     width: 380px;

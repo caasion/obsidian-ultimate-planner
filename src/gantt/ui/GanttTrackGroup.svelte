@@ -122,11 +122,11 @@
     {#if bgWidth > 0}
       <div
         class="track-interval"
-        style={`left: ${clampedLeft}px; width: ${bgWidth}px; height: ${trackHeight}px; background-color: ${track.color}28;`}
+        style={`left: ${clampedLeft}px; width: ${bgWidth}px; height: ${trackHeight}px; background-color: ${track.color}10; border: 1px solid ${track.color}40; border-radius: 12px;`}
       ></div>
       <button
         class="track-badge"
-        style={`left: ${clampedLeft + 8}px; background-color: ${track.color};`}
+        style={`left: ${clampedLeft + 8}px; background-color: ${track.color}30; color: ${track.color};`}
         onclick={(e) => { e.stopPropagation(); badgeOpen ? closeBadge() : openBadge(e.currentTarget as HTMLButtonElement); }}
       >
         {track.label}
@@ -196,7 +196,6 @@
   .track-interval {
     position: absolute;
     top: 0;
-    border-radius: 12px;
     pointer-events: none;
   }
 
@@ -211,7 +210,6 @@
     cursor: pointer;
     font-size: 0.82em;
     font-weight: 600;
-    color: white;
     white-space: nowrap;
     transition: opacity 0.15s;
   }
