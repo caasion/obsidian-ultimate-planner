@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ISODate } from "src/plugin/types";
-  import { getHeaderTicks } from "./ganttUtils";
+  import { getHeaderTicks } from "../logic/ganttUtils";
 
   interface Props {
     viewportStart: ISODate;

@@ -8,14 +8,12 @@
   import { getISODate } from "src/plugin/helpers";
   import {
     getRollingViewport,
-    getViewportWidth,
     getHeaderTicks,
     dateToX,
     WINDOW_PRESETS,
-    type WindowPreset,
-  } from "./gantt/ganttUtils";
-  import GanttHeader from "./gantt/GanttHeader.svelte";
-  import GanttTrackGroup from "./gantt/GanttTrackGroup.svelte";
+  } from "../logic/ganttUtils";
+  import GanttHeader from "./GanttHeader.svelte";
+  import GanttTrackGroup from "./GanttTrackGroup.svelte";
 
   interface Props {
     app: App;
@@ -148,6 +146,7 @@
       <span class="title">{title}</span>
       <button class="nav-btn" onclick={() => pan(1)}>›</button>
     </div>
+    <h2>Project Gantt View</h2>
     <div class="toolbar-right">
       {#if panDays !== 0}
         <button class="today-btn" onclick={goToToday}>Today</button>

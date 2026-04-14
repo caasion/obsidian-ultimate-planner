@@ -11,7 +11,7 @@
     PROJECT_BAR_HEIGHT,
     ROW_HEIGHT,
     TRACK_HEADER_HEIGHT,
-  } from "./ganttUtils";
+  } from "../logic/ganttUtils";
 
   interface Props {
     project: Project;

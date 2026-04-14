@@ -1,12 +1,11 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { mount } from 'svelte';
 import HolosPlugin from '../main';
-import Tracks from "src/tracks/ui/Tracks.svelte";
-import TracksGridView from "../gantt/ui/ProjectGanttView.svelte";
+import ProjectGanttView from "./ui/ProjectGanttView.svelte";
 
-export const PLAYGROUND_VIEW_TYPE = "playground-view"
+export const GANTT_VIEW_TYPE = "gantt-view"
 
-export class PlaygroundView extends ItemView {
+export class GanttView extends ItemView {
     plugin: HolosPlugin;
 
     constructor(leaf: WorkspaceLeaf, plugin: HolosPlugin) {
@@ -15,15 +14,14 @@ export class PlaygroundView extends ItemView {
     }
 
     getViewType(): string {
-        return PLAYGROUND_VIEW_TYPE;
+        return GANTT_VIEW_TYPE;
     }
 
     getDisplayText(): string {
-        return "Playground View"
+        return "Gantt View"
     }
 
     async onOpen() {
-        // Initialize track note service if not already initialized
         if (!this.plugin.trackNoteService) {
             await this.plugin.initializeTrackNoteService();
         }
@@ -31,7 +29,7 @@ export class PlaygroundView extends ItemView {
         const container = this.contentEl;
 		container.empty();
 
-        mount(TracksGridView, { target: container, props: {
+        mount(ProjectGanttView, { target: container, props: {
             app: this.plugin.app,
             trackNoteService: this.plugin.trackNoteService
         }})
