@@ -13,6 +13,7 @@ import { DailyNoteService } from './planner/logic/dailyNote';
 import { TrackNoteService } from './tracks/logic/trackNote';
 import { hashTrackFolder } from './tracks/logic/trackSnapshotHash';
 import { normalizeTrackSnapshot, resolveBootstrapTrackSnapshot } from './tracks/logic/trackSnapshot';
+import { GANTT_VIEW_TYPE, GanttView } from './gantt/GanttView';
 
 export default class HolosPlugin extends Plugin {
 	settings: PluginSettings;
@@ -71,6 +72,7 @@ export default class HolosPlugin extends Plugin {
 		// Register views using Obsidian's API
 		this.registerView(PLANNER_VIEW_TYPE, (leaf) => new PlannerView(leaf, this));
 		this.registerView(TRACKS_VIEW_TYPE, (leaf) => new TracksView(leaf, this));
+		this.registerView(GANTT_VIEW_TYPE, (leaf) => new GanttView(leaf, this));
 
 		// Add commands to open views
 		this.addCommand({
@@ -86,6 +88,14 @@ export default class HolosPlugin extends Plugin {
 			name: 'Open Holos Tracks View',
 			callback: () => {
 				this.activateView(TRACKS_VIEW_TYPE);
+			}
+		});
+
+		this.addCommand({
+			id: 'open-gantt-view',
+			name: 'Open Holos Gantt View',
+			callback: () => {
+				this.activateView(GANTT_VIEW_TYPE);
 			}
 		});
 
