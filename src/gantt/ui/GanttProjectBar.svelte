@@ -50,6 +50,7 @@
   // When the bar starts before the viewport (left < 0), shift the label right
   // so it stays within the visible portion of the bar.
   const labelPaddingLeft = $derived(Math.max(8, 8 - left));
+  const isOpenEnded = $derived(!project.endDate);
 
   function toggleExpand(e: MouseEvent) {
     e.stopPropagation();
@@ -86,6 +87,7 @@
 <div
   class="project-bar"
   class:expanded
+  class:open-ended={isOpenEnded}
   style={`left: ${left}px; width: ${width}px; top: ${top}px; height: ${PROJECT_BAR_HEIGHT}px; padding-left: ${labelPaddingLeft}px;`}
   bind:this={barEl}
   onclick={toggleExpand}
@@ -144,6 +146,52 @@
     white-space: nowrap;
     overflow: clip;
     pointer-events: none;
+  }
+
+  /* Arrow-tip chevron for projects with no end date */
+  .project-bar.open-ended {
+    border-right: none;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  /* Border layer of the chevron tip */
+  .project-bar.open-ended::before {
+    content: '';
+    position: absolute;
+    right: -11px;
+    top: -1px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-top: 15px solid transparent;
+    border-bottom: 15px solid transparent;
+    border-left: 11px solid var(--background-modifier-border);
+    border-right: none;
+    transition: border-left-color 0.15s;
+  }
+
+  /* Fill layer of the chevron tip */
+  .project-bar.open-ended::after {
+    content: '';
+    position: absolute;
+    right: -10px;
+    top: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-top: 14px solid transparent;
+    border-bottom: 14px solid transparent;
+    border-left: 10px solid var(--background-modifier-form-field);
+    border-right: none;
+  }
+
+  .project-bar.open-ended:hover::before {
+    border-left-color: var(--text-muted);
+  }
+
+  .project-bar.open-ended.expanded::before {
+    border-left-color: var(--text-normal);
   }
 
   .popup {
