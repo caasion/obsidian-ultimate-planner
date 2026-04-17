@@ -37,6 +37,21 @@ Within each grid cell you can:
 Every cell links back to a markdown file. Everything you see in the grid is real, editable plain text in your vault.
 
 ---
+### Task Syntax
+
+<img width="392" height="211" alt="image" src="https://github.com/user-attachments/assets/cf1431c3-6437-4e06-b39c-2adcdabb89c1" />
+
+```
+- An event
+- [ ] A task
+- [-] Cancelled task
+- [x] Completed task
+- Event/task @ 10:00 [1 hr]
+- Event/task @ 23:00 [100 min]
+- [x] Half-completed [1/2 hr]
+```
+
+---
 
 ## Installation
 
