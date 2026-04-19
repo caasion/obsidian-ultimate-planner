@@ -7,6 +7,8 @@
 	import type { HabitFunctions } from "./HabitElement.svelte";
 	import { NewTrackModal } from "./NewTrackModal";
 	import { getISODate } from "src/plugin/helpers";
+	import ViewSwitcher from "src/components/ViewSwitcher.svelte";
+	import { TRACKS_VIEW_TYPE } from "src/tracks/TracksView";
 
   interface TracksProps {
     app: App;
@@ -17,6 +19,15 @@
 
   const trackStore = trackNoteService.parsedTracksContent;
   const parsedTracks = $derived($trackStore);
+  const sortedTracks = $derived(
+    Object.values(parsedTracks).sort((a, b) => {
+      const orderA = Number.isFinite(a.order) ? a.order : Number.MAX_SAFE_INTEGER;
+      const orderB = Number.isFinite(b.order) ? b.order : Number.MAX_SAFE_INTEGER;
+
+      if (orderA !== orderB) return orderA - orderB;
+      return a.label.localeCompare(b.label);
+    })
+  );
 
   // Load track content when component mounts
   $effect(() => {
@@ -34,7 +45,7 @@
 
   /** Handles the creation of a new track (modal and creation) */
   function handleNewTrack() {
-    const nextOrder = Object.keys(parsedTracks).length;
+    const nextOrder = sortedTracks.reduce((max, track) => Math.max(max, track.order), -1) + 1;
     
     new NewTrackModal(
       app, 
@@ -104,6 +115,7 @@
 </script>
 
 <div class="container">
+  <ViewSwitcher {app} currentView={TRACKS_VIEW_TYPE} />
   <div class="header-row">
     <h2>Manage Tracks</h2>
     <button 
@@ -114,7 +126,7 @@
     </button>
   </div>
 	<div class="card-container">
-    {#each Object.values(parsedTracks) as track}
+    {#each sortedTracks as track}
       <TrackCard
         {app}
         {track}
@@ -131,7 +143,7 @@
 
 <style>
     .container {
-      margin: 5%;
+      padding: 12px;
       max-height: 80vh;
     }
 
@@ -145,17 +157,18 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1em;
+      margin-bottom: 12px;
     }
 
     .add-track-button {
-      padding: 8px 16px;
+      padding: 6px 14px;
       background-color: var(--interactive-accent);
       color: var(--text-on-accent);
-      border: none;
-      border-radius: 4px;
+      border: 1px solid var(--interactive-accent);
+      border-radius: 6px;
       cursor: pointer;
       font-weight: 500;
+      font-size: 13px;
     }
 
     .add-track-button:hover {

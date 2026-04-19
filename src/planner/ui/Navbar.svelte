@@ -34,9 +34,9 @@
 
 <div class="header">
 	<div class="nav-buttons">
-		<button onclick={() => goTo(today)}>Today</button>
-    	<button onclick={() => goTo(addDaysISO(anchor, -incrementAmount))}>&lt;</button>
-		<button onclick={() => goTo(addDaysISO(anchor, incrementAmount))}>&gt;</button>
+		<button class="nav-btn" onclick={() => goTo(today)}>Today</button>
+		<button class="nav-btn" onclick={() => goTo(addDaysISO(anchor, -incrementAmount))}>&lt;</button>
+		<button class="nav-btn" onclick={() => goTo(addDaysISO(anchor, incrementAmount))}>&gt;</button>
 	</div>
 	<div class="week">
 		<span class="week-label">{label}</span>
@@ -48,22 +48,43 @@
 		/* Navigation Menu */
 	.header {
 		display: grid;
-    grid-template-columns: 1fr auto 1fr;
+		grid-template-columns: 1fr auto 1fr;
+		align-items: center;
+		margin-bottom: 8px;
+	}
+
+	.nav-buttons {
+		display: flex;
+		gap: 4px;
+	}
+
+	.nav-btn {
+		border: 1px solid var(--background-modifier-border);
+		border-radius: 6px;
+		background: var(--background-primary-alt);
+		color: var(--text-normal);
+		cursor: pointer;
+		padding: 4px 10px;
+		font-size: 13px;
+	}
+
+	.nav-btn:hover {
+		background: var(--background-modifier-hover);
 	}
 
 	.week {
 		display: flex;
-		justify-content: center; 
+		justify-content: center;
 		position: relative;
 	}
 
 	.week-label {
 		font-weight: 600;
-		font-size: x-large;
+		font-size: 18px;
 		text-align: center;
-		padding: .25rem .5rem;
+		padding: 4px 8px;
 		display: inline-block;
-		pointer-events: none;  
+		pointer-events: none;
 	}
 
 	.week input[type="date"] {

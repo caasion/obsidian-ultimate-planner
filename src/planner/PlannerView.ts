@@ -18,7 +18,11 @@ export class PlannerView extends ItemView {
     }
 
     getDisplayText(): string {
-        return "Holos View"
+        return "Planner View"
+    }
+
+    getIcon(): string {
+        return "circle-off"
     }
 
     async onOpen() {
@@ -30,6 +34,7 @@ export class PlannerView extends ItemView {
             settings: this.plugin.settings,
             dailyNoteService: this.plugin.dailyNoteService,
             trackNoteService: this.plugin.trackNoteService,
+            saveSettings: () => this.plugin.queueSave(),
         }})
     }
 

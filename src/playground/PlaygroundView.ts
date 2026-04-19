@@ -22,6 +22,10 @@ export class PlaygroundView extends ItemView {
         return "Playground View"
     }
 
+    getIcon(): string {
+        return "circle-off"
+    }
+
     async onOpen() {
         // Initialize track note service if not already initialized
         if (!this.plugin.trackNoteService) {

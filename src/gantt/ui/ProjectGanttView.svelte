@@ -4,7 +4,7 @@
   import type { ProjectCardFunctions } from "src/tracks/ui/ProjectCard.svelte";
   import type { HabitFunctions } from "src/tracks/ui/HabitElement.svelte";
   import type { Track } from "src/plugin/types";
-  import { format, parseISO, addDays } from "date-fns";
+  import { format, parseISO, addDays, differenceInDays } from "date-fns";
   import { getISODate } from "src/plugin/helpers";
   import {
     getRollingViewport,
@@ -14,6 +14,9 @@
   } from "../logic/ganttUtils";
   import GanttHeader from "./GanttHeader.svelte";
   import GanttTrackGroup from "./GanttTrackGroup.svelte";
+  import ViewSwitcher from "src/components/ViewSwitcher.svelte";
+  import Topbar from "src/components/Topbar.svelte";
+  import { GANTT_VIEW_TYPE } from "src/gantt/GanttView";
 
   interface Props {
     app: App;
@@ -136,33 +139,41 @@
     if (days >= 30 && days % 30 === 0) return `${days / 30}mo`;
     return `${days}d`;
   }
+
+  function handleDateChange(date: string) {
+    panDays = differenceInDays(parseISO(date), parseISO(today));
+  }
 </script>
 
 <div class="gantt-view">
-  <!-- Toolbar -->
-  <div class="toolbar">
-    <div class="nav-group">
-      <button class="nav-btn" onclick={() => pan(-1)}>‹</button>
-      <span class="title">{title}</span>
-      <button class="nav-btn" onclick={() => pan(1)}>›</button>
-    </div>
-    <h2>Project Gantt View</h2>
-    <div class="toolbar-right">
-      {#if panDays !== 0}
-        <button class="today-btn" onclick={goToToday}>Today</button>
-      {/if}
-      <div class="preset-group">
-        {#each WINDOW_PRESETS as preset}
-          <button
-            class="preset-btn"
-            class:active={windowDays === preset}
-            onclick={() => setWindowDays(preset)}
-          >
-            {presetLabel(preset)}
-          </button>
-        {/each}
-      </div>
-    </div>
+  <div class="view-switcher-row">
+    <ViewSwitcher {app} currentView={GANTT_VIEW_TYPE} />
+  </div>
+  <!-- Topbar -->
+  <div class="gantt-topbar-row">
+    <Topbar
+      onPrev={() => pan(-1)}
+      onNext={() => pan(1)}
+      onToday={goToToday}
+      showToday={todayX === null}
+      label={title}
+      anchor={centerDate}
+      onDateChange={handleDateChange}
+    >
+      {#snippet right()}
+        <div class="preset-group">
+          {#each WINDOW_PRESETS as preset}
+            <button
+              class="preset-btn"
+              class:active={windowDays === preset}
+              onclick={() => setWindowDays(preset)}
+            >
+              {presetLabel(preset)}
+            </button>
+          {/each}
+        </div>
+      {/snippet}
+    </Topbar>
   </div>
 
   <!-- Gantt scroll container -->
@@ -221,71 +232,14 @@
     overflow: hidden;
   }
 
-  /* Toolbar */
-  .toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--background-modifier-border);
-    flex-shrink: 0;
-    gap: 8px;
-  }
-
-  .nav-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-  }
-
-  .title {
-    font-size: 0.9em;
-    font-weight: 600;
-    white-space: nowrap;
-    color: var(--text-normal);
-  }
-
-  .nav-btn {
-    background: none;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    width: 28px;
-    height: 28px;
-    cursor: pointer;
-    font-size: 1.1em;
-    line-height: 1;
-    color: var(--text-normal);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .view-switcher-row {
+    padding: 12px 12px 0;
     flex-shrink: 0;
   }
 
-  .nav-btn:hover {
-    background: var(--background-modifier-hover);
-  }
-
-  .toolbar-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .gantt-topbar-row {
+    padding: 0 12px;
     flex-shrink: 0;
-  }
-
-  .today-btn {
-    font-size: 0.82em;
-    padding: 4px 10px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 5px;
-    background: var(--background-secondary);
-    color: var(--text-normal);
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .today-btn:hover {
-    background: var(--background-modifier-hover);
   }
 
   .preset-group {

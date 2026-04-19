@@ -18,7 +18,11 @@ export class TracksView extends ItemView {
     }
 
     getDisplayText(): string {
-        return "Holos Tracks"
+        return "Tracks View"
+    }
+
+    getIcon(): string {
+        return "circle-off"
     }
 
     async onOpen() {
