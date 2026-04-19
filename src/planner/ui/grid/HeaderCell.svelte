@@ -35,7 +35,6 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		border-right: 1px solid #ccc; 
 	}
 
 	.header-cell:last-child {

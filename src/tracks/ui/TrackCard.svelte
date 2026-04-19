@@ -136,28 +136,31 @@
   </div>
   
   <!-- Projects Section -->
-  <ProjectsSection
-    {app}
-    projects={track.projects}
-    color={track.color}
-    onProjectAdd={trackFunctions.onProjectAdd}
-    createProjectFunctions={createProjectFunctions}
-    createHabitFunctions={createHabitFunctions}
-  />
+  <div class="projects-container">
+    <ProjectsSection
+      {app}
+      projects={track.projects}
+      color={track.color}
+      onProjectAdd={trackFunctions.onProjectAdd}
+      createProjectFunctions={createProjectFunctions}
+      createHabitFunctions={createHabitFunctions}
+    />
+  </div>
   
 </div>
 
 
 <style>
   .card {
-    border: 2px solid #acacac;
-    border-style: solid;
-    border-radius: 1rem;
+    border: 2px solid var(--background-modifier-border);
+    border-radius: 8px;
     width: 100%;
     height: 100%;
+    display: flex;
+    flex-direction: column;
     padding: 12px;
-    margin: 0px 5px;
-    overflow-y: auto;
+    margin: 0;
+    overflow: hidden;
     max-height: 70vh;
   }
 
@@ -198,7 +201,8 @@
   }
 
   .clickable:hover {
-    opacity: 0.8;
+    background: var(--background-modifier-hover);
+    border-radius: 4px;
   }
 
   .track-details-container {
@@ -206,6 +210,13 @@
     flex-direction: column;
     gap: 4px;
     width: 100%;
+  }
+
+  .projects-container {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   :global(.track-title) {
