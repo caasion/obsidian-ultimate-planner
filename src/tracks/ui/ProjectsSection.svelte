@@ -3,8 +3,10 @@
 	import ProjectCard, { type ProjectCardFunctions } from "./ProjectCard.svelte";
 	import type { HabitFunctions } from "./HabitElement.svelte";
 	import { getISODate } from "src/plugin/helpers";
+	import type { App } from "obsidian";
 
   interface ProjectsSectionProps {
+    app: App;
     projects: Record<string, Project>;
     color: string;
     onProjectAdd: () => void;
@@ -13,6 +15,7 @@
   }
 
   let { 
+    app,
     projects,
     color,
     onProjectAdd,
@@ -86,6 +89,7 @@
     {#if displayedProjects.length > 0}
       {#each displayedProjects as project}
         <ProjectCard
+          {app}
           project={project}
           color={color}
           projectFunctions={createProjectFunctions(project.id)}

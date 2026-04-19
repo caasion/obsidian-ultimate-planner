@@ -2,10 +2,12 @@
 	import type { Element, ISODate, Project } from "src/plugin/types";
 	import HabitElement, { type HabitFunctions } from "./HabitElement.svelte";
 	import EditableText from "src/components/EditableText.svelte";
+	import EditableMarkdownText from "src/components/EditableMarkdownText.svelte";
 	import Datepicker from "src/components/Datepicker.svelte";
 	import { getISODate } from "src/plugin/helpers";
 	import { isValid, parseISO } from "date-fns";
 	import DataTaskElement from "./DataTaskElement.svelte";
+	import type { App } from "obsidian";
 
 	export interface ProjectCardFunctions {
 		onLabelEdit: (label: string) => void;
@@ -25,6 +27,7 @@
 	}
 
 	interface ProjectCardProps {
+		app: App;
 		project: Project;
 		color: string;
 		projectFunctions: ProjectCardFunctions;
@@ -32,6 +35,7 @@
 	}
 
 	let { 
+		app,
 		project, 
 		color, 
 		projectFunctions,
@@ -93,11 +97,12 @@
 				inputClass="project-date-trigger-input"
 			/>
 		</div>
-		<EditableText 
+		<EditableMarkdownText 
 			value={project.description}
 			onSave={(newDescription) => projectFunctions.onDescriptionEdit(newDescription)}
 			placeholder="Project description..."
-			multiline={true}
+			{app}
+			sourcePath={project.file?.path ?? ""}
 			class="project-description" 
 		/>
 	</div>

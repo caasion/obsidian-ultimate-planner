@@ -3,6 +3,7 @@
 	import { type ProjectCardFunctions } from "./ProjectCard.svelte";
 	import ProjectsSection from "./ProjectsSection.svelte";
 	import EditableText from "src/components/EditableText.svelte";
+  import EditableMarkdownText from "src/components/EditableMarkdownText.svelte";
 	import type { Track, TrackFileFrontmatter } from "src/plugin/types";
 	import { EditTrackTimeModal } from "./EditTrackTimeModal";
 	import { EditJournalHeaderModal } from "./EditJournalHeaderModal";
@@ -73,8 +74,8 @@
 
 <div class="card" style={`background-color: ${track.color}10; --track-color: ${track.color};`}>
   <div class="card-header-container">
-    <div class="card-data-container">
-      <div class="track-label-description">
+    <div class="card-header-row">
+      <div class="track-title-container">
         <EditableText 
           value={track.label}
           onSave={(newLabel) => trackFunctions.onLabelEdit(newLabel)}
@@ -82,55 +83,61 @@
           placeholder="Track name..."
           class="track-title" 
         />
-        <div class="effective-list" title="Effective date intervals">
-          <DateRangeManager
-            dateIntervals={track.effective}
-            title="Effective Date Intervals"
-            onChange={(next) => trackFunctions.onFrontmatterEdit({ effective: next })}
-          />
-        </div>
-        <EditableText 
-          value={track.description}
-          onSave={(newDescription) => trackFunctions.onDescriptionEdit(newDescription)}
-          placeholder="Edit Track description..."
-          multiline={true}
-          class="track-description" 
+      </div>
+
+      <div class="card-actions-container">
+        <input
+          type="color"
+          value={track.color}
+          onchange={handleColorEdit}
+          title="Edit track color"
         />
+        <button 
+          class="card-header clickable journal-icon" 
+          onclick={handleJournalHeaderEdit}
+          title="Double-click to edit journal header"
+        >
+          📜
+        </button>
+        <button 
+          class="clickable time-display"
+          onclick={handleTimeCommitmentEdit}
+          title="Double-click to edit time commitment"
+        >
+          <CircularProgress 
+            duration={track.timeCommitment / 60}
+            unit={'hr'}
+          />
+        </button>
+          <button class="delete-btn" onclick={handleRemoveTrack} title="Delete">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
       </div>
     </div>
-    
-    <div class="card-data-container card-actions-container">
-      <input
-        type="color"
-        value={track.color}
-        onchange={handleColorEdit}
-        title="Edit track color"
-      />
-      <button 
-        class="card-header clickable journal-icon" 
-        onclick={handleJournalHeaderEdit}
-        title="Double-click to edit journal header"
-      >
-        📜
-      </button>
-      <button 
-        class="clickable time-display"
-        onclick={handleTimeCommitmentEdit}
-        title="Double-click to edit time commitment"
-      >
-        <CircularProgress 
-          duration={track.timeCommitment / 60}
-          unit={'hr'}
+
+    <div class="track-details-container">
+      <div class="effective-list" title="Effective date intervals">
+        <DateRangeManager
+          dateIntervals={track.effective}
+          title="Effective Date Intervals"
+          onChange={(next) => trackFunctions.onFrontmatterEdit({ effective: next })}
         />
-      </button>
-        <button class="delete-btn" onclick={handleRemoveTrack} title="Delete">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-      </button>
+      </div>
+      <EditableMarkdownText 
+        value={track.description}
+        onSave={(newDescription) => trackFunctions.onDescriptionEdit(newDescription)}
+        placeholder="Edit Track description..."
+        {app}
+        sourcePath={track.file?.path ?? ""}
+        class="track-description" 
+      />
     </div>
+
   </div>
   
   <!-- Projects Section -->
   <ProjectsSection
+    {app}
     projects={track.projects}
     color={track.color}
     onProjectAdd={trackFunctions.onProjectAdd}
@@ -160,17 +167,28 @@
 
   .card-header-container {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 8px;
     margin-bottom: 12px;
   }
 
-  .card-data-container {
+  .card-header-row {
     display: flex;
-    gap: 2px;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .track-title-container {
+    display: flex;
+    flex: 1;
+    min-width: 0;
   }
 
   .card-actions-container {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
     align-self: flex-start;
   }
 
@@ -183,14 +201,15 @@
     opacity: 0.8;
   }
 
-  .track-label-description {
+  .track-details-container {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    flex: 1;
+    width: 100%;
   }
 
   :global(.track-title) {
+    width: 100%;
     font-size: 1.17em;
     font-weight: bold;
     text-align: left;
