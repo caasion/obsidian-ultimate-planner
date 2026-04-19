@@ -5,7 +5,6 @@
 		onCtrlClick?: () => void;
 		ctrlClickHint?: string;
 		placeholder?: string;
-		multiline?: boolean;
 		class?: string;
 	}
 
@@ -15,14 +14,13 @@
 		onCtrlClick,
 		ctrlClickHint = "Ctrl/Cmd+Click to open file",
 		placeholder = "", 
-		multiline = false, 
 		class: customClass = "" 
 	}: EditableTextProps = $props();
 
 	let isEditing = $state<boolean>(false);
 	let editText = $state<string>("");
 	let skipBlur = $state<boolean>(false);
-	let inputRef = $state<HTMLInputElement | HTMLTextAreaElement>();
+	let inputRef = $state<HTMLInputElement>();
 
 	// Auto-focus when entering edit mode
 	$effect(() => {
@@ -65,11 +63,7 @@
 			return;
 		}
 
-		if (e.key === 'Enter' && !e.shiftKey && !multiline) {
-			e.preventDefault();
-			saveEdit();
-			skipBlur = true;
-		} else if (e.key === 'Enter' && e.shiftKey && multiline) {
+		if (e.key === 'Enter') {
 			e.preventDefault();
 			saveEdit();
 			skipBlur = true;
@@ -86,26 +80,15 @@
 </script>
 
 {#if isEditing}
-	{#if multiline}
-		<textarea
-			bind:this={inputRef}
-			bind:value={editText}
-			onkeydown={handleKeydown}
-			onblur={saveEdit}
-			{placeholder}
-			class={`editable-input ${customClass}`}
-		></textarea>
-	{:else}
-		<input
-			bind:this={inputRef}
-			type="text"
-			bind:value={editText}
-			onkeydown={handleKeydown}
-			onblur={saveEdit}
-			{placeholder}
-			class={`editable-input ${customClass}`}
-		/>
-	{/if}
+	<input
+		bind:this={inputRef}
+		type="text"
+		bind:value={editText}
+		onkeydown={handleKeydown}
+		onblur={saveEdit}
+		{placeholder}
+		class={`editable-input ${customClass}`}
+	/>
 {:else}
 	<div 
 		class={`editable-display ${onCtrlClick ? 'has-ctrl-click' : ''} ${customClass}`}
@@ -168,9 +151,5 @@
 	.editable-input:focus {
 		outline: none;
 		border-color: var(--interactive-accent-hover);
-	}
-
-	textarea.editable-input {
-		min-height: 60px;
 	}
 </style>
