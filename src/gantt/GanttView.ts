@@ -21,6 +21,10 @@ export class GanttView extends ItemView {
         return "Gantt View"
     }
 
+    getIcon(): string {
+        return "circle-off"
+    }
+
     async onOpen() {
         if (!this.plugin.trackNoteService) {
             await this.plugin.initializeTrackNoteService();

@@ -77,7 +77,7 @@ export default class HolosPlugin extends Plugin {
 		// Add commands to open views
 		this.addCommand({
 			id: 'open-planner-view',
-			name: 'Open Holos Planner',
+			name: 'Open Holos Planner View',
 			callback: () => {
 				this.activateView(PLANNER_VIEW_TYPE);
 			}

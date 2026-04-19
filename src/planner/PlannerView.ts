@@ -21,6 +21,10 @@ export class PlannerView extends ItemView {
         return "Planner View"
     }
 
+    getIcon(): string {
+        return "circle-off"
+    }
+
     async onOpen() {
         const container = this.contentEl;
 		container.empty();
