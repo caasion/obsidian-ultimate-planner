@@ -51,7 +51,7 @@
 	const trackMetaRevision = $derived($trackMetaRevisionStore);
 	let tracksByDate = $derived.by(() => {
 		trackMetaRevision; // react to track data changes
-		return trackNoteService.getTracksForDates(dates);
+		return trackNoteService.getTracksForDates(dates, localColumns);
 	});
 	let parsedContentStore = $derived(dailyNoteService.parsedContent);
 	let parsedJournalContentStore = $derived(dailyNoteService.parsedJournalContent);
