@@ -12,7 +12,7 @@
   let { app, currentView }: Props = $props();
 
   const views = [
-    { type: PLANNER_VIEW_TYPE, label: "Holos" },
+    { type: PLANNER_VIEW_TYPE, label: "Planner" },
     { type: GANTT_VIEW_TYPE, label: "Gantt" },
     { type: TRACKS_VIEW_TYPE, label: "Tracks" },
   ];

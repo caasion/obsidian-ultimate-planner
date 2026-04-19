@@ -18,7 +18,7 @@ export class PlannerView extends ItemView {
     }
 
     getDisplayText(): string {
-        return "Holos View"
+        return "Planner View"
     }
 
     async onOpen() {
