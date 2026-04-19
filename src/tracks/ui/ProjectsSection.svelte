@@ -105,6 +105,13 @@
 </div>
 
 <style>
+  .section {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
   .section-header {
     display: flex;
     justify-content: space-between;
@@ -186,6 +193,10 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-column-gap: 8px;
     grid-row-gap: 12px;
+    overflow-y: auto;
+    min-height: 0;
+    flex: 1;
+    padding-right: 4px;
   }
 
   .section-empty-state {
