@@ -156,10 +156,9 @@ export default class HolosPlugin extends Plugin {
 				type: view,
 				active: true,
 			});
-
 		}
-
-		this.app.workspace.getLeavesOfType(view)[0];
+		const leaf = this.app.workspace.getLeavesOfType(view)[0];
+		if (leaf) this.app.workspace.revealLeaf(leaf);
 	}
 
 	async loadPersisted() {
