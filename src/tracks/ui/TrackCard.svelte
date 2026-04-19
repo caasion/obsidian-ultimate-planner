@@ -152,15 +152,14 @@
 
 <style>
   .card {
-    border: 2px solid #acacac;
-    border-style: solid;
-    border-radius: 1rem;
+    border: 2px solid var(--background-modifier-border);
+    border-radius: 8px;
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
     padding: 12px;
-    margin: 0px 5px;
+    margin: 0;
     overflow: hidden;
     max-height: 70vh;
   }
@@ -202,7 +201,8 @@
   }
 
   .clickable:hover {
-    opacity: 0.8;
+    background: var(--background-modifier-hover);
+    border-radius: 4px;
   }
 
   .track-details-container {

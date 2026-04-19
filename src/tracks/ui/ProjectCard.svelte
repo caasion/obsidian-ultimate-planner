@@ -173,7 +173,7 @@
 	}
 
 	.project-card:hover {
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		box-shadow: var(--shadow-s);
 	}
 
 	.project-header {
@@ -232,11 +232,11 @@
 	}
 
 	.status-indicator.active {
-		color: #4CAF50;
+		color: var(--color-green, #4CAF50);
 	}
 
 	.status-indicator.inactive {
-		color: #999;
+		color: var(--text-faint);
 	}
 
 	.icon-button {
@@ -300,5 +300,6 @@
 
   .add-button:hover {
     opacity: 1;
+    background: var(--background-modifier-hover);
   }
 </style>
