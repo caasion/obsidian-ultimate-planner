@@ -136,14 +136,16 @@
   </div>
   
   <!-- Projects Section -->
-  <ProjectsSection
-    {app}
-    projects={track.projects}
-    color={track.color}
-    onProjectAdd={trackFunctions.onProjectAdd}
-    createProjectFunctions={createProjectFunctions}
-    createHabitFunctions={createHabitFunctions}
-  />
+  <div class="projects-container">
+    <ProjectsSection
+      {app}
+      projects={track.projects}
+      color={track.color}
+      onProjectAdd={trackFunctions.onProjectAdd}
+      createProjectFunctions={createProjectFunctions}
+      createHabitFunctions={createHabitFunctions}
+    />
+  </div>
   
 </div>
 
@@ -155,9 +157,11 @@
     border-radius: 1rem;
     width: 100%;
     height: 100%;
+    display: flex;
+    flex-direction: column;
     padding: 12px;
     margin: 0px 5px;
-    overflow-y: auto;
+    overflow: hidden;
     max-height: 70vh;
   }
 
@@ -206,6 +210,13 @@
     flex-direction: column;
     gap: 4px;
     width: 100%;
+  }
+
+  .projects-container {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   :global(.track-title) {
