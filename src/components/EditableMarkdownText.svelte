@@ -30,7 +30,6 @@
 	$effect(() => {
 		if (isEditing && inputRef) {
 			inputRef.focus();
-			inputRef.select();
 		}
 	});
 
@@ -103,6 +102,13 @@
 			skipBlur = true;
 		}
 	}
+
+	function handleDisplayKeydown(e: KeyboardEvent) {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			startEdit();
+		}
+	}
 </script>
 
 {#if isEditing}
@@ -120,7 +126,7 @@
 		ondblclick={startEdit}
 		role="button"
 		tabindex="0"
-		onkeydown={(e) => e.key === "Enter" && startEdit()}
+		onkeydown={handleDisplayKeydown}
 	>
 		{#if value.trim()}
 			<div class="editable-markdown" bind:this={markdownRef}></div>
