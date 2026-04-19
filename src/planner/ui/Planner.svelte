@@ -17,9 +17,10 @@
 		settings: PluginSettings;
 		dailyNoteService: DailyNoteService;
 		trackNoteService: TrackNoteService;
+		saveSettings: () => void;
 	}
 
-	let { app, settings, dailyNoteService, trackNoteService }: ViewProps = $props();
+	let { app, settings, dailyNoteService, trackNoteService, saveSettings }: ViewProps = $props();
 
 
 	/* === View Rendering === */
@@ -27,15 +28,13 @@
 
 	/* === Table Rendering === */
 	let weekFormat = $derived(settings.weekFormat);
-	let columns = $derived(settings.columns);
-	let blocks = $derived(settings.blocks);
 	let weekStartOn = $derived(settings.weekStartOn);
 
-	// Local quick-controls (session-only, synced from settings on mount)
+	// Local quick-controls, synced from settings and persisted on change
 	let localColumns = $state<number>(settings.columns);
 	let localBlocks = $state<number>(settings.blocks);
-	$effect(() => { localColumns = columns; });
-	$effect(() => { localBlocks = blocks; });
+	$effect(() => { localColumns = settings.columns; });
+	$effect(() => { localBlocks = settings.blocks; });
 
 	// Set default anchor date to today
 	const today = getISODate(new Date());
@@ -141,11 +140,13 @@
 			<div class="holos-controls">
 				<label class="holos-ctrl">
 					<span class="holos-ctrl-lbl">Cols</span>
-					<input type="number" class="holos-ctrl-input" min="1" max="31" bind:value={localColumns} />
+					<input type="number" class="holos-ctrl-input" min="1" max="31" value={localColumns}
+						oninput={(e) => { localColumns = +e.currentTarget.value; settings.columns = localColumns; saveSettings(); }} />
 				</label>
 				<label class="holos-ctrl">
 					<span class="holos-ctrl-lbl">Blocks</span>
-					<input type="number" class="holos-ctrl-input" min="1" max="52" bind:value={localBlocks} />
+					<input type="number" class="holos-ctrl-input" min="1" max="52" value={localBlocks}
+						oninput={(e) => { localBlocks = +e.currentTarget.value; settings.blocks = localBlocks; saveSettings(); }} />
 				</label>
 			</div>
 		{/snippet}
