@@ -7,6 +7,8 @@
 	import type { HabitFunctions } from "./HabitElement.svelte";
 	import { NewTrackModal } from "./NewTrackModal";
 	import { getISODate } from "src/plugin/helpers";
+	import ViewSwitcher from "src/components/ViewSwitcher.svelte";
+	import { TRACKS_VIEW_TYPE } from "src/tracks/TracksView";
 
   interface TracksProps {
     app: App;
@@ -104,6 +106,7 @@
 </script>
 
 <div class="container">
+  <ViewSwitcher {app} currentView={TRACKS_VIEW_TYPE} />
   <div class="header-row">
     <h2>Manage Tracks</h2>
     <button 
@@ -131,7 +134,7 @@
 
 <style>
     .container {
-      margin: 5%;
+      padding: 12px;
       max-height: 80vh;
     }
 
@@ -145,17 +148,18 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1em;
+      margin-bottom: 12px;
     }
 
     .add-track-button {
-      padding: 8px 16px;
+      padding: 6px 14px;
       background-color: var(--interactive-accent);
       color: var(--text-on-accent);
-      border: none;
-      border-radius: 4px;
+      border: 1px solid var(--interactive-accent);
+      border-radius: 6px;
       cursor: pointer;
       font-weight: 500;
+      font-size: 13px;
     }
 
     .add-track-button:hover {
