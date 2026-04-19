@@ -3,6 +3,7 @@
 	import { type ProjectCardFunctions } from "./ProjectCard.svelte";
 	import ProjectsSection from "./ProjectsSection.svelte";
 	import EditableText from "src/components/EditableText.svelte";
+  import EditableMarkdownText from "src/components/EditableMarkdownText.svelte";
 	import type { Track, TrackFileFrontmatter } from "src/plugin/types";
 	import { EditTrackTimeModal } from "./EditTrackTimeModal";
 	import { EditJournalHeaderModal } from "./EditJournalHeaderModal";
@@ -89,11 +90,12 @@
             onChange={(next) => trackFunctions.onFrontmatterEdit({ effective: next })}
           />
         </div>
-        <EditableText 
+        <EditableMarkdownText 
           value={track.description}
           onSave={(newDescription) => trackFunctions.onDescriptionEdit(newDescription)}
           placeholder="Edit Track description..."
-          multiline={true}
+          {app}
+          sourcePath={track.file?.path ?? ""}
           class="track-description" 
         />
       </div>
@@ -131,6 +133,7 @@
   
   <!-- Projects Section -->
   <ProjectsSection
+    {app}
     projects={track.projects}
     color={track.color}
     onProjectAdd={trackFunctions.onProjectAdd}
