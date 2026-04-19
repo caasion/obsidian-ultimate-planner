@@ -14,9 +14,11 @@
         onUpdate: (date: ISODate, trackId: string, updatedData: TrackData) => void;
         onAdd: (date: ISODate, trackId: string, trackMeta: Track) => void;
         openDailyNote: (date: ISODate) => void;
+        onTrackOpen?: (trackId: string) => void;
+        onTrackFileOpen?: (trackId: string) => void;
     }
 
-    let { dates, tracksByDate, parsedTracks, parsedContent, parsedJournalContent, columns, blocks, onUpdate, onAdd, openDailyNote }: Props = $props();
+    let { dates, tracksByDate, parsedTracks, parsedContent, parsedJournalContent, columns, blocks, onUpdate, onAdd, openDailyNote, onTrackOpen, onTrackFileOpen }: Props = $props();
 
     function getRows(blockDates: ISODate[]): number {
         const maxTracks = Math.max(...blockDates.map((date) => tracksByDate[date]?.length ?? 0), 0);
@@ -55,6 +57,8 @@
                         journalData={parsedJournalContent[date]?.[track.journalHeader]}
                         onUpdate={onUpdate}
                         onAdd={onAdd}
+                        {onTrackOpen}
+                        {onTrackFileOpen}
                     />
                 {/if}
             {:else}
@@ -76,13 +80,13 @@
 	}
 
 	.block-container {
-		border: 1px solid #ccc; 
+		border: 1px solid var(--background-modifier-border); 
 	}
 
 	.header-row {
 		display: grid;
 		/* grid-template-columns is set dynamically in the Svelte component */
-		border-bottom: 2px solid #ccc;
+		border-bottom: 2px solid var(--background-modifier-border);
 		background-color: var(--background-primary);
 	}
 
@@ -93,8 +97,8 @@
 
 	.cell {
 		padding: 4px;
-		border-right: 1px dotted #ccc;
-		border-bottom: 1px dashed #ccc;
+		border-right: 1px dotted var(--background-modifier-border);
+		border-bottom: 1px dashed var(--background-modifier-border);
 		border-collapse: collapse;
 		min-height: 40px; 
 	}
