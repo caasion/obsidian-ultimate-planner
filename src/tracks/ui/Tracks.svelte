@@ -19,6 +19,15 @@
 
   const trackStore = trackNoteService.parsedTracksContent;
   const parsedTracks = $derived($trackStore);
+  const sortedTracks = $derived(
+    Object.values(parsedTracks).sort((a, b) => {
+      const orderA = Number.isFinite(a.order) ? a.order : Number.MAX_SAFE_INTEGER;
+      const orderB = Number.isFinite(b.order) ? b.order : Number.MAX_SAFE_INTEGER;
+
+      if (orderA !== orderB) return orderA - orderB;
+      return a.label.localeCompare(b.label);
+    })
+  );
 
   // Load track content when component mounts
   $effect(() => {
@@ -36,7 +45,7 @@
 
   /** Handles the creation of a new track (modal and creation) */
   function handleNewTrack() {
-    const nextOrder = Object.keys(parsedTracks).length;
+    const nextOrder = sortedTracks.reduce((max, track) => Math.max(max, track.order), -1) + 1;
     
     new NewTrackModal(
       app, 
@@ -117,7 +126,7 @@
     </button>
   </div>
 	<div class="card-container">
-    {#each Object.values(parsedTracks) as track}
+    {#each sortedTracks as track}
       <TrackCard
         {app}
         {track}
