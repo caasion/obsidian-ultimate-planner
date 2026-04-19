@@ -78,11 +78,7 @@
 		flex-direction: column;
 		gap: 20px;
 	}
-
-	.block-container {
-		border: 1px solid var(--background-modifier-border); 
-	}
-
+    
 	.header-row {
 		display: grid;
 		/* grid-template-columns is set dynamically in the Svelte component */
@@ -92,6 +88,7 @@
 
 	.data-grid {
 		display: grid;
+        border: 1px solid var(--background-modifier-border); 
 		/* grid-template-columns is set dynamically in the Svelte component */
 	}
 
