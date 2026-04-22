@@ -24,6 +24,18 @@
 		onDataToggle: (index: number) => void;
 		onDataCancel: (index: number) => void;
 		onDataDelete: (index: number) => void;
+
+		// Phase operations
+		onPhaseAdd?: () => void;
+		onPhaseDelete?: (phaseId: string) => void;
+		onPhaseDataAdd?: (phaseId: string) => void;
+		onPhaseDataUpdate?: (phaseId: string, index: number, updatedElement: Element) => void;
+		onPhaseDataToggle?: (phaseId: string, index: number) => void;
+		onPhaseDataCancel?: (phaseId: string, index: number) => void;
+		onPhaseDataDelete?: (phaseId: string, index: number) => void;
+
+		// Enable phase mode (one-way — disabling requires manual markdown edit)
+		onEnablePhases?: () => void;
 	}
 
 	interface ProjectCardProps {

@@ -199,7 +199,20 @@ export class TrackNoteService {
     }
 
     private hydrateFromSnapshot(tracks: Record<string, Track>): void {
-        this.publishTrackState(tracks, false);
+        // Ensure projects from old snapshots get phases defaults
+        const normalized: Record<string, Track> = {};
+        for (const [trackId, track] of Object.entries(tracks)) {
+            const projects: Record<string, Project> = {};
+            for (const [projectId, project] of Object.entries(track.projects)) {
+                projects[projectId] = {
+                    ...project,
+                    phases: project.phases ?? [],
+                    hasPhases: project.hasPhases ?? false,
+                };
+            }
+            normalized[trackId] = { ...track, projects };
+        }
+        this.publishTrackState(normalized, false);
     }
 
     private normalizeISODate(value: unknown): string | null {
@@ -436,12 +449,12 @@ export class TrackNoteService {
             const phasesSection = PlannerParser.extractSection(projectContent, "Phases");
             phases = PlannerParser.parsePhasesSection(phasesSection);
         } else {
-        const dataSection = PlannerParser.extractSection(projectContent, "Data") || PlannerParser.extractSection(projectContent, "Tasks");
+            const dataSection = PlannerParser.extractSection(projectContent, "Data") || PlannerParser.extractSection(projectContent, "Tasks");
             data = PlannerParser.parseTaskSection(dataSection);
         }
-        
+
         const description = PlannerParser.extractFirstSection(projectContent);
-        
+
         return {
             id,
             label: projectFile.basename,
@@ -897,15 +910,15 @@ export class TrackNoteService {
             lines.push('');
             lines.push(PlannerParser.serializePhasesSection(project.phases));
         } else {
-        // Data section
-        lines.push('## Data');
-        lines.push('');
-        for (const element of project.data) {
-            const taskMarker = element.isTask ? `[${element.taskStatus || ' '}] ` : '';
-            lines.push(`- ${taskMarker}${element.text}`);
-            
-            for (const child of element.children) {
-                lines.push(`- ${child}`);
+            // Data section
+            lines.push('## Data');
+            lines.push('');
+            for (const element of project.data) {
+                const taskMarker = element.isTask ? `[${element.taskStatus || ' '}] ` : '';
+                lines.push(`- ${taskMarker}${element.text}`);
+
+                for (const child of element.children) {
+                    lines.push(`- ${child}`);
                 }
             }
         }
@@ -1459,8 +1472,277 @@ export class TrackNoteService {
         });
     }
 
+    // ===== Project Phase operations ===== //
+
+    /** Helper: read phases from file, apply mutation, write back, update store */
+    private async mutatePhases(
+        trackId: string,
+        projectId: string,
+        mutate: (phases: Phase[]) => Phase[]
+    ): Promise<void> {
+        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
+        if (!projectFile) {
+            console.warn(`Project ${projectId} not found in track ${trackId}`);
+            return;
+        }
+
+        const content = await this.app.vault.read(projectFile);
+        const phasesSection = PlannerParser.extractSection(content, "Phases");
+        const phases = PlannerParser.parsePhasesSection(phasesSection);
+        const newPhases = mutate(phases);
+        const serialized = PlannerParser.serializePhasesSection(newPhases);
+        const updated = PlannerParser.replaceSection(content, 'Phases', serialized);
+
+        this.isUpdatingInternally = true;
+        try {
+            await this.app.vault.modify(projectFile, updated);
+        } finally {
+            this.isUpdatingInternally = false;
+        }
+
+        this.parsedTracksContent.update(tracks => {
+            const track = tracks[trackId];
+            if (!track?.projects[projectId]) return tracks;
+            return {
+                ...tracks,
+                [trackId]: {
+                    ...track,
+                    projects: {
+                        ...track.projects,
+                        [projectId]: {
+                            ...track.projects[projectId],
+                            phases: newPhases
+                        }
+                    }
+                }
+            };
+        });
+    }
+
+    /** Add a new phase to a project */
+    async addProjectPhase(trackId: string, projectId: string): Promise<void> {
+        await this.mutatePhases(trackId, projectId, (phases) => [
+            ...phases,
+            {
+                id: `phase-${crypto.randomUUID()}`,
+                label: 'New Phase',
+                data: [],
+            }
+        ]);
+    }
+
+    /** Update a phase's label */
+    async updateProjectPhaseLabel(trackId: string, projectId: string, phaseId: string, label: string): Promise<void> {
+        await this.mutatePhases(trackId, projectId, (phases) =>
+            phases.map(p => p.id === phaseId ? { ...p, label } : p)
+        );
+    }
+
+    /** Update a phase's dates */
+    async updateProjectPhaseDates(trackId: string, projectId: string, phaseId: string, startDate?: ISODate, endDate?: ISODate): Promise<void> {
+        await this.mutatePhases(trackId, projectId, (phases) =>
+            phases.map(p => p.id === phaseId ? { ...p, startDate, endDate } : p)
+        );
+    }
+
+    /** Delete a phase from a project */
+    async deleteProjectPhase(trackId: string, projectId: string, phaseId: string): Promise<void> {
+        await this.mutatePhases(trackId, projectId, (phases) =>
+            phases.filter(p => p.id !== phaseId)
+        );
+    }
+
+    /** Add a task to a specific phase */
+    async addPhaseData(trackId: string, projectId: string, phaseId: string): Promise<void> {
+        const newElement: Element = {
+            raw: "- [ ] New Task",
+            text: "New Task",
+            isTask: true,
+            taskStatus: " ",
+            children: [],
+        };
+
+        await this.mutatePhases(trackId, projectId, (phases) =>
+            phases.map(p => p.id === phaseId ? { ...p, data: [...p.data, newElement] } : p)
+        );
+    }
+
+    /** Update a task within a specific phase */
+    async updatePhaseData(trackId: string, projectId: string, phaseId: string, elementIndex: number, updatedElement: Partial<Element>): Promise<void> {
+        await this.mutatePhases(trackId, projectId, (phases) =>
+            phases.map(p => {
+                if (p.id !== phaseId) return p;
+                const newData = [...p.data];
+                if (elementIndex >= 0 && elementIndex < newData.length) {
+                    newData[elementIndex] = { ...newData[elementIndex], ...updatedElement };
+                }
+                return { ...p, data: newData };
+            })
+        );
+    }
+
+    /** Toggle a task's completion within a phase */
+    async togglePhaseData(trackId: string, projectId: string, phaseId: string, elementIndex: number): Promise<void> {
+        await this.mutatePhases(trackId, projectId, (phases) =>
+            phases.map(p => {
+                if (p.id !== phaseId) return p;
+                const newData = [...p.data];
+                if (elementIndex >= 0 && elementIndex < newData.length) {
+                    const el = newData[elementIndex];
+                    newData[elementIndex] = { ...el, taskStatus: el.taskStatus === 'x' ? ' ' : 'x' };
+                }
+                return { ...p, data: newData };
+            })
+        );
+    }
+
+    /** Cancel a task within a phase */
+    async cancelPhaseData(trackId: string, projectId: string, phaseId: string, elementIndex: number): Promise<void> {
+        await this.mutatePhases(trackId, projectId, (phases) =>
+            phases.map(p => {
+                if (p.id !== phaseId) return p;
+                const newData = [...p.data];
+                if (elementIndex >= 0 && elementIndex < newData.length) {
+                    newData[elementIndex] = { ...newData[elementIndex], taskStatus: '-' };
+                }
+                return { ...p, data: newData };
+            })
+        );
+    }
+
+    /** Delete a task within a phase */
+    async deletePhaseData(trackId: string, projectId: string, phaseId: string, elementIndex: number): Promise<void> {
+        await this.mutatePhases(trackId, projectId, (phases) =>
+            phases.map(p => {
+                if (p.id !== phaseId) return p;
+                const newData = [...p.data];
+                if (elementIndex >= 0 && elementIndex < newData.length) {
+                    newData.splice(elementIndex, 1);
+                }
+                return { ...p, data: newData };
+            })
+        );
+    }
+
+    /** Toggle phase mode on/off for a project */
+    async toggleProjectPhases(trackId: string, projectId: string, enable: boolean): Promise<void> {
+        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
+        if (!projectFile) {
+            console.warn(`Project ${projectId} not found in track ${trackId}`);
+            return;
+        }
+
+        const content = await this.app.vault.read(projectFile);
+        let updated = content;
+
+        if (enable) {
+            // Enable phases: move existing tasks into a default phase
+            const dataSection = PlannerParser.extractSection(content, "Data") || PlannerParser.extractSection(content, "Tasks");
+            const data = PlannerParser.parseTaskSection(dataSection);
+
+            // Create initial phase with existing tasks
+            const initialPhase: Phase = {
+                id: `phase-${crypto.randomUUID()}`,
+                label: 'Phase 1',
+                data,
+            };
+
+            // Update frontmatter to set phases: true
+            updated = content.replace(
+                /^(---[\s\S]*?)(?=\n---)/m,
+                (match) => {
+                    if (!match.includes('phases:')) {
+                        return match + '\nphases: true';
+                    }
+                    return match.replace(/phases:\s*false/, 'phases: true');
+                }
+            );
+
+            // Remove Data/Tasks section and add Phases section
+            updated = PlannerParser.replaceSection(updated, 'Data', '');
+            updated = PlannerParser.replaceSection(updated, 'Tasks', '');
+            const phasesContent = PlannerParser.serializePhasesSection([initialPhase]);
+            updated = PlannerParser.replaceSection(updated, 'Phases', phasesContent);
+        } else {
+            // Disable phases: flatten all phase tasks into Data section
+            const phasesSection = PlannerParser.extractSection(content, "Phases");
+            const phases = PlannerParser.parsePhasesSection(phasesSection);
+
+            // Flatten all tasks from all phases
+            const allData: Element[] = [];
+            for (const phase of phases) {
+                allData.push(...phase.data);
+            }
+
+            // Update frontmatter to set phases: false
+            updated = content.replace(
+                /^(---[\s\S]*?)(?=\n---)/m,
+                (match) => match.replace(/\nphases:\s*true/, '').replace(/phases:\s*true\n/, '')
+            );
+
+            // Remove Phases section and add back Data section
+            updated = PlannerParser.replaceSection(updated, 'Phases', '');
+            const dataContent = this.serializeDataSection(allData);
+            updated = PlannerParser.replaceSection(updated, 'Data', dataContent);
+        }
+
+        this.isUpdatingInternally = true;
+        try {
+            await this.app.vault.modify(projectFile, updated);
+        } finally {
+            this.isUpdatingInternally = false;
+        }
+
+        // Update store
+        this.parsedTracksContent.update(tracks => {
+            const track = tracks[trackId];
+            if (!track?.projects[projectId]) return tracks;
+
+            const project = track.projects[projectId];
+            let newProject: Project;
+
+            if (enable) {
+                // Create initial phase with existing tasks
+                const initialPhase: Phase = {
+                    id: `phase-${crypto.randomUUID()}`,
+                    label: 'Phase 1',
+                    data: project.data,
+                };
+                newProject = {
+                    ...project,
+                    phases: [initialPhase],
+                    data: [],
+                    hasPhases: true,
+                };
+            } else {
+                // Flatten all phase tasks into data
+                const allData: Element[] = [];
+                for (const phase of project.phases) {
+                    allData.push(...phase.data);
+                }
+                newProject = {
+                    ...project,
+                    phases: [],
+                    data: allData,
+                    hasPhases: false,
+                };
+            }
+
+            return {
+                ...tracks,
+                [trackId]: {
+                    ...track,
+                    projects: {
+                        ...track.projects,
+                        [projectId]: newProject,
+                    },
+                },
+            };
+        });
+    }
+
     // ===== Reading tracks ===== //
-    
+
     /** Gets track metadata by ID */
     public getTrack(id: string): Track | undefined {
         const tracks = get(this.parsedTracksContent);
