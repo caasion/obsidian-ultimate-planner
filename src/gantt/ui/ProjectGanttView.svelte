@@ -121,6 +121,19 @@
       },
       onDataDelete: (index) =>
         trackNoteService.deleteProjectData(trackId, projectId, index),
+
+      // Phase operations
+      onPhaseAdd: () => trackNoteService.addProjectPhase(trackId, projectId),
+      onPhaseLabelEdit: (phaseId, label) => trackNoteService.updateProjectPhaseLabel(trackId, projectId, phaseId, label),
+      onPhaseDelete: (phaseId) => trackNoteService.deleteProjectPhase(trackId, projectId, phaseId),
+      onPhaseDataAdd: (phaseId) => trackNoteService.addPhaseData(trackId, projectId, phaseId),
+      onPhaseDataUpdate: (phaseId, index, el) => trackNoteService.updatePhaseData(trackId, projectId, phaseId, index, el),
+      onPhaseDataToggle: (phaseId, index) => trackNoteService.togglePhaseData(trackId, projectId, phaseId, index),
+      onPhaseDataCancel: (phaseId, index) => trackNoteService.cancelPhaseData(trackId, projectId, phaseId, index),
+      onPhaseDataDelete: (phaseId, index) => trackNoteService.deletePhaseData(trackId, projectId, phaseId, index),
+
+      // Enable phase mode (one-way)
+      onEnablePhases: () => trackNoteService.toggleProjectPhases(trackId, projectId, true),
     });
   }
 
