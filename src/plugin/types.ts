@@ -49,15 +49,25 @@ export interface Habit {
 	rrule: string;
 }
 
+export interface Phase {
+	id: string;
+	label: string;
+	startDate?: ISODate;
+	endDate?: ISODate;
+	data: Element[];
+}
+
 export interface Project {
 	id: string
 	label: string;
 	description: string;
 	startDate: ISODate;
     endDate?: ISODate;
-    habits: Record<string, Habit>; 
+    habits: Record<string, Habit>;
     data: Element[];
-    
+	phases: Phase[];
+	hasPhases: boolean;
+
     file?: TFile;
 }
 
