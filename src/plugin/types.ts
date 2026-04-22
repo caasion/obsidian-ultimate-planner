@@ -161,6 +161,7 @@ export interface PluginSettings {
 
     /* Track Settings */
     trackFolder: string;
+    projectNotesAsFolders: boolean;
 
     /* Developer Mode */
     debug: boolean;
@@ -176,6 +177,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     sectionHeading: "Holos",
 
     trackFolder: "Tracks",
+    projectNotesAsFolders: false,
 
     refreshRemoteMs: 5 * 60 * 1000,
     lookaheadDays: 14,
