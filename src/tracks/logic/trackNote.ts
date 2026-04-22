@@ -1524,7 +1524,7 @@ export class TrackNoteService {
         await this.mutatePhases(trackId, projectId, (phases) => [
             ...phases,
             {
-                id: `phase-${crypto.randomUUID()}`,
+                id: `phase-${phases.length}`,
                 label: 'New Phase',
                 data: [],
             }
@@ -1642,7 +1642,7 @@ export class TrackNoteService {
 
             // Create initial phase with existing tasks
             const initialPhase: Phase = {
-                id: `phase-${crypto.randomUUID()}`,
+                id: 'phase-0',
                 label: 'Phase 1',
                 data,
             };
@@ -1704,7 +1704,7 @@ export class TrackNoteService {
             if (enable) {
                 // Create initial phase with existing tasks
                 const initialPhase: Phase = {
-                    id: `phase-${crypto.randomUUID()}`,
+                    id: 'phase-0',
                     label: 'Phase 1',
                     data: project.data,
                 };

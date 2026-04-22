@@ -136,7 +136,7 @@ export class PlannerParser {
                 if (current) {
                     if (current.currentElement) current.elements.push(current.currentElement);
                     phases.push({
-                        id: 'phase-' + crypto.randomUUID(),
+                        id: `phase-${phases.length}`,
                         label: current.label,
                         startDate: current.startDate,
                         endDate: current.endDate,
@@ -175,7 +175,7 @@ export class PlannerParser {
         if (current) {
             if (current.currentElement) current.elements.push(current.currentElement);
             phases.push({
-                id: 'phase-' + crypto.randomUUID(),
+                id: `phase-${phases.length}`,
                 label: current.label,
                 startDate: current.startDate,
                 endDate: current.endDate,
@@ -469,25 +469,32 @@ export class PlannerParser {
         let result: string[] = [];
         let inSection = false;
         let sectionAdded = false;
-        
+        let sectionLevel = 2;
+
         for (const line of lines) {
-            // Check if we hit our target heading
-            if (line.trim() === `## ${sectionHeading}`) {
-                result.push(line);
-                result.push(newSectionContent);
-                inSection = true;
-                sectionAdded = true;
-                continue;
+            const headerMatch = line.match(/^(#{1,6})\s+(.*)/);
+
+            if (!inSection && headerMatch) {
+                const level = headerMatch[1].length;
+                const text = headerMatch[2].trim();
+                if (text === sectionHeading) {
+                    result.push(line);
+                    result.push(newSectionContent);
+                    inSection = true;
+                    sectionLevel = level;
+                    sectionAdded = true;
+                    continue;
+                }
             }
-            
-            // If we hit another heading of the same or higher level, stop skipping
-            if (inSection && line.startsWith('##')) {
+
+            // Only stop skipping when we hit a heading at the same or higher level
+            if (inSection && headerMatch && headerMatch[1].length <= sectionLevel) {
                 inSection = false;
             }
-            
+
             // Skip lines that are in the section (they'll be replaced)
             if (inSection) continue;
-            
+
             result.push(line);
         }
         
