@@ -103,6 +103,18 @@
 	}
 
 	let expandedPhaseId = $state(getDefaultExpandedId(project.phases));
+	let hideCompleted = $state(false);
+	let hideCompletedPhase = $state(false);
+
+	function isCompletedElement(el: Element): boolean {
+		return el.taskStatus === 'x' || el.taskStatus === '-';
+	}
+
+	let visibleTasks = $derived(
+		hideCompleted
+			? project.data.map((el, i) => ({ el, i })).filter(({ el }) => !isCompletedElement(el))
+			: project.data.map((el, i) => ({ el, i }))
+	);
 
 	function togglePhase(phaseId: string) {
 		expandedPhaseId = expandedPhaseId === phaseId ? undefined : phaseId;
@@ -193,7 +205,27 @@
 		<div class="section">
 			<div class="section-header">
 				<h4 class="section-title">Phases</h4>
-				<button class="add-button" onclick={() => projectFunctions.onPhaseAdd?.()} title="Add a new phase">+</button>
+				<div class="section-controls">
+					<button
+						class="toggle-completed-btn"
+						class:active={hideCompletedPhase}
+						onclick={() => hideCompletedPhase = !hideCompletedPhase}
+						title={hideCompletedPhase ? "Show completed tasks" : "Hide completed tasks"}
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							{#if hideCompletedPhase}
+								<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+								<path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+								<path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+								<line x1="2" y1="2" x2="22" y2="22"/>
+							{:else}
+								<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+								<circle cx="12" cy="12" r="3"/>
+							{/if}
+						</svg>
+					</button>
+					<button class="add-button" onclick={() => projectFunctions.onPhaseAdd?.()} title="Add a new phase">+</button>
+				</div>
 			</div>
 			{#if project.phases.length > 0}
 				{#each project.phases as phase (phase.id)}
@@ -232,16 +264,18 @@
 						</div>
 						{#if isExpanded}
 							<div class="phase-content">
-								{#each phase.data as element, index}
-									<DataTaskElement
-										{element}
-										{index}
-										{color}
-										onUpdate={(idx, el) => projectFunctions.onPhaseDataUpdate?.(phase.id, idx, el)}
-										onToggle={(idx) => projectFunctions.onPhaseDataToggle?.(phase.id, idx)}
-										onCancel={(idx) => projectFunctions.onPhaseDataCancel?.(phase.id, idx)}
-										onDelete={(idx) => projectFunctions.onPhaseDataDelete?.(phase.id, idx)}
-									/>
+								{#each phase.data as element, index (index)}
+									{#if !hideCompletedPhase || !isCompletedElement(element)}
+										<DataTaskElement
+											{element}
+											{index}
+											{color}
+											onUpdate={(idx, el) => projectFunctions.onPhaseDataUpdate?.(phase.id, idx, el)}
+											onToggle={(idx) => projectFunctions.onPhaseDataToggle?.(phase.id, idx)}
+											onCancel={(idx) => projectFunctions.onPhaseDataCancel?.(phase.id, idx)}
+											onDelete={(idx) => projectFunctions.onPhaseDataDelete?.(phase.id, idx)}
+										/>
+									{/if}
 								{/each}
 								<button class="add-button phase-add-task" onclick={() => projectFunctions.onPhaseDataAdd?.(phase.id)} title="Add task to phase">+ Task</button>
 							</div>
@@ -266,6 +300,24 @@
 						Use Phases
 					</button>
 					<button
+						class="toggle-completed-btn"
+						class:active={hideCompleted}
+						onclick={() => hideCompleted = !hideCompleted}
+						title={hideCompleted ? "Show completed tasks" : "Hide completed tasks"}
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							{#if hideCompleted}
+								<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+								<path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+								<path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+								<line x1="2" y1="2" x2="22" y2="22"/>
+							{:else}
+								<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+								<circle cx="12" cy="12" r="3"/>
+							{/if}
+						</svg>
+					</button>
+					<button
 						class="add-button"
 						onclick={projectFunctions.onDataAdd}
 						title="Add a new task"
@@ -274,11 +326,11 @@
 					</button>
 				</div>
 			</div>
-			{#if project.data.length > 0}
-				{#each project.data as element, index}
+			{#if visibleTasks.length > 0}
+				{#each visibleTasks as { el, i }}
 					<DataTaskElement
-						{element}
-						{index}
+						element={el}
+						index={i}
 						{color}
 						onUpdate={projectFunctions.onDataUpdate}
 						onToggle={projectFunctions.onDataToggle}
@@ -287,7 +339,7 @@
 					/>
 				{/each}
 			{:else}
-				<div class="section-empty-state">No tasks yet</div>
+				<div class="section-empty-state">{project.data.length > 0 ? "All tasks completed" : "No tasks yet"}</div>
 			{/if}
 		</div>
 	{/if}
@@ -527,6 +579,29 @@
     font-size: 0.82em;
     padding: 2px 8px;
     margin-top: 4px;
+  }
+
+  .toggle-completed-btn {
+    background: transparent;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+    color: var(--text-muted);
+  }
+
+  .toggle-completed-btn:hover {
+    background: var(--background-modifier-hover);
+  }
+
+  .toggle-completed-btn.active svg {
+    stroke: var(--interactive-accent);
   }
 
   .toggle-phases-btn {
