@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Element, ISODate, Project } from "src/plugin/types";
+	import type { Element, ISODate, Phase, Project } from "src/plugin/types";
 	import HabitElement, { type HabitFunctions } from "./HabitElement.svelte";
 	import EditableText from "src/components/EditableText.svelte";
 	import EditableMarkdownText from "src/components/EditableMarkdownText.svelte";
@@ -8,6 +8,7 @@
 	import { isValid, parseISO } from "date-fns";
 	import DataTaskElement from "./DataTaskElement.svelte";
 	import type { App } from "obsidian";
+	import { ConfirmationModal } from "src/plugin/ConfirmationModal";
 
 	export interface ProjectCardFunctions {
 		onLabelEdit: (label: string) => void;
@@ -16,7 +17,7 @@
 		onStartDateEdit: (date: ISODate) => void;
 		onEndDateEdit: (date: ISODate | null) => void;
 		onDelete: () => void;
-		
+
 		// These are not project-specific, but handled at the project level
 		onHabitAdd: () => void;
 		onDataAdd: () => void;
@@ -73,6 +74,43 @@
 		projectFunctions.onStartDateEdit(getISODate(range.from));
 		projectFunctions.onEndDateEdit(range.to ? getISODate(range.to) : null);
 	}
+
+	function confirmEnablePhases() {
+		new ConfirmationModal(
+			app,
+			() => projectFunctions.onEnablePhases?.(),
+			'Enable Phases',
+			'This will organize your tasks into phases. Existing tasks will be moved into "Phase 1". To revert, you will need to edit the markdown file manually.'
+		).open();
+	}
+
+	// Phase selection logic
+	function getDefaultPhaseId(phases: Phase[]): string | undefined {
+		if (phases.length === 0) return undefined;
+		const today = getISODate(new Date());
+
+		// 1. Active phase
+		const active = phases.find(p => p.startDate && p.startDate <= today && (!p.endDate || p.endDate >= today));
+		if (active) return active.id;
+
+		// 2. Next future phase
+		const future = phases
+			.filter(p => p.startDate && p.startDate > today)
+			.sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? ''));
+		if (future.length > 0) return future[0].id;
+
+		// 3. Most recent past phase
+		const past = phases
+			.filter(p => p.endDate && p.endDate < today)
+			.sort((a, b) => (b.endDate ?? '').localeCompare(a.endDate ?? ''));
+		if (past.length > 0) return past[0].id;
+
+		// 4. First phase
+		return phases[0].id;
+	}
+
+	let selectedPhaseId = $state(getDefaultPhaseId(project.phases));
+	let selectedPhase = $derived(project.phases.find(p => p.id === selectedPhaseId) ?? project.phases[0]);
 </script>
 
 <div class="project-card" style={`border-color: ${color};`}>
@@ -144,34 +182,101 @@
     {/if}
   </div>
 
-	<!-- Tasks Section -->
-  <div class="section">
-    <div class="section-header">
-      <h4 class="section-title">Tasks</h4>
-      <button 
-        class="add-button" 
-				onclick={projectFunctions.onDataAdd}
-        title="Add a new task"
-      >
-        +
-      </button>
-    </div>
-	{#if project.data.length > 0}
-			{#each project.data as element, index}
-        <DataTaskElement
-          element={element}
-          index={index}
-          color={color}
-          onUpdate={projectFunctions.onDataUpdate}
-          onToggle={projectFunctions.onDataToggle}
-          onCancel={projectFunctions.onDataCancel}
-          onDelete={projectFunctions.onDataDelete}
-        />
-			{/each}
-		{:else}
-			<div class="section-empty-state">No tasks yet</div>
-		{/if}
-  </div>
+	{#if project.hasPhases}
+		<!-- Phases Section -->
+		<div class="section">
+			<div class="section-header">
+				<div class="phase-header-left">
+					<h4 class="section-title">Phases</h4>
+					<span class="phase-count">{project.phases.length} phase{project.phases.length !== 1 ? 's' : ''}</span>
+				</div>
+				<div class="section-controls">
+					{#if project.phases.length > 1}
+						<select
+							class="phase-dropdown"
+							value={selectedPhaseId}
+							onchange={(e) => { selectedPhaseId = (e.target as HTMLSelectElement).value; }}
+						>
+							{#each project.phases as phase}
+								<option value={phase.id}>{phase.label}</option>
+							{/each}
+						</select>
+					{/if}
+					<button class="add-button" onclick={() => projectFunctions.onPhaseAdd?.()} title="Add a new phase">+</button>
+				</div>
+			</div>
+			{#if selectedPhase}
+				<div class="phase-content">
+					<div class="phase-meta">
+						{#if selectedPhase.startDate || selectedPhase.endDate}
+							<span class="phase-dates">
+								{selectedPhase.startDate ?? '?'} → {selectedPhase.endDate ?? 'Present'}
+							</span>
+						{/if}
+						<button
+							class="icon-button phase-delete-btn"
+							onclick={() => projectFunctions.onPhaseDelete?.(selectedPhase.id)}
+							aria-label="Delete phase"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+						</button>
+					</div>
+					{#each selectedPhase.data as element, index}
+						<DataTaskElement
+							{element}
+							{index}
+							{color}
+							onUpdate={(idx, el) => projectFunctions.onPhaseDataUpdate?.(selectedPhase.id, idx, el)}
+							onToggle={(idx) => projectFunctions.onPhaseDataToggle?.(selectedPhase.id, idx)}
+							onCancel={(idx) => projectFunctions.onPhaseDataCancel?.(selectedPhase.id, idx)}
+							onDelete={(idx) => projectFunctions.onPhaseDataDelete?.(selectedPhase.id, idx)}
+						/>
+					{/each}
+					<button class="add-button phase-add-task" onclick={() => projectFunctions.onPhaseDataAdd?.(selectedPhase.id)} title="Add task to phase">+ Task</button>
+				</div>
+			{:else}
+				<div class="section-empty-state">No phases yet. Click + to add one.</div>
+			{/if}
+		</div>
+	{:else}
+		<!-- Tasks Section -->
+		<div class="section">
+			<div class="section-header">
+				<h4 class="section-title">Tasks</h4>
+				<div class="section-controls">
+					<button
+						class="toggle-phases-btn"
+						onclick={confirmEnablePhases}
+						title="Organize tasks into phases"
+					>
+						Use Phases
+					</button>
+					<button
+						class="add-button"
+						onclick={projectFunctions.onDataAdd}
+						title="Add a new task"
+					>
+						+
+					</button>
+				</div>
+			</div>
+			{#if project.data.length > 0}
+				{#each project.data as element, index}
+					<DataTaskElement
+						{element}
+						{index}
+						{color}
+						onUpdate={projectFunctions.onDataUpdate}
+						onToggle={projectFunctions.onDataToggle}
+						onCancel={projectFunctions.onDataCancel}
+						onDelete={projectFunctions.onDataDelete}
+					/>
+				{/each}
+			{:else}
+				<div class="section-empty-state">No tasks yet</div>
+			{/if}
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -313,5 +418,76 @@
   .add-button:hover {
     opacity: 1;
     background: var(--background-modifier-hover);
+  }
+
+  .phase-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .phase-count {
+    font-size: 0.8em;
+    color: var(--text-faint);
+  }
+
+  .section-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .phase-dropdown {
+    font-size: 0.82em;
+    padding: 2px 6px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-secondary);
+    color: var(--text-normal);
+    cursor: pointer;
+    max-width: 160px;
+  }
+
+  .phase-content {
+    padding: 4px 0;
+  }
+
+  .phase-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .phase-dates {
+    font-size: 0.8em;
+    color: var(--text-muted);
+  }
+
+  .phase-delete-btn {
+    padding: 2px 4px;
+  }
+
+  .phase-add-task {
+    width: auto;
+    font-size: 0.82em;
+    padding: 2px 8px;
+    margin-top: 4px;
+  }
+
+  .toggle-phases-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 0.82em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .toggle-phases-btn:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
   }
 </style>
