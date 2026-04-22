@@ -9,10 +9,11 @@ import {
   startOfMonth,
 } from "date-fns";
 import { getISODate } from "src/plugin/helpers";
-import type { ISODate, Project } from "src/plugin/types";
+import type { ISODate, Phase, Project } from "src/plugin/types";
 
 export const ROW_HEIGHT = 36;
 export const PROJECT_BAR_HEIGHT = 28;
+export const PHASE_BAR_HEIGHT = 24;
 export const TRACK_HEADER_HEIGHT = 44;
 export const TRACK_PADDING_BOTTOM = 16;
 
@@ -128,41 +129,104 @@ export interface PackedProject {
   row: number;
 }
 
+export interface PackedPhase {
+  phase: Phase;
+  projectId: string;
+  projectLabel: string;
+  row: number;
+}
+
+export interface PackResult {
+  packedProjects: PackedProject[];
+  packedPhases: PackedPhase[];
+}
+
 export function packProjectsIntoRows(
   projects: Record<string, Project>,
   viewportStart: ISODate,
   viewportEnd: ISODate
-): PackedProject[] {
+): PackResult {
   const today = getISODate(new Date());
 
-  const visible = Object.values(projects).filter((p) => {
+  const nonPhased: Project[] = [];
+  const phased: Project[] = [];
+
+  for (const p of Object.values(projects)) {
+    if (p.hasPhases && p.phases.length > 0) {
+      phased.push(p);
+    } else {
+      nonPhased.push(p);
+    }
+  }
+
+  // Pack non-phased projects as before
+  const visibleNonPhased = nonPhased.filter((p) => {
     const end = p.endDate ?? today;
     return p.startDate <= viewportEnd && end >= viewportStart;
   });
-
-  visible.sort((a, b) => a.startDate.localeCompare(b.startDate));
+  visibleNonPhased.sort((a, b) => a.startDate.localeCompare(b.startDate));
 
   const rowEnds: ISODate[] = [];
-  const result: PackedProject[] = [];
+  const packedProjects: PackedProject[] = [];
 
-  for (const project of visible) {
+  for (const project of visibleNonPhased) {
     const end = project.endDate ?? today;
     let placed = false;
     for (let r = 0; r < rowEnds.length; r++) {
       if (project.startDate > rowEnds[r]) {
         rowEnds[r] = end;
-        result.push({ project, row: r });
+        packedProjects.push({ project, row: r });
         placed = true;
         break;
       }
     }
     if (!placed) {
       rowEnds.push(end);
-      result.push({ project, row: rowEnds.length - 1 });
+      packedProjects.push({ project, row: rowEnds.length - 1 });
     }
   }
 
-  return result;
+  // Pack phased projects — each project's phases are packed together,
+  // starting from the next available row after non-phased projects
+  const baseRow = rowEnds.length;
+  const packedPhases: PackedPhase[] = [];
+  let currentRow = baseRow;
+
+  for (const project of phased) {
+    const visiblePhases = project.phases.filter((ph) => {
+      if (!ph.startDate) return false;
+      const end = ph.endDate ?? today;
+      return ph.startDate <= viewportEnd && end >= viewportStart;
+    });
+
+    if (visiblePhases.length === 0) continue;
+
+    visiblePhases.sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? ''));
+
+    // Bin-pack phases for this project into sub-rows
+    const phaseRowEnds: ISODate[] = [];
+
+    for (const phase of visiblePhases) {
+      const end = phase.endDate ?? today;
+      let placed = false;
+      for (let r = 0; r < phaseRowEnds.length; r++) {
+        if ((phase.startDate ?? '') > phaseRowEnds[r]) {
+          phaseRowEnds[r] = end;
+          packedPhases.push({ phase, projectId: project.id, projectLabel: project.label, row: currentRow + r });
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        phaseRowEnds.push(end);
+        packedPhases.push({ phase, projectId: project.id, projectLabel: project.label, row: currentRow + phaseRowEnds.length - 1 });
+      }
+    }
+
+    currentRow += Math.max(1, phaseRowEnds.length);
+  }
+
+  return { packedProjects, packedPhases };
 }
 
 export function calcTrackHeight(numRows: number): number {
