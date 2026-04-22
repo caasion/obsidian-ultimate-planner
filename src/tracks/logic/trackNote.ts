@@ -1,7 +1,7 @@
 import { TFolder, type App, TFile, getAllTags, type FrontMatterCache, type EventRef, Menu, Notice, getFrontMatterInfo, parseYaml } from "obsidian";
 import { PlannerParser } from "src/planner/logic/parser";
 import { getISODate } from "src/plugin/helpers";
-import type { DateInterval, Element, Habit, ISODate, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
+import type { DateInterval, Element, Habit, ISODate, Phase, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
 import { type Writable, get, writable } from "svelte/store";
 import { hashTrackFileCacheEntries } from "./trackSnapshotHash";
 
@@ -423,13 +423,22 @@ export class TrackNoteService {
         if (!projectContent || !frontmatter) return null;
 
         const { startDate, endDate } = frontmatter;
+        const hasPhases = frontmatter?.phases === true;
 
         // Parse habits section
         const habitSection = PlannerParser.extractSection(projectContent, "Habits");
         const habits = PlannerParser.parseHabitSection(habitSection);
 
+        let data: Element[] = [];
+        let phases: Phase[] = [];
+
+        if (hasPhases) {
+            const phasesSection = PlannerParser.extractSection(projectContent, "Phases");
+            phases = PlannerParser.parsePhasesSection(phasesSection);
+        } else {
         const dataSection = PlannerParser.extractSection(projectContent, "Data") || PlannerParser.extractSection(projectContent, "Tasks");
-        const data = PlannerParser.parseTaskSection(dataSection);
+            data = PlannerParser.parseTaskSection(dataSection);
+        }
         
         const description = PlannerParser.extractFirstSection(projectContent);
         
@@ -441,7 +450,9 @@ export class TrackNoteService {
             startDate,
             endDate,
             data,
-            habits
+            habits,
+            phases,
+            hasPhases,
         };
     }
 
@@ -851,6 +862,8 @@ export class TrackNoteService {
             startDate: today,
             habits: {},
             data: [],
+            phases: [],
+            hasPhases: false,
         }
     }
 
@@ -865,6 +878,7 @@ export class TrackNoteService {
         lines.push(`id: ${project.id}`);
         lines.push(`startDate: ${project.startDate}`);
         lines.push(`endDate: ${project.endDate ?? ''}`);
+        if (project.hasPhases) lines.push('phases: true');
         lines.push('---');
         lines.push('');
 
@@ -877,6 +891,12 @@ export class TrackNoteService {
         }
         lines.push('');
 
+        if (project.hasPhases) {
+            // Phases section
+            lines.push('## Phases');
+            lines.push('');
+            lines.push(PlannerParser.serializePhasesSection(project.phases));
+        } else {
         // Data section
         lines.push('## Data');
         lines.push('');
@@ -886,6 +906,7 @@ export class TrackNoteService {
             
             for (const child of element.children) {
                 lines.push(`- ${child}`);
+                }
             }
         }
 

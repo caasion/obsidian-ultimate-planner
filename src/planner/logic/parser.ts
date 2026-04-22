@@ -1,7 +1,7 @@
 // PURPOSE: Provides tools to extract the desired section header and the information from the header section
 
 import { formatProgressDuration, formatTime } from "src/plugin/helpers";
-import type { Element, Habit, Time, Track, TrackData } from "src/plugin/types";
+import type { Element, Habit, Phase, Time, Track, TrackData } from "src/plugin/types";
 import { RRuleService } from "src/tracks/logic/rrule";
 
 export class PlannerParser {
@@ -119,6 +119,85 @@ export class PlannerParser {
         }
 
         return habits;
+    }
+
+    static parsePhasesSection(section: string): Phase[] {
+        const lines = section.split('\n');
+        const phases: Phase[] = [];
+        let current: { label: string; startDate?: string; endDate?: string; elements: Element[]; currentElement: Element | null } | null = null;
+
+        const startRegex = /^\[start::\s*(\S+)\]\s*$/;
+        const endRegex = /^\[end::\s*(\S+)\]\s*$/;
+
+        for (const line of lines) {
+            const headerMatch = line.match(/^###\s+(.*)/);
+            if (headerMatch) {
+                // Finalize previous phase
+                if (current) {
+                    if (current.currentElement) current.elements.push(current.currentElement);
+                    phases.push({
+                        id: 'phase-' + crypto.randomUUID(),
+                        label: current.label,
+                        startDate: current.startDate,
+                        endDate: current.endDate,
+                        data: current.elements,
+                    });
+                }
+                current = { label: headerMatch[1].trim(), elements: [], currentElement: null };
+                continue;
+            }
+
+            if (!current) continue;
+
+            const startMatch = line.match(startRegex);
+            if (startMatch) {
+                current.startDate = startMatch[1];
+                continue;
+            }
+
+            const endMatch = line.match(endRegex);
+            if (endMatch) {
+                current.endDate = endMatch[1];
+                continue;
+            }
+
+            // Task lines
+            if (line.match(/^- /)) {
+                if (current.currentElement) current.elements.push(current.currentElement);
+                current.currentElement = PlannerParser.parseElementLine(line);
+            } else if (line.match(/^\t- /) && current.currentElement) {
+                const text = line.replace(/^\t- /, '').trim();
+                current.currentElement.children.push(text);
+            }
+        }
+
+        // Finalize last phase
+        if (current) {
+            if (current.currentElement) current.elements.push(current.currentElement);
+            phases.push({
+                id: 'phase-' + crypto.randomUUID(),
+                label: current.label,
+                startDate: current.startDate,
+                endDate: current.endDate,
+                data: current.elements,
+            });
+        }
+
+        return phases;
+    }
+
+    static serializePhasesSection(phases: Phase[]): string {
+        let result = '';
+        for (const phase of phases) {
+            result += `### ${phase.label}\n`;
+            if (phase.startDate) result += `[start:: ${phase.startDate}]\n`;
+            if (phase.endDate) result += `[end:: ${phase.endDate}]\n`;
+            result += '\n';
+            for (const element of phase.data) {
+                result += PlannerParser.serializeProjectElement(element);
+            }
+        }
+        return result;
     }
 
     static parseTaskSection(section: string): Element[] {
