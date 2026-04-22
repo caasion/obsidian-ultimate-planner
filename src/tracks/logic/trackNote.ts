@@ -276,49 +276,68 @@ export class TrackNoteService {
         }
     }
 
+    private collectMarkdownFiles(folder: TFolder): TFile[] {
+        const markdownFiles: TFile[] = [];
+        for (const child of folder.children) {
+            if (child instanceof TFile && child.extension === "md") {
+                markdownFiles.push(child);
+                continue;
+            }
+
+            if (child instanceof TFolder) {
+                for (const nestedChild of child.children) {
+                    if (nestedChild instanceof TFile && nestedChild.extension === "md") {
+                        markdownFiles.push(nestedChild);
+                    }
+                }
+            }
+        }
+
+        return markdownFiles;
+    }
+
     private async findFilesInFolder(folder: TFolder): Promise<TrackFiles> {
         const files: TrackFiles = { id: null, track: null, activeProjectId: null, projects: {}}
+        const markdownFiles = this.collectMarkdownFiles(folder);
 
-        for (const file of folder.children) {
-            if (file instanceof TFile && file.extension === "md") {
-                let cache = this.app.metadataCache.getFileCache(file);
+        for (const file of markdownFiles) {
+            let cache = this.app.metadataCache.getFileCache(file);
 
-                if (!cache) {
-                    await new Promise<void>(resolve => {
-                        const ref = this.app.metadataCache.on('changed', (changedFile) => {
-                            if (changedFile.path === file.path) {
-                                this.app.metadataCache.offref(ref);
-                                resolve();
-                            }
-                        });
-
-                        setTimeout(() => {
+            if (!cache) {
+                await new Promise<void>(resolve => {
+                    const ref = this.app.metadataCache.on('changed', (changedFile) => {
+                        if (changedFile.path === file.path) {
                             this.app.metadataCache.offref(ref);
                             resolve();
-                        }, 1000);
-                    })
+                        }
+                    });
 
-                    cache = this.app.metadataCache.getFileCache(file);
-                }
+                    setTimeout(() => {
+                        this.app.metadataCache.offref(ref);
+                        resolve();
+                    }, 1000);
+                })
 
-                const frontmatter = cache?.frontmatter;
-                const id = frontmatter?.id ?? null;
-                if (!id) continue;
+                cache = this.app.metadataCache.getFileCache(file);
+            }
 
-                const tags = cache ? getAllTags(cache) || [] : [];
+            const frontmatter = cache?.frontmatter;
+            const id = frontmatter?.id ?? null;
+            if (!id) continue;
 
-                const isTrack = tags.includes('#holos/track') || frontmatter?.tags?.includes('holos/track');
-                const isProject = tags.includes('#holos/project') || frontmatter?.tags?.includes('holos/project');
-                
-                const isActiveProject = frontmatter?.activeProject ?? false;
+            const tags = cache ? getAllTags(cache) || [] : [];
 
-                if (isTrack) {
-                    files.id = id;
-                    files.track = file;
-                } else if (isProject) {
-                    files.projects[id] = file;
-                    if (isActiveProject) files.activeProjectId = id;
-                } 
+            const isTrack = tags.includes('#holos/track') || frontmatter?.tags?.includes('holos/track');
+            const isProject = tags.includes('#holos/project') || frontmatter?.tags?.includes('holos/project');
+            
+            const isActiveProject = frontmatter?.activeProject ?? false;
+
+            if (isTrack) {
+                files.id = id;
+                files.track = file;
+            } else if (isProject) {
+                files.projects[id] = file;
+                if (isActiveProject) files.activeProjectId = id;
             }
         }
 
@@ -770,10 +789,20 @@ export class TrackNoteService {
             const trackFolder = trackFiles.track.parent;
             if (!trackFolder) return false;
 
-            // Create project file
-            const projectFilePath = `${trackFolder.path}/${project.label}.md`;
             const projectContent = this.generateProjectContent(project);
-            await this.app.vault.create(projectFilePath, projectContent);
+
+            if (this.settings.projectNotesAsFolders) {
+                const projectFolderPath = `${trackFolder.path}/${project.label}`;
+                if (!this.app.vault.getFolderByPath(projectFolderPath)) {
+                    await this.app.vault.createFolder(projectFolderPath);
+                }
+
+                const projectFilePath = `${projectFolderPath}/${project.label}.md`;
+                await this.app.vault.create(projectFilePath, projectContent);
+            } else {
+                const projectFilePath = `${trackFolder.path}/${project.label}.md`;
+                await this.app.vault.create(projectFilePath, projectContent);
+            }
 
             await this.invalidateCache();
             return true;
@@ -892,16 +921,36 @@ export class TrackNoteService {
     /** Update project label (renames the file) */
     async updateProjectLabel(trackId: string, projectId: string, label: string): Promise<void> {
         const projectFile = this.trackFileCache[trackId]?.projects[projectId];
+        const trackFolder = this.trackFileCache[trackId]?.track?.parent;
         if (!projectFile) {
             console.warn(`Project ${projectId} not found in track ${trackId}`);
             return;
         }
+        if (!trackFolder) {
+            console.warn(`Track folder not found for track ${trackId}`);
+            return;
+        }
 
-        const newPath = `${projectFile.parent!.path}/${label}.md`;
+        const projectParent = projectFile.parent;
+        const isFolderNote = !!projectParent && projectParent.path !== trackFolder.path;
         
         this.isUpdatingInternally = true;
         try {
-            await this.app.fileManager.renameFile(projectFile, newPath);
+            if (isFolderNote && projectParent) {
+                const newProjectFolderPath = `${trackFolder.path}/${label}`;
+                await this.app.fileManager.renameFile(projectParent, newProjectFolderPath);
+
+                const renamedProjectFile = this.app.vault.getFileByPath(`${newProjectFolderPath}/${projectFile.name}`);
+                if (!renamedProjectFile) {
+                    console.warn(`Renamed project file not found for project ${projectId}`);
+                    return;
+                }
+
+                await this.app.fileManager.renameFile(renamedProjectFile, `${newProjectFolderPath}/${label}.md`);
+            } else {
+                const newPath = `${projectParent?.path ?? trackFolder.path}/${label}.md`;
+                await this.app.fileManager.renameFile(projectFile, newPath);
+            }
         } finally {
             this.isUpdatingInternally = false;
         }
@@ -1046,15 +1095,24 @@ export class TrackNoteService {
         });
     }
 
-    /** Delete a project file */
+    /** Delete a project file or folder-note directory */
     async deleteProject(trackId: string, projectId: string): Promise<void> {
         const projectFile = this.trackFileCache[trackId]?.projects[projectId];
+        const trackFolder = this.trackFileCache[trackId]?.track?.parent;
         if (!projectFile) {
             console.warn(`Project ${projectId} not found in track ${trackId}`);
             return;
         }
 
-        await this.app.vault.delete(projectFile);
+        const projectParent = projectFile.parent;
+        const isFolderNote = !!trackFolder && !!projectParent && projectParent.path !== trackFolder.path;
+
+        if (isFolderNote && projectParent) {
+            await this.app.vault.delete(projectParent, true);
+        } else {
+            await this.app.vault.delete(projectFile);
+        }
+
         await this.refreshTrack(trackId);
     }
 
