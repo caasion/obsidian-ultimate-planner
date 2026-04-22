@@ -28,6 +28,8 @@
 
 		// Phase operations
 		onPhaseAdd?: () => void;
+		onPhaseLabelEdit?: (phaseId: string, label: string) => void;
+		onPhaseDateEdit?: (phaseId: string, startDate?: ISODate, endDate?: ISODate) => void;
 		onPhaseDelete?: (phaseId: string) => void;
 		onPhaseDataAdd?: (phaseId: string) => void;
 		onPhaseDataUpdate?: (phaseId: string, index: number, updatedElement: Element) => void;
@@ -84,33 +86,37 @@
 		).open();
 	}
 
-	// Phase selection logic
-	function getDefaultPhaseId(phases: Phase[]): string | undefined {
+	// Phase expand/collapse state — default: expand the active phase
+	function getDefaultExpandedId(phases: Phase[]): string | undefined {
 		if (phases.length === 0) return undefined;
 		const today = getISODate(new Date());
 
-		// 1. Active phase
 		const active = phases.find(p => p.startDate && p.startDate <= today && (!p.endDate || p.endDate >= today));
 		if (active) return active.id;
 
-		// 2. Next future phase
 		const future = phases
 			.filter(p => p.startDate && p.startDate > today)
 			.sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? ''));
 		if (future.length > 0) return future[0].id;
 
-		// 3. Most recent past phase
-		const past = phases
-			.filter(p => p.endDate && p.endDate < today)
-			.sort((a, b) => (b.endDate ?? '').localeCompare(a.endDate ?? ''));
-		if (past.length > 0) return past[0].id;
-
-		// 4. First phase
-		return phases[0].id;
+		return phases[0]?.id;
 	}
 
-	let selectedPhaseId = $state(getDefaultPhaseId(project.phases));
-	let selectedPhase = $derived(project.phases.find(p => p.id === selectedPhaseId) ?? project.phases[0]);
+	let expandedPhaseId = $state(getDefaultExpandedId(project.phases));
+
+	function togglePhase(phaseId: string) {
+		expandedPhaseId = expandedPhaseId === phaseId ? undefined : phaseId;
+	}
+
+	function handlePhaseRangeSelect(phaseId: string, selection: unknown) {
+		const range = selection as { from?: Date; to?: Date } | undefined;
+		if (!range?.from) return;
+		projectFunctions.onPhaseDateEdit?.(
+			phaseId,
+			getISODate(range.from),
+			range.to ? getISODate(range.to) : undefined
+		);
+	}
 </script>
 
 <div class="project-card" style={`border-color: ${color};`}>
@@ -186,54 +192,62 @@
 		<!-- Phases Section -->
 		<div class="section">
 			<div class="section-header">
-				<div class="phase-header-left">
-					<h4 class="section-title">Phases</h4>
-					<span class="phase-count">{project.phases.length} phase{project.phases.length !== 1 ? 's' : ''}</span>
-				</div>
-				<div class="section-controls">
-					{#if project.phases.length > 1}
-						<select
-							class="phase-dropdown"
-							value={selectedPhaseId}
-							onchange={(e) => { selectedPhaseId = (e.target as HTMLSelectElement).value; }}
-						>
-							{#each project.phases as phase}
-								<option value={phase.id}>{phase.label}</option>
-							{/each}
-						</select>
-					{/if}
-					<button class="add-button" onclick={() => projectFunctions.onPhaseAdd?.()} title="Add a new phase">+</button>
-				</div>
+				<h4 class="section-title">Phases</h4>
+				<button class="add-button" onclick={() => projectFunctions.onPhaseAdd?.()} title="Add a new phase">+</button>
 			</div>
-			{#if selectedPhase}
-				<div class="phase-content">
-					<div class="phase-meta">
-						{#if selectedPhase.startDate || selectedPhase.endDate}
-							<span class="phase-dates">
-								{selectedPhase.startDate ?? '?'} → {selectedPhase.endDate ?? 'Present'}
-							</span>
+			{#if project.phases.length > 0}
+				{#each project.phases as phase (phase.id)}
+					{@const isExpanded = expandedPhaseId === phase.id}
+					<div class="phase-item">
+						<div class="phase-row">
+							<button class="phase-toggle" onclick={() => togglePhase(phase.id)} aria-label={isExpanded ? 'Collapse phase' : 'Expand phase'}>
+								{#if isExpanded}&#9660;{:else}&#9654;{/if}
+							</button>
+							<EditableText
+								value={phase.label}
+								onSave={(newLabel) => projectFunctions.onPhaseLabelEdit?.(phase.id, newLabel)}
+								placeholder="Phase name..."
+								class="phase-label"
+							/>
+							<div class="phase-row-right">
+								<Datepicker
+									range
+									rangeFrom={toDate(phase.startDate)}
+									rangeTo={toDate(phase.endDate)}
+									openEndedLabel="?"
+									rangeSeparator=" → "
+									onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
+									showToggleButton={false}
+									inputProps={{ readonly: true }}
+									inputClass="phase-date-input"
+								/>
+								<button
+									class="phase-delete-btn"
+									onclick={() => projectFunctions.onPhaseDelete?.(phase.id)}
+									title="Delete this phase"
+								>
+									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+								</button>
+							</div>
+						</div>
+						{#if isExpanded}
+							<div class="phase-content">
+								{#each phase.data as element, index}
+									<DataTaskElement
+										{element}
+										{index}
+										{color}
+										onUpdate={(idx, el) => projectFunctions.onPhaseDataUpdate?.(phase.id, idx, el)}
+										onToggle={(idx) => projectFunctions.onPhaseDataToggle?.(phase.id, idx)}
+										onCancel={(idx) => projectFunctions.onPhaseDataCancel?.(phase.id, idx)}
+										onDelete={(idx) => projectFunctions.onPhaseDataDelete?.(phase.id, idx)}
+									/>
+								{/each}
+								<button class="add-button phase-add-task" onclick={() => projectFunctions.onPhaseDataAdd?.(phase.id)} title="Add task to phase">+ Task</button>
+							</div>
 						{/if}
-						<button
-							class="icon-button phase-delete-btn"
-							onclick={() => projectFunctions.onPhaseDelete?.(selectedPhase.id)}
-							aria-label="Delete phase"
-						>
-							<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-						</button>
 					</div>
-					{#each selectedPhase.data as element, index}
-						<DataTaskElement
-							{element}
-							{index}
-							{color}
-							onUpdate={(idx, el) => projectFunctions.onPhaseDataUpdate?.(selectedPhase.id, idx, el)}
-							onToggle={(idx) => projectFunctions.onPhaseDataToggle?.(selectedPhase.id, idx)}
-							onCancel={(idx) => projectFunctions.onPhaseDataCancel?.(selectedPhase.id, idx)}
-							onDelete={(idx) => projectFunctions.onPhaseDataDelete?.(selectedPhase.id, idx)}
-						/>
-					{/each}
-					<button class="add-button phase-add-task" onclick={() => projectFunctions.onPhaseDataAdd?.(selectedPhase.id)} title="Add task to phase">+ Task</button>
-				</div>
+				{/each}
 			{:else}
 				<div class="section-empty-state">No phases yet. Click + to add one.</div>
 			{/if}
@@ -420,52 +434,92 @@
     background: var(--background-modifier-hover);
   }
 
-  .phase-header-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .phase-count {
-    font-size: 0.8em;
-    color: var(--text-faint);
-  }
-
   .section-controls {
     display: flex;
     align-items: center;
     gap: 6px;
   }
 
-  .phase-dropdown {
-    font-size: 0.82em;
-    padding: 2px 6px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    background: var(--background-secondary);
-    color: var(--text-normal);
-    cursor: pointer;
-    max-width: 160px;
+  .phase-item {
+    border-bottom: 1px solid var(--background-modifier-border);
   }
 
-  .phase-content {
+  .phase-item:last-child {
+    border-bottom: none;
+  }
+
+  .phase-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     padding: 4px 0;
   }
 
-  .phase-meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
+  .phase-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: 0.7em;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    line-height: 1;
   }
 
-  .phase-dates {
-    font-size: 0.8em;
+  .phase-toggle:hover {
+    color: var(--text-normal);
+  }
+
+  :global(.phase-label) {
+    font-size: 0.9em;
+    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .phase-row-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  :global(.phase-date-input) {
+    width: auto;
+    max-width: 160px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    text-align: right;
+    cursor: pointer;
+    font-size: 0.78em;
     color: var(--text-muted);
   }
 
+  :global(.phase-date-input:hover) {
+    color: var(--text-normal);
+  }
+
   .phase-delete-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
     padding: 2px 4px;
+    border-radius: 3px;
+    opacity: 0.6;
+    transition: opacity 0.15s, color 0.15s;
+    display: flex;
+    align-items: center;
+  }
+
+  .phase-delete-btn:hover {
+    opacity: 1;
+    color: var(--text-error);
+  }
+
+  .phase-content {
+    padding: 2px 0 6px 22px;
   }
 
   .phase-add-task {
