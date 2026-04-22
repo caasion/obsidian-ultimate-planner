@@ -107,8 +107,8 @@ export class PlannerParser {
                 rrule = RRuleService.parseRRule(rruleContent);
             }
 
-            // Generate ID from label (lowercase, replace spaces with hyphens)
-            const id = 'habit-' + crypto.randomUUID();
+            // Generate stable index-based ID so re-parses don't create duplicates
+            const id = `habit-${Object.keys(habits).length}`;
             
             habits[id] = {
                 id,
