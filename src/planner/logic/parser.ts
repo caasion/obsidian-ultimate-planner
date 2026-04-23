@@ -97,12 +97,13 @@ export class PlannerParser {
             let label: string = text;
             let rrule: string = '';
             
-            // Extract rrule from pattern: Label (FREQ=DAILY;BYDAY=MO,WE,FR)
-            const rruleRegex = /\[([^\]]*)\]\s*$/;
+            // Extract rrule from either [ ... ] or ( ... ) suffixes.
+            const rruleRegex = /\(([^)]*)\)\s*$/;
 
             const rruleMatch = text.match(rruleRegex);
             if (rruleMatch) {
-                const [fullMatch, rruleContent] = rruleMatch;
+                const [fullMatch, , bracketContent] = rruleMatch;
+                const rruleContent = bracketContent ?? '';
                 label = text.replace(fullMatch, '').trim();
                 rrule = RRuleService.parseRRule(rruleContent);
             }
