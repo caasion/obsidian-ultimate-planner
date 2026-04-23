@@ -151,12 +151,13 @@
                 </div>
             {/if}
         </div>
-
+        {#if trackData}
         <button
             class="add-button"
             onclick={() => addNewElement(true)}
             title="Add new item"
         >+</button>
+        {/if}
     </div>
 
     {#if trackData}
@@ -187,6 +188,11 @@
     {:else}
         <div class="empty-cell">
             <div class="section-empty-state">No items yet.</div>
+            <button 
+                class="add-button-empty" 
+                onclick={() => addNewElement(true)}
+                title="Add new item"
+            >+ Add</button>
         </div>
     {/if}
 </div>
@@ -248,6 +254,21 @@
         background: var(--background-modifier-hover);
     }
 
+    .add-button-empty {
+		padding: 4px 12px;
+        background: transparent;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 0.85em;
+        transition: all 0.2s;
+        opacity: 0.8;
+    }
+
+    .add-button-empty:hover {
+        opacity: 1;
+        background: var(--background-modifier-hover);
+    }
+
     .item-data-container {
         grid-column: 2;
         display: flex;
@@ -285,22 +306,6 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        padding: 12px 8px;
         flex: 1;
-    }
-
-    .add-new-btn {
-        padding: 4px 12px;
-        background: transparent;
-        border: 1px dashed;
-        cursor: pointer;
-        border-radius: 4px;
-        font-size: 0.85em;
-        transition: all 0.2s;
-    }
-
-    .add-new-btn:hover {
-        opacity: 0.8;
     }
 </style>
