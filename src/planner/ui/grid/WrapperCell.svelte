@@ -1,8 +1,10 @@
 <script lang="ts">
-    import type { Element, ISODate, Track, TrackData } from 'src/plugin/types';
+    import type { Element, Habit, ISODate, Track, TrackData } from 'src/plugin/types';
     import TaskElement from './TaskElement.svelte';
+    import HabitPreviewElement from './HabitPreviewElement.svelte';
     import CircularProgress from './CircularProgress.svelte';
     import { calculateTotalTimeSpent, formatTimeArguments, reconstructRawText } from 'src/plugin/helpers';
+    import { RRuleService } from 'src/tracks/logic/rrule';
     import { dndzone } from 'svelte-dnd-action';
     import { flip } from 'svelte/animate';
 
@@ -14,7 +16,7 @@
         trackData: TrackData | undefined;
         journalData: string | undefined;
         onUpdate: (date: ISODate, trackId: string, updatedData: TrackData) => void;
-        onAdd: (date: ISODate, trackId: string, trackMeta: Track) => void;
+        onAdd: (date: ISODate, trackId: string, trackMeta: Track, items?: Element[]) => void;
         onTrackOpen?: (trackId: string) => void;
         onTrackFileOpen?: (trackId: string) => void;
     }
@@ -23,6 +25,50 @@
 
     const totalTimeSpent = $derived(trackData ? calculateTotalTimeSpent(trackData.items) : 0);
     const totalTimeCommitment = $derived(trackData ? trackData.time ? trackData.time : trackMeta.timeCommitment : trackMeta.timeCommitment);
+
+    // Compute habits that occur on this date from the track's projects
+    interface HabitPreview {
+        habit: Habit;
+        projectLabel: string;
+        projectId: string;
+    }
+
+    let dismissedHabits = $state<Set<string>>(new Set());
+
+    const habitsForDate = $derived.by(() => {
+        const habits: HabitPreview[] = [];
+        for (const project of Object.values(trackMeta.projects)) {
+            for (const habit of Object.values(project.habits)) {
+                if (RRuleService.occursOn(habit.rrule, date, project.startDate)) {
+                    habits.push({ habit, projectLabel: project.label, projectId: project.id });
+                }
+            }
+        }
+        return habits;
+    });
+
+    const visibleHabits = $derived(
+        habitsForDate.filter(h => !dismissedHabits.has(`${h.projectId}-${h.habit.id}`))
+    );
+
+    function dismissHabit(projectId: string, habitId: string) {
+        dismissedHabits = new Set([...dismissedHabits, `${projectId}-${habitId}`]);
+    }
+
+    function insertHabits() {
+        const items: Element[] = visibleHabits.map(({ habit, projectLabel }) => {
+            const text = `↻ ${habit.label} [[${projectLabel}]]`;
+            const raw = reconstructRawText(text, true, ' ', undefined, undefined, undefined, undefined);
+            return {
+                raw,
+                text,
+                children: [],
+                isTask: true,
+                taskStatus: ' ' as const,
+            };
+        });
+        onAdd(date, trackId, trackMeta, items);
+    }
 
     function handleLabelClick(event: MouseEvent) {
         if (event.ctrlKey || event.metaKey) {
@@ -187,12 +233,30 @@
         </div>
     {:else}
         <div class="empty-cell">
-            <div class="section-empty-state">No items yet.</div>
-            <button 
-                class="add-button-empty" 
-                onclick={() => addNewElement(true)}
-                title="Add new item"
-            >+ Add</button>
+            {#if visibleHabits.length > 0}
+                <div class="habit-preview-list">
+                    {#each visibleHabits as { habit, projectLabel, projectId }}
+                        <HabitPreviewElement
+                            {habit}
+                            {projectLabel}
+                            color={trackMeta.color}
+                            onDismiss={() => dismissHabit(projectId, habit.id)}
+                        />
+                    {/each}
+                </div>
+                <button
+                    class="add-button-empty"
+                    onclick={insertHabits}
+                    title="Insert habits into daily note"
+                >+ Insert Habit{visibleHabits.length > 1 ? 's' : ''}</button>
+            {:else}
+                <div class="section-empty-state">No items yet.</div>
+                <button
+                    class="add-button-empty"
+                    onclick={() => addNewElement(true)}
+                    title="Add new item"
+                >+ Add</button>
+            {/if}
         </div>
     {/if}
 </div>
@@ -307,5 +371,9 @@
         align-items: center;
         justify-content: center;
         flex: 1;
+    }
+
+    .habit-preview-list {
+        width: 100%;
     }
 </style>

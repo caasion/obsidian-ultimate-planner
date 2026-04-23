@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { App } from "obsidian";
-	import type { ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
+	import type { Element, ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
 	import { DailyNoteService } from "src/planner/logic/dailyNote";
 	import { getISODate, getISODates, getLabelFromDateRange, addDaysISO } from "src/plugin/helpers";
 	import Topbar from "src/components/Topbar.svelte";
@@ -96,8 +96,8 @@
 	}
 
 	// Add new track to an empty cell
-	async function addNewTrackToCell(date: ISODate, trackId: string, trackMeta: Track) {
-		await dailyNoteService.addNewTrackToCell(date, trackId, trackMeta.timeCommitment);
+	async function addNewTrackToCell(date: ISODate, trackId: string, trackMeta: Track, items?: Element[]) {
+		await dailyNoteService.addNewTrackToCell(date, trackId, trackMeta.timeCommitment, items);
 	}
 
 	// Open daily note for a specific date

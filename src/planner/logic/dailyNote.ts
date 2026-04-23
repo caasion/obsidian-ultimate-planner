@@ -200,7 +200,7 @@ export class DailyNoteService {
     }
 
     /** Add a new item to an empty cell */
-    async addNewTrackToCell(date: ISODate, trackId: string, timeCommitment?: number): Promise<boolean> {
+    async addNewTrackToCell(date: ISODate, trackId: string, timeCommitment?: number, initialItems?: Element[]): Promise<boolean> {
         // Check if daily note exists
         let dailyNoteFile = getDailyNote(moment(date), getAllDailyNotes());
         
@@ -222,7 +222,7 @@ export class DailyNoteService {
         const newTrackData: TrackData = {
             id: trackId,
             time: timeCommitment ?? 0,
-            items: [{
+            items: initialItems ?? [{
                 raw: "New Item",
                 text: "New Item",
                 children: [],
