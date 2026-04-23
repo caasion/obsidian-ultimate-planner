@@ -69,6 +69,12 @@
             {/if}
         </div>
 
+        <button 
+            class="add-button" 
+            onclick={() => addNewElement(true)}
+            title="Add new item"
+        >+</button>
+
     </div>
 
 {#if trackData}
@@ -108,8 +114,31 @@
 
     .cell-header {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 1fr auto auto;
         width: 100%;
+    }
+
+    .add-button {
+		background: transparent;
+        color: var(--text-muted);
+        border: none;
+        border-radius: 25%;
+        width: 24px;
+        height: 24px;
+        font-size: 1.2em;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        line-height: 1;
+        transition: opacity 0.2s ease;
+        opacity: 0.8;
+    }
+
+    .add-button:hover {
+        opacity: 1;
+        background: var(--background-modifier-hover);
     }
 
     .item-data-container {

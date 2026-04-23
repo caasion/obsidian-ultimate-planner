@@ -204,10 +204,7 @@
 		
 	{/each}
   </div>
-    <div class="add-btn-container">
-        <button class="add-btn" onclick={() => addNewElement(false)}>+ Add Event</button>
-        <button class="add-btn" onclick={() => addNewElement(true)}>+ Add Task</button>
-    </div>
+        
 	
 </div>
 
@@ -215,28 +212,6 @@
 	.editable-cell {
 		min-height: 40px;
 		width: 100%;
-	}
-
-	.add-btn-container {
-		display: flex;
-	}
-
-	.add-btn {
-		width: 100%;
-		padding: 4px;
-		margin-top: 4px;
-		background: transparent;
-		border: 1px dashed var(--background-modifier-border);
-		color: var(--text-muted);
-		cursor: pointer;
-		border-radius: 2px;
-		font-size: 0.9em;
-	}
-
-	.add-btn:hover {
-		background-color: var(--background-modifier-hover);
-		border-color: var(--interactive-accent);
-		color: var(--text-normal);
 	}
 
 	.row-label {
