@@ -94,8 +94,8 @@
     }
   }}
 >
-  <span class="label">{phase.label}</span>
   <span class="project-label">{projectLabel}</span>
+  <span class="label">{phase.label}</span>
 </div>
 
 {#if expanded}
@@ -132,8 +132,8 @@
 <style>
   .phase-bar {
     position: absolute;
-    background: color-mix(in srgb, var(--phase-color) 15%, var(--background-primary));
-    border: 1px solid color-mix(in srgb, var(--phase-color) 40%, transparent);
+    background: var(--background-primary);
+    border: 1px solid var(--text-faint);
     border-left: 3px solid var(--phase-color);
     border-radius: 4px;
     cursor: pointer;
@@ -159,9 +159,8 @@
   .label {
     position: relative;
     z-index: 2;
-    font-size: 0.72em;
-    font-weight: 600;
-    color: var(--text-normal);
+    font-size: 0.65em;
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: visible;
     pointer-events: none;
@@ -170,8 +169,9 @@
   .project-label {
     position: relative;
     z-index: 2;
-    font-size: 0.65em;
-    color: var(--text-muted);
+    font-size: 0.78em;
+    font-weight: 600;
+    color: var(--text-normal);
     white-space: nowrap;
     overflow: visible;
     pointer-events: none;
