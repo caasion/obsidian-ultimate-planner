@@ -122,6 +122,13 @@
 		await trackNoteService.openTrackFile(trackId);
 	}
 
+	async function handleCloseProjectTask(trackId: string, sourceRef: string) {
+		const match = sourceRef.match(/\[\[[^\]]+#\^([a-zA-Z0-9]+)\]\]/);
+		if (!match) return;
+		const blockId = match[1];
+		await trackNoteService.closeProjectTaskByBlockId(trackId, blockId);
+	}
+
 </script>
 
 <div class="planner-container">
@@ -165,6 +172,7 @@
 		{openDailyNote}
 		onTrackOpen={handleTrackOpen}
 		onTrackFileOpen={handleTrackFileOpen}
+		onCloseProjectTask={handleCloseProjectTask}
 	/>
 </div>
 

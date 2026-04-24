@@ -16,9 +16,10 @@
         openDailyNote: (date: ISODate) => void;
         onTrackOpen?: (trackId: string) => void;
         onTrackFileOpen?: (trackId: string) => void;
+        onCloseProjectTask?: (trackId: string, sourceRef: string) => void;
     }
 
-    let { dates, tracksByDate, parsedTracks, parsedContent, parsedJournalContent, columns, blocks, onUpdate, onAdd, openDailyNote, onTrackOpen, onTrackFileOpen }: Props = $props();
+    let { dates, tracksByDate, parsedTracks, parsedContent, parsedJournalContent, columns, blocks, onUpdate, onAdd, openDailyNote, onTrackOpen, onTrackFileOpen, onCloseProjectTask }: Props = $props();
 
     function getRows(blockDates: ISODate[]): number {
         const maxTracks = Math.max(...blockDates.map((date) => tracksByDate[date]?.length ?? 0), 0);
@@ -59,6 +60,7 @@
                         onAdd={onAdd}
                         {onTrackOpen}
                         {onTrackFileOpen}
+                        {onCloseProjectTask}
                     />
                 {/if}
             {:else}

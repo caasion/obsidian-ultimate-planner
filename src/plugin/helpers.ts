@@ -166,14 +166,17 @@ export function reconstructRawText(
     progress: number | undefined,
     duration: number | undefined,
     timeUnit: 'min' | 'hr' | undefined,
-    prefix: string = '\t- '
+    prefix: string = '\t- ',
+    sourceRef?: string,
+    scheduledDate?: ISODate,
+    blockId?: string,
 ): string {
     let raw = prefix;
 
     if (isTask && taskStatus) {
         raw += `[${taskStatus}] `;
     }
-    
+
     raw += text.trim();
 
     if (startTime) {
@@ -184,5 +187,23 @@ export function reconstructRawText(
         raw += ' ' + formatProgressDuration(progress, duration, timeUnit);
     }
 
+    if (sourceRef) {
+        raw += ' ' + sourceRef;
+    }
+
+    if (scheduledDate) {
+        raw += ` 📅 ${scheduledDate}`;
+    }
+
+    // Block ID must be absolute last (Obsidian requirement)
+    if (blockId) {
+        raw += ` ^${blockId}`;
+    }
+
     return raw;
-} 
+}
+
+/** Generates a random Obsidian-compatible block ID. */
+export function generateBlockId(): string {
+    return Math.random().toString(36).substring(2, 7);
+}

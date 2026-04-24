@@ -12,9 +12,10 @@
 		onDelete: (index: number) => void;
 		onToggle: (index: number) => void;
 		onCancel: (index: number) => void;
+		onCloseProjectTask?: (index: number) => void;
 	}
 
-	let { element, index, color, onUpdate, onDelete, onToggle, onCancel }: TaskElementProps = $props();
+	let { element, index, color, onUpdate, onDelete, onToggle, onCancel, onCloseProjectTask }: TaskElementProps = $props();
 
 	let isEditing = $state<boolean>(false);
 	let editText = $state<string>("");
@@ -53,6 +54,16 @@
 		let progress: number | undefined;
 		let duration: number | undefined;
 		let timeUnit: 'min' | 'hr' | undefined;
+		let sourceRef: string | undefined = element.sourceRef;
+
+		// Extract source reference: [[File#^blockId]]
+		const sourceRefRegex = /(\[\[[^\]]+#\^[a-zA-Z0-9]+\]\])/;
+		const sourceRefMatch = editText.match(sourceRefRegex);
+		if (sourceRefMatch) {
+			const [fullMatch, ref] = sourceRefMatch;
+			editText = editText.replace(fullMatch, '').trim();
+			sourceRef = ref;
+		}
 
 		const taskStatusRegex = /^\[([ x-])\]/;
 		const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
@@ -91,6 +102,7 @@
 			progress,
 			duration,
 			timeUnit,
+			sourceRef,
 		}
 		
 		onUpdate(index, updatedElement);
@@ -132,15 +144,15 @@
 			/>
 		{:else}
 			<div class="element-content" ondblclick={startEdit} role="button" tabindex="0">
-				<div class="element-checkbox-container">
+				<div class="element-checkbox-container" class:wide={!!element.sourceRef && !!element.taskStatus}>
 					{#if element.taskStatus == "x" && element.duration && element.timeUnit}
 						<button
 							onclick={toggleTask}
 							class="invisible-button"
 						>
-							<CircularProgress 
+							<CircularProgress
 								progress={element.progress}
-								duration={element.duration} 
+								duration={element.duration}
 								unit={element.timeUnit}
 								size={20}
 							/>
@@ -153,7 +165,18 @@
 							onchange={toggleTask}
 							use:longpress={500}
 							class="task-checkbox"
+							title="Mark session done"
 						/>
+						{#if element.sourceRef}
+							<input
+								type="checkbox"
+								checked={element.taskStatus == "x"}
+								onchange={() => onCloseProjectTask?.(index)}
+								class="task-checkbox project-checkbox"
+								style={`box-shadow: 0 0 0 2px ${color};`}
+								title="Mark task done in project"
+							/>
+						{/if}
 					{/if}
 				</div>
 				<span 
@@ -217,11 +240,20 @@
 
 	.element-checkbox-container {
 		height: 20px;
-		width: 20px;
+		min-width: 20px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
+		gap: 3px;
+	}
+
+	.element-checkbox-container.wide {
+		min-width: 44px;
+	}
+
+	.project-checkbox {
+		border-radius: 50%;
 	}
 
 	.task-checkbox {

@@ -1,7 +1,7 @@
 // PURPOSE: Provides tools to extract the desired section header and the information from the header section
 
 import { formatProgressDuration, formatTime } from "src/plugin/helpers";
-import type { Element, Habit, Phase, Time, Track, TrackData } from "src/plugin/types";
+import type { Element, Habit, ISODate, Phase, Time, Track, TrackData } from "src/plugin/types";
 import { RRuleService } from "src/tracks/logic/rrule";
 
 export class PlannerParser {
@@ -320,6 +320,36 @@ export class PlannerParser {
 		let progress: number | undefined;
 		let duration: number | undefined;
 		let timeUnit: 'min' | 'hr' | undefined;
+		let blockId: string | undefined;
+		let scheduledDate: ISODate | undefined;
+		let sourceRef: string | undefined;
+
+		// Extract block ID at end of line (must be last): ^xxxxx
+		const blockIdRegex = /\s\^([a-zA-Z0-9]+)$/;
+		const blockIdMatch = text.match(blockIdRegex);
+		if (blockIdMatch) {
+			const [fullMatch, id] = blockIdMatch;
+			text = text.replace(fullMatch, '').trim();
+			blockId = id;
+		}
+
+		// Extract scheduled date: 📅 YYYY-MM-DD
+		const scheduledDateRegex = /📅\s*(\d{4}-\d{2}-\d{2})/;
+		const scheduledDateMatch = text.match(scheduledDateRegex);
+		if (scheduledDateMatch) {
+			const [fullMatch, date] = scheduledDateMatch;
+			text = text.replace(fullMatch, '').trim();
+			scheduledDate = date as ISODate;
+		}
+
+		// Extract source reference: [[File#^blockId]]
+		const sourceRefRegex = /(\[\[[^\]]+#\^[a-zA-Z0-9]+\]\])/;
+		const sourceRefMatch = text.match(sourceRefRegex);
+		if (sourceRefMatch) {
+			const [fullMatch, ref] = sourceRefMatch;
+			text = text.replace(fullMatch, '').trim();
+			sourceRef = ref;
+		}
 
 		const taskStatusRegex = /^\[([ x-])\]/;
 		const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
@@ -351,14 +381,17 @@ export class PlannerParser {
 
 		return {
 			raw: line,
-			text,
+			text: text.trim(),
 			children: [],
 			isTask,
 			taskStatus,
-			startTime, 
+			startTime,
 			progress,
 			duration,
 			timeUnit,
+			blockId,
+			scheduledDate,
+			sourceRef,
 		};
     }
 
@@ -383,23 +416,33 @@ export class PlannerParser {
 
 		const { text, children, isTask, taskStatus, startTime, progress, duration, timeUnit } = element;
 
-		if (isTask) 
+		if (isTask)
 			line += `[${taskStatus}] `
-        
+
         line += text.trim();
 
 		if (startTime)
 			line += ' @ ' + formatTime(startTime);
 
-		if (duration && timeUnit) 
+		if (duration && timeUnit)
 			line += ' ' + formatProgressDuration(progress, duration, timeUnit);
+
+		if ('sourceRef' in element && element.sourceRef)
+			line += ' ' + element.sourceRef;
+
+		if ('scheduledDate' in element && element.scheduledDate)
+			line += ` 📅 ${element.scheduledDate}`;
+
+		// Block ID must be absolute last on the line (Obsidian requirement)
+		if ('blockId' in element && element.blockId)
+			line += ` ^${element.blockId}`;
 
 		let result = line + `\n`;
 
 		for (const child of children) {
             result += `${childPrefix}${child}\n`;
         }
-        
+
         return result;
     }
     
