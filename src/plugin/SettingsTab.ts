@@ -106,6 +106,20 @@ export class HolosSettingsTab extends PluginSettingTab {
                         await this.plugin.queueSave();
                     })
             )
+
+        new Setting(containerEl).setName('Track Settings').setHeading();
+
+        new Setting(containerEl)
+            .setName('Create projects as folder notes')
+            .setDesc('When enabled, new projects are created as <Project>/<Project>.md. Existing projects continue to work in either format.')
+            .addToggle((toggle) => {
+                toggle
+                    .setValue(this.plugin.settings.projectNotesAsFolders)
+                    .onChange(async (value) => {
+                        this.plugin.settings.projectNotesAsFolders = value;
+                        await this.plugin.queueSave();
+                    });
+            });
         
         new Setting(containerEl).setName('Remote Calendar').setHeading();
 

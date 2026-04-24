@@ -14,6 +14,7 @@
     packProjectsIntoRows,
   } from "../logic/ganttUtils";
   import GanttProjectBar from "./GanttProjectBar.svelte";
+  import GanttPhaseBar from "./GanttPhaseBar.svelte";
 
   interface Props {
     track: Track;
@@ -36,12 +37,16 @@
   }: Props = $props();
 
   const today = $derived(getISODate(new Date()));
-  const packed = $derived(
+  const packResult = $derived(
     packProjectsIntoRows(track.projects, viewportStart, viewportEnd)
   );
-  const numRows = $derived(
-    packed.length === 0 ? 0 : Math.max(...packed.map((p) => p.row)) + 1
-  );
+  const packed = $derived(packResult.packedProjects);
+  const packedPhases = $derived(packResult.packedPhases);
+  const numRows = $derived.by(() => {
+    const projectRows = packed.length === 0 ? 0 : Math.max(...packed.map((p) => p.row)) + 1;
+    const phaseRows = packedPhases.length === 0 ? 0 : Math.max(...packedPhases.map((p) => p.row)) + 1;
+    return Math.max(projectRows, phaseRows);
+  });
   const trackHeight = $derived(calcTrackHeight(numRows));
   const totalWidth = $derived(
     getViewportWidth(viewportStart, viewportEnd, pxPerDay)
@@ -144,6 +149,18 @@
       color={track.color}
       projectFunctions={createProjectFunctions(project.id)}
       createHabitFunctions={createHabitFunctions(project.id)}
+    />
+  {/each}
+
+  <!-- Phase bars -->
+  {#each packedPhases as { phase, projectLabel, row }}
+    <GanttPhaseBar
+      {phase}
+      {projectLabel}
+      {row}
+      {viewportStart}
+      {pxPerDay}
+      color={track.color}
     />
   {/each}
 </div>

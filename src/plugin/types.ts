@@ -49,15 +49,25 @@ export interface Habit {
 	rrule: string;
 }
 
+export interface Phase {
+	id: string;
+	label: string;
+	startDate?: ISODate;
+	endDate?: ISODate;
+	data: Element[];
+}
+
 export interface Project {
 	id: string
 	label: string;
 	description: string;
 	startDate: ISODate;
     endDate?: ISODate;
-    habits: Record<string, Habit>; 
+    habits: Record<string, Habit>;
     data: Element[];
-    
+	phases: Phase[];
+	hasPhases: boolean;
+
     file?: TFile;
 }
 
@@ -161,6 +171,7 @@ export interface PluginSettings {
 
     /* Track Settings */
     trackFolder: string;
+    projectNotesAsFolders: boolean;
 
     /* Developer Mode */
     debug: boolean;
@@ -176,6 +187,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     sectionHeading: "Holos",
 
     trackFolder: "Tracks",
+    projectNotesAsFolders: false,
 
     refreshRemoteMs: 5 * 60 * 1000,
     lookaheadDays: 14,
