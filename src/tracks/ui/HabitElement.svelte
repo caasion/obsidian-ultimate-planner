@@ -88,11 +88,13 @@
 			<div class="element-content" ondblclick={startEdit} role="button" tabindex="0">
 				<span>↻ {habit.label}</span>
 
+				{#if habit.rrule !== ""}
 				<div class="time-badge-container">
 					<div class="time-badge" style={`background-color: ${color}80;`}>
 						{RRuleService.formatRRule(habit.rrule)}
 					</div>
 				</div>
+				{/if}
 			</div>
 			<button class="delete-btn" onclick={habitFunctions.onDelete} title="Delete">×</button>
 		{/if}

@@ -281,7 +281,7 @@ export class RRuleService {
 
     static parseRRule(readableRRule: string): string {
         const trimmed = readableRRule.trim();
-        if (!trimmed) return 'FREQ=DAILY';
+        if (!trimmed) return '';
 
         if (/\bFREQ\s*=\s*/i.test(trimmed)) {
             return RRuleService.serializeRRule(RRuleService.parseRRuleString(trimmed));
