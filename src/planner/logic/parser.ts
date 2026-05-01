@@ -97,7 +97,7 @@ export class PlannerParser {
             let label: string = text;
             let rrule: string = '';
             
-            // Extract rrule from either [ ... ] or ( ... ) suffixes.
+            // Extract rrule from ( ... ) suffix.
             const rruleRegex = /\(([^)]*)\)\s*$/;
 
             const rruleMatch = text.match(rruleRegex);

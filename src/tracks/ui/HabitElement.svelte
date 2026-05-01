@@ -39,7 +39,7 @@
 		let label: string = editText;
 		let rrule: string = habit.rrule; // Default to existing rrule
 
-		const rruleRegex = /\[([^\]]*)\]\s*$/;
+		const rruleRegex = /\(([^\]]*)\)\s*$/;
 
 		const rruleMatch = editText.match(rruleRegex);
 		if (rruleMatch) {
