@@ -158,23 +158,25 @@
 							/>
 						</button>
 					{:else if element.taskStatus}
-						<input
-							bind:this={checkboxRef}
-							type="checkbox"
-							checked={element.taskStatus == "x"}
-							onchange={toggleTask}
-							use:longpress={500}
-							class="task-checkbox"
-							title="Mark session done"
-						/>
+						
 						{#if element.sourceRef}
 							<input
 								type="checkbox"
 								checked={element.taskStatus == "x"}
 								onchange={() => onCloseProjectTask?.(index)}
-								class="task-checkbox project-checkbox"
+								class="task-checkbox"
 								style={`box-shadow: 0 0 0 2px ${color};`}
 								title="Mark task done in project"
+							/>
+						{:else}
+							<input
+								bind:this={checkboxRef}
+								type="checkbox"
+								checked={element.taskStatus == "x"}
+								onchange={toggleTask}
+								use:longpress={500}
+								class="task-checkbox"
+								title="Mark session done"
 							/>
 						{/if}
 					{/if}
@@ -250,10 +252,6 @@
 
 	.element-checkbox-container.wide {
 		min-width: 44px;
-	}
-
-	.project-checkbox {
-		border-radius: 50%;
 	}
 
 	.task-checkbox {
