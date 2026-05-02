@@ -126,6 +126,7 @@
       onPhaseAdd: () => trackNoteService.addProjectPhase(trackId, projectId),
       onPhaseLabelEdit: (phaseId, label) => trackNoteService.updateProjectPhaseLabel(trackId, projectId, phaseId, label),
       onPhaseDelete: (phaseId) => trackNoteService.deleteProjectPhase(trackId, projectId, phaseId),
+      onPhaseReorder: (fromIndex, toIndex) => trackNoteService.reorderProjectPhase(trackId, projectId, fromIndex, toIndex),
       onPhaseDataAdd: (phaseId) => trackNoteService.addPhaseData(trackId, projectId, phaseId),
       onPhaseDataUpdate: (phaseId, index, el) => trackNoteService.updatePhaseData(trackId, projectId, phaseId, index, el),
       onPhaseDataToggle: (phaseId, index) => trackNoteService.togglePhaseData(trackId, projectId, phaseId, index),

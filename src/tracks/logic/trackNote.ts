@@ -1552,6 +1552,19 @@ export class TrackNoteService {
         );
     }
 
+    /** Reorder a phase within a project */
+    async reorderProjectPhase(trackId: string, projectId: string, fromIndex: number, toIndex: number): Promise<void> {
+        await this.mutatePhases(trackId, projectId, (phases) => {
+            if (fromIndex < 0 || fromIndex >= phases.length || toIndex < 0 || toIndex >= phases.length || fromIndex === toIndex) {
+                return phases; // No valid move
+            }
+            const newPhases = [...phases];
+            const [movedItem] = newPhases.splice(fromIndex, 1);
+            newPhases.splice(toIndex, 0, movedItem);
+            return newPhases;
+        });
+    }
+
     /** Add a task to a specific phase */
     async addPhaseData(trackId: string, projectId: string, phaseId: string): Promise<void> {
         const newElement: Element = {
