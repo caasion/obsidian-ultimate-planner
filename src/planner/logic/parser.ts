@@ -136,6 +136,7 @@ export class PlannerParser {
                 // Finalize previous phase
                 if (current) {
                     if (current.currentElement) current.elements.push(current.currentElement);
+                    
                     phases.push({
                         id: `phase-${phases.length}`,
                         label: current.label,
@@ -175,6 +176,7 @@ export class PlannerParser {
         // Finalize last phase
         if (current) {
             if (current.currentElement) current.elements.push(current.currentElement);
+            
             phases.push({
                 id: `phase-${phases.length}`,
                 label: current.label,

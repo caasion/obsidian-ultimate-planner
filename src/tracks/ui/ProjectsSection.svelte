@@ -30,18 +30,32 @@
   let activeProjects = $derived.by(() => {
     const today = getISODate(new Date());
     return Object.values(projects).filter(project => {
-      const isAfterStart = today >= project.startDate;
-      const isBeforeEnd = !project.endDate || today <= project.endDate;
-      return isAfterStart && isBeforeEnd;
+      if (!project.hasPhases) {
+        return today >= project.startDate && (project.endDate ? today <= project.endDate : true) 
+      } else {
+        const activeByDate = project.phases.find(p => 
+          p.startDate && p.startDate <= today && 
+          (!p.endDate || p.endDate >= today)
+        );
+        if (activeByDate) return true;
+      }
+      return false;
     });
   });
 
   let inactiveProjects = $derived.by(() => {
     const today = getISODate(new Date());
     return Object.values(projects).filter(project => {
-      const isAfterStart = today >= project.startDate;
-      const isBeforeEnd = !project.endDate || today <= project.endDate;
-      return !(isAfterStart && isBeforeEnd);
+      if (!project.hasPhases) {
+        return !(today >= project.startDate && (project.endDate ? today <= project.endDate : true) )
+      } else {
+        const activeByDate = project.phases.find(p => 
+          p.startDate && p.startDate <= today && 
+          (!p.endDate || p.endDate >= today)
+        );
+        if (activeByDate) return false;
+      }
+      return true;
     });
   });
 
@@ -88,13 +102,15 @@
   <div class="projects-section">
     {#if displayedProjects.length > 0}
       {#each displayedProjects as project}
-        <ProjectCard
-          {app}
-          project={project}
-          color={color}
-          projectFunctions={createProjectFunctions(project.id)}
-          createHabitFunctions={createHabitFunctions(project.id)}
-        />
+        <div class="project-card">
+          <ProjectCard
+            {app}
+            project={project}
+            color={color}
+            projectFunctions={createProjectFunctions(project.id)}
+            createHabitFunctions={createHabitFunctions(project.id)}
+          />
+        </div>
       {/each}
     {:else}
       <div class="section-empty-state">
@@ -189,14 +205,18 @@
   }
 
   .projects-section {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-column-gap: 8px;
-    grid-row-gap: 12px;
+    display: flex;
+    overflow-x: auto;
     overflow-y: auto;
     min-height: 0;
-    flex: 1;
-    padding-right: 4px;
+    padding-bottom: 8px;
+    gap: 8px;
+  }
+
+  .project-card {
+    flex: 0 0 max(400px, 32%);
+    display: flex;
+    flex-direction: column;
   }
 
   .section-empty-state {

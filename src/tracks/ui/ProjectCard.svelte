@@ -9,6 +9,8 @@
 	import DataTaskElement from "./DataTaskElement.svelte";
 	import type { App } from "obsidian";
 	import { ConfirmationModal } from "src/plugin/ConfirmationModal";
+	import { dndzone } from "svelte-dnd-action";
+	import { flip } from "svelte/animate";
 
 	export interface ProjectCardFunctions {
 		onLabelEdit: (label: string) => void;
@@ -31,6 +33,7 @@
 		onPhaseLabelEdit?: (phaseId: string, label: string) => void;
 		onPhaseDateEdit?: (phaseId: string, startDate?: ISODate, endDate?: ISODate) => void;
 		onPhaseDelete?: (phaseId: string) => void;
+		onPhaseReorder?: (fromIndex: number, toIndex: number) => void;
 		onPhaseDataAdd?: (phaseId: string) => void;
 		onPhaseDataUpdate?: (phaseId: string, index: number, updatedElement: Element) => void;
 		onPhaseDataToggle?: (phaseId: string, index: number) => void;
@@ -59,8 +62,17 @@
 
 	// Check if project is currently active
 	function isProjectActive(): boolean {
-		const now = getISODate(new Date());
-		return now >= project.startDate && (project.endDate ? now <= project.endDate : true) 
+		const today = getISODate(new Date());
+		if (!project.hasPhases) {
+			return today >= project.startDate && (project.endDate ? today <= project.endDate : true) 
+		} else {
+			const activeByDate = project.phases.find(p => 
+				p.startDate && p.startDate <= today && 
+				(!p.endDate || p.endDate >= today)
+			);
+			if (activeByDate) return true;
+		}
+		return false;
 	}
 
 	function toDate(iso?: ISODate): Date | undefined {
@@ -91,13 +103,19 @@
 		if (phases.length === 0) return undefined;
 		const today = getISODate(new Date());
 
-		const active = phases.find(p => p.startDate && p.startDate <= today && (!p.endDate || p.endDate >= today));
-		if (active) return active.id;
+		const activeByDate = phases.find(p => 
+			p.startDate && p.startDate <= today && 
+			(!p.endDate || p.endDate >= today)
+		);
+		if (activeByDate) return activeByDate.id;
 
 		const future = phases
 			.filter(p => p.startDate && p.startDate > today)
 			.sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? ''));
 		if (future.length > 0) return future[0].id;
+
+        const unscheduled = phases.find(p => !p.startDate);
+        if (unscheduled) return unscheduled.id;
 
 		return phases[0]?.id;
 	}
@@ -129,6 +147,42 @@
 			range.to ? getISODate(range.to) : undefined
 		);
 	}
+
+	// Drag and drop state for phases
+	let isDraggingPhases = $state(false);
+	let phaseItems = $state<{id: string, phase: Phase}[]>([]);
+
+	// Sync local items with upstream prop
+	$effect(() => {
+		if (!isDraggingPhases) {
+			phaseItems = project.phases.map(phase => ({ id: phase.id, phase }));
+		}
+	});
+
+	function handlePhaseDndConsider(e: { detail: { items: any[] } }) {
+		if (!isDraggingPhases) {
+			// Collapse any expanded phase before dragging starts so all items
+			// have consistent heights — svelte-dnd-action uses bounding box
+			// centers, so variable heights cause inaccurate drop positions.
+			expandedPhaseId = undefined;
+		}
+		isDraggingPhases = true;
+		phaseItems = e.detail.items;
+	}
+
+	function handlePhaseDndFinalize(e: { detail: { items: any[], info: any } }) {
+		isDraggingPhases = false;
+		phaseItems = e.detail.items;
+
+		// Map the new array back to the expected fromIndex/toIndex logic
+		const movedId = e.detail.info.id;
+		const fromIndex = project.phases.findIndex(p => p.id === movedId);
+		const toIndex = e.detail.items.findIndex((item: any) => item.id === movedId);
+		
+		if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
+			projectFunctions.onPhaseReorder?.(fromIndex, toIndex);
+		}
+	}
 </script>
 
 <div class="project-card" style={`border-color: ${color};`}>
@@ -152,19 +206,21 @@
 				<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
 			</button>
 		</div>
-		<div class="project-date-range">
-			<Datepicker
-				range
-				rangeFrom={toDate(project.startDate)}
-				rangeTo={toDate(project.endDate)}
-				openEndedLabel="Present"
-				rangeSeparator=" -> "
-				onselect={handleProjectRangeSelect}
-				showToggleButton={false}
-				inputProps={{ readonly: true }}
-				inputClass="project-date-trigger-input"
-			/>
-		</div>
+		{#if !project.hasPhases}
+			<div class="project-date-range">
+				<Datepicker
+					range
+					rangeFrom={toDate(project.startDate)}
+					rangeTo={toDate(project.endDate)}
+					openEndedLabel="Present"
+					rangeSeparator=" -> "
+					onselect={handleProjectRangeSelect}
+					showToggleButton={false}
+					inputProps={{ readonly: true }}
+					inputClass="project-date-trigger-input"
+				/>
+			</div>
+		{/if}
 		<EditableMarkdownText 
 			value={project.description}
 			onSave={(newDescription) => projectFunctions.onDescriptionEdit(newDescription)}
@@ -176,33 +232,35 @@
 	</div>
 
 	<!-- Habits Section -->
-  <div class="section">
-    <div class="section-header">
-      <h4 class="section-title">Habits</h4>
-      <button 
-        class="add-button" 
-        onclick={projectFunctions.onHabitAdd}
-        title="Add a new habit"
-      >
-        +
-      </button>
-    </div>
-    {#if Object.entries(project.habits).length > 0}
-      {#each Object.values(project.habits) as habit}
-        <HabitElement
-          {habit}
-          {color}
-          habitFunctions={createHabitFunctions(habit.id)}
-        />
-      {/each}
-    {:else}
-      <div class="section-empty-state">No habits yet. Click + to add one.</div>
-    {/if}
-  </div>
+	<div class="section habits-section">
+		<div class="section-header">
+			<h4 class="section-title">Habits</h4>
+			<button 
+				class="add-button" 
+				onclick={projectFunctions.onHabitAdd}
+				title="Add a new habit"
+			>
+				+
+			</button>
+		</div>
+		<div class="section-content">
+			{#if Object.entries(project.habits).length > 0}
+				{#each Object.values(project.habits) as habit}
+					<HabitElement
+						{habit}
+						{color}
+						habitFunctions={createHabitFunctions(habit.id)}
+					/>
+				{/each}
+			{:else}
+				<div class="section-empty-state">No habits yet. Click + to add one.</div>
+			{/if}
+		</div>
+	</div>
 
 	{#if project.hasPhases}
 		<!-- Phases Section -->
-		<div class="section">
+		<div class="section tasks-phases-section">
 			<div class="section-header">
 				<h4 class="section-title">Phases</h4>
 				<div class="section-controls">
@@ -227,68 +285,80 @@
 					<button class="add-button" onclick={() => projectFunctions.onPhaseAdd?.()} title="Add a new phase">+</button>
 				</div>
 			</div>
-			{#if project.phases.length > 0}
-				{#each project.phases as phase (phase.id)}
-					{@const isExpanded = expandedPhaseId === phase.id}
-					<div class="phase-item">
-						<div class="phase-row">
-							<button class="phase-toggle" onclick={() => togglePhase(phase.id)} aria-label={isExpanded ? 'Collapse phase' : 'Expand phase'}>
-								{#if isExpanded}&#9660;{:else}&#9654;{/if}
-							</button>
-							<EditableText
-								value={phase.label}
-								onSave={(newLabel) => projectFunctions.onPhaseLabelEdit?.(phase.id, newLabel)}
-								placeholder="Phase name..."
-								class="phase-label"
-							/>
-							<div class="phase-row-right">
-								<Datepicker
-									range
-									rangeFrom={toDate(phase.startDate)}
-									rangeTo={toDate(phase.endDate)}
-									openEndedLabel="?"
-									rangeSeparator=" → "
-									onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
-									showToggleButton={false}
-									inputProps={{ readonly: true }}
-									inputClass="phase-date-input"
-								/>
-								<button
-									class="phase-delete-btn"
-									onclick={() => projectFunctions.onPhaseDelete?.(phase.id)}
-									title="Delete this phase"
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+			<div class="section-content">
+				{#if project.phases.length > 0}
+					<div 
+						class="phases-container"
+						use:dndzone={{ items: phaseItems, flipDurationMs: 200, dropTargetStyle: { outline: `1px dashed ${color}`, background: `${color}15` }, dragHandleSelector: '.drag-handle', type: `phases-${project.id}` }}
+						onconsider={handlePhaseDndConsider}
+						onfinalize={handlePhaseDndFinalize}
+					>
+						{#each phaseItems as { id, phase }, index (id)}
+							{@const isExpanded = expandedPhaseId === phase.id}
+							<div class="phase-item" animate:flip={{ duration: 200 }}>
+								<div class="phase-row">
+									<div class="drag-handle" title="Drag to reorder phase">
+										<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+									</div>
+									<button class="phase-toggle" onclick={() => togglePhase(phase.id)} aria-label={isExpanded ? 'Collapse phase' : 'Expand phase'}>
+									{#if isExpanded}&#9660;{:else}&#9654;{/if}
 								</button>
+								<EditableText
+									value={phase.label}
+									onSave={(newLabel) => projectFunctions.onPhaseLabelEdit?.(phase.id, newLabel)}
+									placeholder="Phase name..."
+									class="phase-label"
+								/>
+								<div class="phase-row-right">
+									<Datepicker
+										range
+										rangeFrom={toDate(phase.startDate)}
+										rangeTo={toDate(phase.endDate)}
+										openEndedLabel="?"
+										rangeSeparator=" → "
+										onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
+										showToggleButton={false}
+										inputProps={{ readonly: true }}
+										inputClass="phase-date-input"
+									/>
+									<button
+										class="phase-delete-btn"
+										onclick={() => projectFunctions.onPhaseDelete?.(phase.id)}
+										title="Delete this phase"
+									>
+										<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+									</button>
+								</div>
 							</div>
-						</div>
-						{#if isExpanded}
-							<div class="phase-content">
-								{#each phase.data as element, index (index)}
+							{#if isExpanded}
+								<div class="phase-content">
+									{#each phase.data as element, index (index)}
 									{#if !hideCompletedPhase || !isCompletedElement(element)}
-										<DataTaskElement
-											{element}
-											{index}
-											{color}
-											onUpdate={(idx, el) => projectFunctions.onPhaseDataUpdate?.(phase.id, idx, el)}
-											onToggle={(idx) => projectFunctions.onPhaseDataToggle?.(phase.id, idx)}
-											onCancel={(idx) => projectFunctions.onPhaseDataCancel?.(phase.id, idx)}
-											onDelete={(idx) => projectFunctions.onPhaseDataDelete?.(phase.id, idx)}
-										/>
+											<DataTaskElement
+												{element}
+												{index}
+												{color}
+												onUpdate={(idx, el) => projectFunctions.onPhaseDataUpdate?.(phase.id, idx, el)}
+												onToggle={(idx) => projectFunctions.onPhaseDataToggle?.(phase.id, idx)}
+												onCancel={(idx) => projectFunctions.onPhaseDataCancel?.(phase.id, idx)}
+												onDelete={(idx) => projectFunctions.onPhaseDataDelete?.(phase.id, idx)}
+											/>
 									{/if}
-								{/each}
-								<button class="add-button phase-add-task" onclick={() => projectFunctions.onPhaseDataAdd?.(phase.id)} title="Add task to phase">+ Task</button>
-							</div>
-						{/if}
+									{/each}
+									<button class="add-button phase-add-task" onclick={() => projectFunctions.onPhaseDataAdd?.(phase.id)} title="Add task to phase">+ Task</button>
+								</div>
+							{/if}
+						</div>
+						{/each}
 					</div>
-				{/each}
-			{:else}
-				<div class="section-empty-state">No phases yet. Click + to add one.</div>
-			{/if}
+				{:else}
+					<div class="section-empty-state">No phases yet. Click + to add one.</div>
+				{/if}
+			</div>
 		</div>
 	{:else}
 		<!-- Tasks Section -->
-		<div class="section">
+		<div class="section tasks-phases-section">
 			<div class="section-header">
 				<h4 class="section-title">Tasks</h4>
 				<div class="section-controls">
@@ -326,21 +396,23 @@
 					</button>
 				</div>
 			</div>
-			{#if visibleTasks.length > 0}
-				{#each visibleTasks as { el, i }}
-					<DataTaskElement
-						element={el}
-						index={i}
-						{color}
-						onUpdate={projectFunctions.onDataUpdate}
-						onToggle={projectFunctions.onDataToggle}
-						onCancel={projectFunctions.onDataCancel}
-						onDelete={projectFunctions.onDataDelete}
-					/>
-				{/each}
-			{:else}
-				<div class="section-empty-state">{project.data.length > 0 ? "All tasks completed" : "No tasks yet"}</div>
-			{/if}
+			<div class="section-content">
+				{#if visibleTasks.length > 0}
+					{#each visibleTasks as { el, i }}
+						<DataTaskElement
+							element={el}
+							index={i}
+							{color}
+							onUpdate={projectFunctions.onDataUpdate}
+							onToggle={projectFunctions.onDataToggle}
+							onCancel={projectFunctions.onDataCancel}
+							onDelete={projectFunctions.onDataDelete}
+						/>
+					{/each}
+				{:else}
+					<div class="section-empty-state">{project.data.length > 0 ? "All tasks completed" : "No tasks yet"}</div>
+				{/if}
+			</div>
 		</div>
 	{/if}
 </div>
@@ -353,6 +425,11 @@
 		padding: 12px;
 		margin: 8px 0;
 		transition: box-shadow 0.2s ease;
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		box-sizing: border-box;
 	}
 
 	.project-card:hover {
@@ -361,6 +438,7 @@
 
 	.project-header {
 		margin-bottom: 10px;
+		flex-shrink: 0;
 	}
 
 	.project-title-row {
@@ -438,14 +516,42 @@
 		background-color: var(--background-modifier-hover);
 	}
 
-	.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  }
+	.section {
+		display: flex;
+		flex-direction: column;
+		flex: 0 1 auto;
+		min-height: 0;
+		margin-bottom: 8px;
+	}
 
-  .section-title {
+	.habits-section {
+		max-height: 33.33%;
+	}
+
+	.tasks-phases-section {
+		max-height: 60%;
+	}
+
+	.section:last-child {
+		margin-bottom: 0;
+	}
+
+	.section-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 8px;
+		flex-shrink: 0;
+	}
+
+	.section-content {
+		flex: 1;
+		overflow-y: auto;
+		min-height: 0;
+		padding-right: 4px;
+	}
+
+	.section-title {
     font-size: 0.9em;
     font-weight: 600;
     color: var(--text-muted);
@@ -618,5 +724,28 @@
   .toggle-phases-btn:hover {
     background: var(--background-modifier-hover);
     color: var(--text-normal);
+  }
+
+  /* Drag and drop phase styles */
+  .phase-item {
+    transition: transform 0.1s ease;
+  }
+
+  .drag-handle {
+    cursor: grab;
+    color: var(--text-faint);
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    opacity: 0.5;
+  }
+
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+
+  .drag-handle:hover {
+    color: var(--text-muted);
+    opacity: 1;
   }
 </style>

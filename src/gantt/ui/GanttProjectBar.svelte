@@ -122,6 +122,7 @@
     position: absolute;
     background: var(--background-primary);
     border: 1px solid var(--text-faint);
+    border-left: 3px solid var(--project-color);
     border-radius: 6px;
     cursor: pointer;
     display: flex;
@@ -146,6 +147,7 @@
     position: relative;
     z-index: 2;
     font-size: 0.78em;
+    font-weight: 600;
     color: var(--text-normal);
     white-space: nowrap;
     overflow: visible;
