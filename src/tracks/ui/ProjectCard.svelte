@@ -231,17 +231,19 @@
 									<option value="scheduled">Scheduled</option>
 									<option value="done">Done</option>
 								</select>
-								<Datepicker
-									range
-									rangeFrom={toDate(phase.startDate)}
-									rangeTo={toDate(phase.endDate)}
-									openEndedLabel="?"
-									rangeSeparator=" → "
-									onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
-									showToggleButton={false}
-									inputProps={{ readonly: true }}
-									inputClass="phase-date-input"
-								/>
+								{#if phase.status == "scheduled"}
+									<Datepicker
+										range
+										rangeFrom={toDate(phase.startDate)}
+										rangeTo={toDate(phase.endDate)}
+										openEndedLabel="?"
+										rangeSeparator=" → "
+										onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
+										showToggleButton={false}
+										inputProps={{ readonly: true }}
+										inputClass="phase-date-input"
+									/>
+								{/if}
 								<button
 									class="phase-delete-btn"
 									onclick={() => projectFunctions.onPhaseDelete?.(phase.id)}

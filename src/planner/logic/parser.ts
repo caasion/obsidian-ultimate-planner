@@ -136,10 +136,19 @@ export class PlannerParser {
                 // Finalize previous phase
                 if (current) {
                     if (current.currentElement) current.elements.push(current.currentElement);
+                    
+                    let resolvedStatus = current.status;
+                    if ((current.startDate || current.endDate) && current.status !== 'scheduled') {
+                        resolvedStatus = 'scheduled';
+                    } else if (current.status !== 'scheduled') {
+                        current.startDate = undefined;
+                        current.endDate = undefined;
+                    }
+
                     phases.push({
                         id: `phase-${phases.length}`,
                         label: current.label,
-                        status: current.status as any,
+                        status: resolvedStatus as any,
                         startDate: current.startDate,
                         endDate: current.endDate,
                         data: current.elements,
@@ -182,10 +191,19 @@ export class PlannerParser {
         // Finalize last phase
         if (current) {
             if (current.currentElement) current.elements.push(current.currentElement);
+            
+            let resolvedStatus = current.status;
+            if ((current.startDate || current.endDate) && current.status !== 'scheduled') {
+                resolvedStatus = 'scheduled';
+            } else if (current.status !== 'scheduled') {
+                current.startDate = undefined;
+                current.endDate = undefined;
+            }
+
             phases.push({
                 id: `phase-${phases.length}`,
                 label: current.label,
-                status: current.status as any,
+                status: resolvedStatus as any,
                 startDate: current.startDate,
                 endDate: current.endDate,
                 data: current.elements,
