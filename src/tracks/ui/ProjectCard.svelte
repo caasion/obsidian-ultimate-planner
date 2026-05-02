@@ -148,6 +148,12 @@
 	});
 
 	function handlePhaseDndConsider(e: { detail: { items: any[] } }) {
+		if (!isDraggingPhases) {
+			// Collapse any expanded phase before dragging starts so all items
+			// have consistent heights — svelte-dnd-action uses bounding box
+			// centers, so variable heights cause inaccurate drop positions.
+			expandedPhaseId = undefined;
+		}
 		isDraggingPhases = true;
 		phaseItems = e.detail.items;
 	}
