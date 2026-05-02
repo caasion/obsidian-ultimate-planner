@@ -9,6 +9,8 @@
 	import DataTaskElement from "./DataTaskElement.svelte";
 	import type { App } from "obsidian";
 	import { ConfirmationModal } from "src/plugin/ConfirmationModal";
+	import { dndzone } from "svelte-dnd-action";
+	import { flip } from "svelte/animate";
 
 	export interface ProjectCardFunctions {
 		onLabelEdit: (label: string) => void;
@@ -29,9 +31,9 @@
 		// Phase operations
 		onPhaseAdd?: () => void;
 		onPhaseLabelEdit?: (phaseId: string, label: string) => void;
-		onPhaseStatusEdit?: (phaseId: string, status?: import("src/plugin/types").PhaseStatus) => void;
 		onPhaseDateEdit?: (phaseId: string, startDate?: ISODate, endDate?: ISODate) => void;
 		onPhaseDelete?: (phaseId: string) => void;
+		onPhaseReorder?: (fromIndex: number, toIndex: number) => void;
 		onPhaseDataAdd?: (phaseId: string) => void;
 		onPhaseDataUpdate?: (phaseId: string, index: number, updatedElement: Element) => void;
 		onPhaseDataToggle?: (phaseId: string, index: number) => void;
@@ -65,9 +67,8 @@
 			return today >= project.startDate && (project.endDate ? today <= project.endDate : true) 
 		} else {
 			const activeByDate = project.phases.find(p => 
-				p.status == 'doing' || (p.status == 'scheduled' &&
 				p.startDate && p.startDate <= today && 
-				(!p.endDate || p.endDate >= today))
+				(!p.endDate || p.endDate >= today)
 			);
 			if (activeByDate) return true;
 		}
@@ -102,25 +103,21 @@
 		if (phases.length === 0) return undefined;
 		const today = getISODate(new Date());
 
-		const doing = phases.find(p => p.status === 'doing');
-		if (doing) return doing.id;
-
 		const activeByDate = phases.find(p => 
-			p.status !== 'done' && p.status !== 'unscheduled' &&
 			p.startDate && p.startDate <= today && 
 			(!p.endDate || p.endDate >= today)
 		);
 		if (activeByDate) return activeByDate.id;
 
 		const future = phases
-			.filter(p => p.status !== 'done' && p.status !== 'unscheduled' && p.startDate && p.startDate > today)
+			.filter(p => p.startDate && p.startDate > today)
 			.sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? ''));
 		if (future.length > 0) return future[0].id;
 
-        const unscheduled = phases.find(p => p.status === 'unscheduled');
+        const unscheduled = phases.find(p => !p.startDate);
         if (unscheduled) return unscheduled.id;
 
-		return phases.find(p => p.status !== 'done')?.id ?? phases[0]?.id;
+		return phases[0]?.id;
 	}
 
 	let expandedPhaseId = $state(getDefaultExpandedId(project.phases));
@@ -137,6 +134,42 @@
 			getISODate(range.from),
 			range.to ? getISODate(range.to) : undefined
 		);
+	}
+
+	// Drag and drop state for phases
+	let isDraggingPhases = $state(false);
+	let phaseItems = $state<{id: string, phase: Phase}[]>([]);
+
+	// Sync local items with upstream prop
+	$effect(() => {
+		if (!isDraggingPhases) {
+			phaseItems = project.phases.map(phase => ({ id: phase.id, phase }));
+		}
+	});
+
+	function handlePhaseDndConsider(e: { detail: { items: any[] } }) {
+		if (!isDraggingPhases) {
+			// Collapse any expanded phase before dragging starts so all items
+			// have consistent heights — svelte-dnd-action uses bounding box
+			// centers, so variable heights cause inaccurate drop positions.
+			expandedPhaseId = undefined;
+		}
+		isDraggingPhases = true;
+		phaseItems = e.detail.items;
+	}
+
+	function handlePhaseDndFinalize(e: { detail: { items: any[], info: any } }) {
+		isDraggingPhases = false;
+		phaseItems = e.detail.items;
+
+		// Map the new array back to the expected fromIndex/toIndex logic
+		const movedId = e.detail.info.id;
+		const fromIndex = project.phases.findIndex(p => p.id === movedId);
+		const toIndex = e.detail.items.findIndex((item: any) => item.id === movedId);
+		
+		if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
+			projectFunctions.onPhaseReorder?.(fromIndex, toIndex);
+		}
 	}
 </script>
 
@@ -222,11 +255,20 @@
 			</div>
 			<div class="section-content">
 				{#if project.phases.length > 0}
-					{#each project.phases as phase (phase.id)}
-						{@const isExpanded = expandedPhaseId === phase.id}
-						<div class="phase-item">
-							<div class="phase-row">
-								<button class="phase-toggle" onclick={() => togglePhase(phase.id)} aria-label={isExpanded ? 'Collapse phase' : 'Expand phase'}>
+					<div 
+						class="phases-container"
+						use:dndzone={{ items: phaseItems, flipDurationMs: 200, dropTargetStyle: { outline: `1px dashed ${color}`, background: `${color}15` }, dragHandleSelector: '.drag-handle', type: `phases-${project.id}` }}
+						onconsider={handlePhaseDndConsider}
+						onfinalize={handlePhaseDndFinalize}
+					>
+						{#each phaseItems as { id, phase }, index (id)}
+							{@const isExpanded = expandedPhaseId === phase.id}
+							<div class="phase-item" animate:flip={{ duration: 200 }}>
+								<div class="phase-row">
+									<div class="drag-handle" title="Drag to reorder phase">
+										<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+									</div>
+									<button class="phase-toggle" onclick={() => togglePhase(phase.id)} aria-label={isExpanded ? 'Collapse phase' : 'Expand phase'}>
 									{#if isExpanded}&#9660;{:else}&#9654;{/if}
 								</button>
 								<EditableText
@@ -236,29 +278,17 @@
 									class="phase-label"
 								/>
 								<div class="phase-row-right">
-									<select 
-										class="phase-status-select" 
-										value={phase.status || 'unscheduled'}
-										onchange={(e) => projectFunctions.onPhaseStatusEdit?.(phase.id, e.currentTarget.value as any)}
-									>
-										<option value="unscheduled">Unscheduled</option>
-										<option value="doing">Doing</option>
-										<option value="scheduled">Scheduled</option>
-										<option value="done">Done</option>
-									</select>
-									{#if phase.status == "scheduled"}
-										<Datepicker
-											range
-											rangeFrom={toDate(phase.startDate)}
-											rangeTo={toDate(phase.endDate)}
-											openEndedLabel="?"
-											rangeSeparator=" → "
-											onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
-											showToggleButton={false}
-											inputProps={{ readonly: true }}
-											inputClass="phase-date-input"
-										/>
-									{/if}
+									<Datepicker
+										range
+										rangeFrom={toDate(phase.startDate)}
+										rangeTo={toDate(phase.endDate)}
+										openEndedLabel="?"
+										rangeSeparator=" → "
+										onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
+										showToggleButton={false}
+										inputProps={{ readonly: true }}
+										inputClass="phase-date-input"
+									/>
 									<button
 										class="phase-delete-btn"
 										onclick={() => projectFunctions.onPhaseDelete?.(phase.id)}
@@ -285,7 +315,8 @@
 								</div>
 							{/if}
 						</div>
-					{/each}
+						{/each}
+					</div>
 				{:else}
 					<div class="section-empty-state">No phases yet. Click + to add one.</div>
 				{/if}
@@ -559,21 +590,6 @@
     flex-shrink: 0;
   }
 
-  .phase-status-select {
-    background: transparent;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    color: var(--text-muted);
-    font-size: 0.78em;
-    padding: 0 4px;
-    cursor: pointer;
-  }
-
-  .phase-status-select:hover {
-    color: var(--text-normal);
-    border-color: var(--text-muted);
-  }
-
   :global(.phase-date-input) {
     width: auto;
     max-width: 160px;
@@ -633,5 +649,28 @@
   .toggle-phases-btn:hover {
     background: var(--background-modifier-hover);
     color: var(--text-normal);
+  }
+
+  /* Drag and drop phase styles */
+  .phase-item {
+    transition: transform 0.1s ease;
+  }
+
+  .drag-handle {
+    cursor: grab;
+    color: var(--text-faint);
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    opacity: 0.5;
+  }
+
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+
+  .drag-handle:hover {
+    color: var(--text-muted);
+    opacity: 1;
   }
 </style>

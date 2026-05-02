@@ -1,7 +1,7 @@
 import { TFolder, type App, TFile, getAllTags, type FrontMatterCache, type EventRef, Menu, Notice, getFrontMatterInfo, parseYaml } from "obsidian";
 import { PlannerParser } from "src/planner/logic/parser";
 import { getISODate } from "src/plugin/helpers";
-import type { DateInterval, Element, Habit, ISODate, Phase, PhaseStatus, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
+import type { DateInterval, Element, Habit, ISODate, Phase, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
 import { type Writable, get, writable } from "svelte/store";
 import { hashTrackFileCacheEntries } from "./trackSnapshotHash";
 
@@ -1541,28 +1541,7 @@ export class TrackNoteService {
     /** Update a phase's dates */
     async updateProjectPhaseDates(trackId: string, projectId: string, phaseId: string, startDate?: ISODate, endDate?: ISODate): Promise<void> {
         await this.mutatePhases(trackId, projectId, (phases) =>
-            phases.map(p => {
-                if (p.id === phaseId) {
-                    const status = (startDate || endDate) ? 'scheduled' : p.status;
-                    return { ...p, startDate, endDate, status };
-                }
-                return p;
-            })
-        );
-    }
-
-    /** Update a phase's status */
-    async updateProjectPhaseStatus(trackId: string, projectId: string, phaseId: string, status?: PhaseStatus): Promise<void> {
-        await this.mutatePhases(trackId, projectId, (phases) =>
-            phases.map(p => {
-                if (p.id === phaseId) {
-                    if (status !== 'scheduled') {
-                        return { ...p, status, startDate: undefined, endDate: undefined };
-                    }
-                    return { ...p, status };
-                }
-                return p;
-            })
+            phases.map(p => p.id === phaseId ? { ...p, startDate, endDate } : p)
         );
     }
 
@@ -1571,6 +1550,19 @@ export class TrackNoteService {
         await this.mutatePhases(trackId, projectId, (phases) =>
             phases.filter(p => p.id !== phaseId)
         );
+    }
+
+    /** Reorder a phase within a project */
+    async reorderProjectPhase(trackId: string, projectId: string, fromIndex: number, toIndex: number): Promise<void> {
+        await this.mutatePhases(trackId, projectId, (phases) => {
+            if (fromIndex < 0 || fromIndex >= phases.length || toIndex < 0 || toIndex >= phases.length || fromIndex === toIndex) {
+                return phases; // No valid move
+            }
+            const newPhases = [...phases];
+            const [movedItem] = newPhases.splice(fromIndex, 1);
+            newPhases.splice(toIndex, 0, movedItem);
+            return newPhases;
+        });
     }
 
     /** Add a task to a specific phase */

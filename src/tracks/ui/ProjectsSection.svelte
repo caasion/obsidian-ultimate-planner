@@ -30,18 +30,32 @@
   let activeProjects = $derived.by(() => {
     const today = getISODate(new Date());
     return Object.values(projects).filter(project => {
-      const isAfterStart = today >= project.startDate;
-      const isBeforeEnd = !project.endDate || today <= project.endDate;
-      return isAfterStart && isBeforeEnd;
+      if (!project.hasPhases) {
+        return today >= project.startDate && (project.endDate ? today <= project.endDate : true) 
+      } else {
+        const activeByDate = project.phases.find(p => 
+          p.startDate && p.startDate <= today && 
+          (!p.endDate || p.endDate >= today)
+        );
+        if (activeByDate) return true;
+      }
+      return false;
     });
   });
 
   let inactiveProjects = $derived.by(() => {
     const today = getISODate(new Date());
     return Object.values(projects).filter(project => {
-      const isAfterStart = today >= project.startDate;
-      const isBeforeEnd = !project.endDate || today <= project.endDate;
-      return !(isAfterStart && isBeforeEnd);
+      if (!project.hasPhases) {
+        return !(today >= project.startDate && (project.endDate ? today <= project.endDate : true) )
+      } else {
+        const activeByDate = project.phases.find(p => 
+          p.startDate && p.startDate <= today && 
+          (!p.endDate || p.endDate >= today)
+        );
+        if (activeByDate) return false;
+      }
+      return true;
     });
   });
 
