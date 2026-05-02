@@ -60,8 +60,18 @@
 
 	// Check if project is currently active
 	function isProjectActive(): boolean {
-		const now = getISODate(new Date());
-		return now >= project.startDate && (project.endDate ? now <= project.endDate : true) 
+		const today = getISODate(new Date());
+		if (!project.hasPhases) {
+			return today >= project.startDate && (project.endDate ? today <= project.endDate : true) 
+		} else {
+			const activeByDate = project.phases.find(p => 
+				p.status == 'doing' || (p.status == 'scheduled' &&
+				p.startDate && p.startDate <= today && 
+				(!p.endDate || p.endDate >= today))
+			);
+			if (activeByDate) return true;
+		}
+		return false;
 	}
 
 	function toDate(iso?: ISODate): Date | undefined {
@@ -152,18 +162,18 @@
 			</button>
 		</div>
 		{#if !project.hasPhases}
-		<div class="project-date-range">
-			<Datepicker
-				range
-				rangeFrom={toDate(project.startDate)}
-				rangeTo={toDate(project.endDate)}
-				openEndedLabel="Present"
-				rangeSeparator=" -> "
-				onselect={handleProjectRangeSelect}
-				showToggleButton={false}
-				inputProps={{ readonly: true }}
-				inputClass="project-date-trigger-input"
-			/>
+			<div class="project-date-range">
+				<Datepicker
+					range
+					rangeFrom={toDate(project.startDate)}
+					rangeTo={toDate(project.endDate)}
+					openEndedLabel="Present"
+					rangeSeparator=" -> "
+					onselect={handleProjectRangeSelect}
+					showToggleButton={false}
+					inputProps={{ readonly: true }}
+					inputClass="project-date-trigger-input"
+				/>
 			</div>
 		{/if}
 		<EditableMarkdownText 
