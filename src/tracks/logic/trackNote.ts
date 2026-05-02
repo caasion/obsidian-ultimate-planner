@@ -1,7 +1,7 @@
 import { TFolder, type App, TFile, getAllTags, type FrontMatterCache, type EventRef, Menu, Notice, getFrontMatterInfo, parseYaml } from "obsidian";
 import { PlannerParser } from "src/planner/logic/parser";
 import { getISODate } from "src/plugin/helpers";
-import type { DateInterval, Element, Habit, ISODate, Phase, PhaseStatus, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
+import type { DateInterval, Element, Habit, ISODate, Phase, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
 import { type Writable, get, writable } from "svelte/store";
 import { hashTrackFileCacheEntries } from "./trackSnapshotHash";
 
@@ -1541,28 +1541,7 @@ export class TrackNoteService {
     /** Update a phase's dates */
     async updateProjectPhaseDates(trackId: string, projectId: string, phaseId: string, startDate?: ISODate, endDate?: ISODate): Promise<void> {
         await this.mutatePhases(trackId, projectId, (phases) =>
-            phases.map(p => {
-                if (p.id === phaseId) {
-                    const status = (startDate || endDate) ? 'scheduled' : p.status;
-                    return { ...p, startDate, endDate, status };
-                }
-                return p;
-            })
-        );
-    }
-
-    /** Update a phase's status */
-    async updateProjectPhaseStatus(trackId: string, projectId: string, phaseId: string, status?: PhaseStatus): Promise<void> {
-        await this.mutatePhases(trackId, projectId, (phases) =>
-            phases.map(p => {
-                if (p.id === phaseId) {
-                    if (status !== 'scheduled') {
-                        return { ...p, status, startDate: undefined, endDate: undefined };
-                    }
-                    return { ...p, status };
-                }
-                return p;
-            })
+            phases.map(p => p.id === phaseId ? { ...p, startDate, endDate } : p)
         );
     }
 

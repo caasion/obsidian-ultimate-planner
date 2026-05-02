@@ -124,9 +124,8 @@ export class PlannerParser {
     static parsePhasesSection(section: string): Phase[] {
         const lines = section.split('\n');
         const phases: Phase[] = [];
-        let current: { label: string; status?: string; startDate?: string; endDate?: string; elements: Element[]; currentElement: Element | null } | null = null;
+        let current: { label: string; startDate?: string; endDate?: string; elements: Element[]; currentElement: Element | null } | null = null;
 
-        const statusRegex = /^\[status::\s*(\S+)\]\s*$/;
         const startRegex = /^\[start::\s*(\S+)\]\s*$/;
         const endRegex = /^\[end::\s*(\S+)\]\s*$/;
 
@@ -137,18 +136,9 @@ export class PlannerParser {
                 if (current) {
                     if (current.currentElement) current.elements.push(current.currentElement);
                     
-                    let resolvedStatus = current.status;
-                    if ((current.startDate || current.endDate) && current.status !== 'scheduled') {
-                        resolvedStatus = 'scheduled';
-                    } else if (current.status !== 'scheduled') {
-                        current.startDate = undefined;
-                        current.endDate = undefined;
-                    }
-
                     phases.push({
                         id: `phase-${phases.length}`,
                         label: current.label,
-                        status: resolvedStatus as any,
                         startDate: current.startDate,
                         endDate: current.endDate,
                         data: current.elements,
@@ -159,12 +149,6 @@ export class PlannerParser {
             }
 
             if (!current) continue;
-
-            const statusMatch = line.match(statusRegex);
-            if (statusMatch) {
-                current.status = statusMatch[1];
-                continue;
-            }
 
             const startMatch = line.match(startRegex);
             if (startMatch) {
@@ -192,18 +176,9 @@ export class PlannerParser {
         if (current) {
             if (current.currentElement) current.elements.push(current.currentElement);
             
-            let resolvedStatus = current.status;
-            if ((current.startDate || current.endDate) && current.status !== 'scheduled') {
-                resolvedStatus = 'scheduled';
-            } else if (current.status !== 'scheduled') {
-                current.startDate = undefined;
-                current.endDate = undefined;
-            }
-
             phases.push({
                 id: `phase-${phases.length}`,
                 label: current.label,
-                status: resolvedStatus as any,
                 startDate: current.startDate,
                 endDate: current.endDate,
                 data: current.elements,
@@ -217,7 +192,6 @@ export class PlannerParser {
         let result = '';
         for (const phase of phases) {
             result += `### ${phase.label}\n`;
-            if (phase.status) result += `[status:: ${phase.status}]\n`;
             if (phase.startDate) result += `[start:: ${phase.startDate}]\n`;
             if (phase.endDate) result += `[end:: ${phase.endDate}]\n`;
             result += '\n';
