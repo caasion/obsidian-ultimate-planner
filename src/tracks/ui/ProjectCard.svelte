@@ -29,6 +29,7 @@
 		// Phase operations
 		onPhaseAdd?: () => void;
 		onPhaseLabelEdit?: (phaseId: string, label: string) => void;
+		onPhaseStatusEdit?: (phaseId: string, status?: import("src/plugin/types").PhaseStatus) => void;
 		onPhaseDateEdit?: (phaseId: string, startDate?: ISODate, endDate?: ISODate) => void;
 		onPhaseDelete?: (phaseId: string) => void;
 		onPhaseDataAdd?: (phaseId: string) => void;
@@ -91,15 +92,25 @@
 		if (phases.length === 0) return undefined;
 		const today = getISODate(new Date());
 
-		const active = phases.find(p => p.startDate && p.startDate <= today && (!p.endDate || p.endDate >= today));
-		if (active) return active.id;
+		const doing = phases.find(p => p.status === 'doing');
+		if (doing) return doing.id;
+
+		const activeByDate = phases.find(p => 
+			p.status !== 'done' && p.status !== 'unscheduled' &&
+			p.startDate && p.startDate <= today && 
+			(!p.endDate || p.endDate >= today)
+		);
+		if (activeByDate) return activeByDate.id;
 
 		const future = phases
-			.filter(p => p.startDate && p.startDate > today)
+			.filter(p => p.status !== 'done' && p.status !== 'unscheduled' && p.startDate && p.startDate > today)
 			.sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? ''));
 		if (future.length > 0) return future[0].id;
 
-		return phases[0]?.id;
+        const unscheduled = phases.find(p => p.status === 'unscheduled');
+        if (unscheduled) return unscheduled.id;
+
+		return phases.find(p => p.status !== 'done')?.id ?? phases[0]?.id;
 	}
 
 	let expandedPhaseId = $state(getDefaultExpandedId(project.phases));
@@ -210,6 +221,16 @@
 								class="phase-label"
 							/>
 							<div class="phase-row-right">
+								<select 
+									class="phase-status-select" 
+									value={phase.status || 'unscheduled'}
+									onchange={(e) => projectFunctions.onPhaseStatusEdit?.(phase.id, e.currentTarget.value as any)}
+								>
+									<option value="unscheduled">Unscheduled</option>
+									<option value="doing">Doing</option>
+									<option value="scheduled">Scheduled</option>
+									<option value="done">Done</option>
+								</select>
 								<Datepicker
 									range
 									rangeFrom={toDate(phase.startDate)}
@@ -482,6 +503,21 @@
     align-items: center;
     gap: 4px;
     flex-shrink: 0;
+  }
+
+  .phase-status-select {
+    background: transparent;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-size: 0.78em;
+    padding: 0 4px;
+    cursor: pointer;
+  }
+
+  .phase-status-select:hover {
+    color: var(--text-normal);
+    border-color: var(--text-muted);
   }
 
   :global(.phase-date-input) {
