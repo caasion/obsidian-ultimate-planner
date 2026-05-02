@@ -175,109 +175,113 @@
 	</div>
 
 	<!-- Habits Section -->
-  <div class="section">
-    <div class="section-header">
-      <h4 class="section-title">Habits</h4>
-      <button 
-        class="add-button" 
-        onclick={projectFunctions.onHabitAdd}
-        title="Add a new habit"
-      >
-        +
-      </button>
-    </div>
-    {#if Object.entries(project.habits).length > 0}
-      {#each Object.values(project.habits) as habit}
-        <HabitElement
-          {habit}
-          {color}
-          habitFunctions={createHabitFunctions(habit.id)}
-        />
-      {/each}
-    {:else}
-      <div class="section-empty-state">No habits yet. Click + to add one.</div>
-    {/if}
-  </div>
+	<div class="section habits-section">
+		<div class="section-header">
+			<h4 class="section-title">Habits</h4>
+			<button 
+				class="add-button" 
+				onclick={projectFunctions.onHabitAdd}
+				title="Add a new habit"
+			>
+				+
+			</button>
+		</div>
+		<div class="section-content">
+			{#if Object.entries(project.habits).length > 0}
+				{#each Object.values(project.habits) as habit}
+					<HabitElement
+						{habit}
+						{color}
+						habitFunctions={createHabitFunctions(habit.id)}
+					/>
+				{/each}
+			{:else}
+				<div class="section-empty-state">No habits yet. Click + to add one.</div>
+			{/if}
+		</div>
+	</div>
 
 	{#if project.hasPhases}
 		<!-- Phases Section -->
-		<div class="section">
+		<div class="section tasks-phases-section">
 			<div class="section-header">
 				<h4 class="section-title">Phases</h4>
 				<button class="add-button" onclick={() => projectFunctions.onPhaseAdd?.()} title="Add a new phase">+</button>
 			</div>
-			{#if project.phases.length > 0}
-				{#each project.phases as phase (phase.id)}
-					{@const isExpanded = expandedPhaseId === phase.id}
-					<div class="phase-item">
-						<div class="phase-row">
-							<button class="phase-toggle" onclick={() => togglePhase(phase.id)} aria-label={isExpanded ? 'Collapse phase' : 'Expand phase'}>
-								{#if isExpanded}&#9660;{:else}&#9654;{/if}
-							</button>
-							<EditableText
-								value={phase.label}
-								onSave={(newLabel) => projectFunctions.onPhaseLabelEdit?.(phase.id, newLabel)}
-								placeholder="Phase name..."
-								class="phase-label"
-							/>
-							<div class="phase-row-right">
-								<select 
-									class="phase-status-select" 
-									value={phase.status || 'unscheduled'}
-									onchange={(e) => projectFunctions.onPhaseStatusEdit?.(phase.id, e.currentTarget.value as any)}
-								>
-									<option value="unscheduled">Unscheduled</option>
-									<option value="doing">Doing</option>
-									<option value="scheduled">Scheduled</option>
-									<option value="done">Done</option>
-								</select>
-								{#if phase.status == "scheduled"}
-									<Datepicker
-										range
-										rangeFrom={toDate(phase.startDate)}
-										rangeTo={toDate(phase.endDate)}
-										openEndedLabel="?"
-										rangeSeparator=" → "
-										onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
-										showToggleButton={false}
-										inputProps={{ readonly: true }}
-										inputClass="phase-date-input"
-									/>
-								{/if}
-								<button
-									class="phase-delete-btn"
-									onclick={() => projectFunctions.onPhaseDelete?.(phase.id)}
-									title="Delete this phase"
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+			<div class="section-content">
+				{#if project.phases.length > 0}
+					{#each project.phases as phase (phase.id)}
+						{@const isExpanded = expandedPhaseId === phase.id}
+						<div class="phase-item">
+							<div class="phase-row">
+								<button class="phase-toggle" onclick={() => togglePhase(phase.id)} aria-label={isExpanded ? 'Collapse phase' : 'Expand phase'}>
+									{#if isExpanded}&#9660;{:else}&#9654;{/if}
 								</button>
+								<EditableText
+									value={phase.label}
+									onSave={(newLabel) => projectFunctions.onPhaseLabelEdit?.(phase.id, newLabel)}
+									placeholder="Phase name..."
+									class="phase-label"
+								/>
+								<div class="phase-row-right">
+									<select 
+										class="phase-status-select" 
+										value={phase.status || 'unscheduled'}
+										onchange={(e) => projectFunctions.onPhaseStatusEdit?.(phase.id, e.currentTarget.value as any)}
+									>
+										<option value="unscheduled">Unscheduled</option>
+										<option value="doing">Doing</option>
+										<option value="scheduled">Scheduled</option>
+										<option value="done">Done</option>
+									</select>
+									{#if phase.status == "scheduled"}
+										<Datepicker
+											range
+											rangeFrom={toDate(phase.startDate)}
+											rangeTo={toDate(phase.endDate)}
+											openEndedLabel="?"
+											rangeSeparator=" → "
+											onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
+											showToggleButton={false}
+											inputProps={{ readonly: true }}
+											inputClass="phase-date-input"
+										/>
+									{/if}
+									<button
+										class="phase-delete-btn"
+										onclick={() => projectFunctions.onPhaseDelete?.(phase.id)}
+										title="Delete this phase"
+									>
+										<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+									</button>
+								</div>
 							</div>
+							{#if isExpanded}
+								<div class="phase-content">
+									{#each phase.data as element, index}
+										<DataTaskElement
+											{element}
+											{index}
+											{color}
+											onUpdate={(idx, el) => projectFunctions.onPhaseDataUpdate?.(phase.id, idx, el)}
+											onToggle={(idx) => projectFunctions.onPhaseDataToggle?.(phase.id, idx)}
+											onCancel={(idx) => projectFunctions.onPhaseDataCancel?.(phase.id, idx)}
+											onDelete={(idx) => projectFunctions.onPhaseDataDelete?.(phase.id, idx)}
+										/>
+									{/each}
+									<button class="add-button phase-add-task" onclick={() => projectFunctions.onPhaseDataAdd?.(phase.id)} title="Add task to phase">+ Task</button>
+								</div>
+							{/if}
 						</div>
-						{#if isExpanded}
-							<div class="phase-content">
-								{#each phase.data as element, index}
-									<DataTaskElement
-										{element}
-										{index}
-										{color}
-										onUpdate={(idx, el) => projectFunctions.onPhaseDataUpdate?.(phase.id, idx, el)}
-										onToggle={(idx) => projectFunctions.onPhaseDataToggle?.(phase.id, idx)}
-										onCancel={(idx) => projectFunctions.onPhaseDataCancel?.(phase.id, idx)}
-										onDelete={(idx) => projectFunctions.onPhaseDataDelete?.(phase.id, idx)}
-									/>
-								{/each}
-								<button class="add-button phase-add-task" onclick={() => projectFunctions.onPhaseDataAdd?.(phase.id)} title="Add task to phase">+ Task</button>
-							</div>
-						{/if}
-					</div>
-				{/each}
-			{:else}
-				<div class="section-empty-state">No phases yet. Click + to add one.</div>
-			{/if}
+					{/each}
+				{:else}
+					<div class="section-empty-state">No phases yet. Click + to add one.</div>
+				{/if}
+			</div>
 		</div>
 	{:else}
 		<!-- Tasks Section -->
-		<div class="section">
+		<div class="section tasks-phases-section">
 			<div class="section-header">
 				<h4 class="section-title">Tasks</h4>
 				<div class="section-controls">
@@ -297,21 +301,23 @@
 					</button>
 				</div>
 			</div>
-			{#if project.data.length > 0}
-				{#each project.data as element, index}
-					<DataTaskElement
-						{element}
-						{index}
-						{color}
-						onUpdate={projectFunctions.onDataUpdate}
-						onToggle={projectFunctions.onDataToggle}
-						onCancel={projectFunctions.onDataCancel}
-						onDelete={projectFunctions.onDataDelete}
-					/>
-				{/each}
-			{:else}
-				<div class="section-empty-state">No tasks yet</div>
-			{/if}
+			<div class="section-content">
+				{#if project.data.length > 0}
+					{#each project.data as element, index}
+						<DataTaskElement
+							{element}
+							{index}
+							{color}
+							onUpdate={projectFunctions.onDataUpdate}
+							onToggle={projectFunctions.onDataToggle}
+							onCancel={projectFunctions.onDataCancel}
+							onDelete={projectFunctions.onDataDelete}
+						/>
+					{/each}
+				{:else}
+					<div class="section-empty-state">No tasks yet</div>
+				{/if}
+			</div>
 		</div>
 	{/if}
 </div>
@@ -324,6 +330,11 @@
 		padding: 12px;
 		margin: 8px 0;
 		transition: box-shadow 0.2s ease;
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		box-sizing: border-box;
 	}
 
 	.project-card:hover {
@@ -332,6 +343,7 @@
 
 	.project-header {
 		margin-bottom: 10px;
+		flex-shrink: 0;
 	}
 
 	.project-title-row {
@@ -409,14 +421,42 @@
 		background-color: var(--background-modifier-hover);
 	}
 
-	.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  }
+	.section {
+		display: flex;
+		flex-direction: column;
+		flex: 0 1 auto;
+		min-height: 0;
+		margin-bottom: 8px;
+	}
 
-  .section-title {
+	.habits-section {
+		max-height: 33.33%;
+	}
+
+	.tasks-phases-section {
+		max-height: 60%;
+	}
+
+	.section:last-child {
+		margin-bottom: 0;
+	}
+
+	.section-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 8px;
+		flex-shrink: 0;
+	}
+
+	.section-content {
+		flex: 1;
+		overflow-y: auto;
+		min-height: 0;
+		padding-right: 4px;
+	}
+
+	.section-title {
     font-size: 0.9em;
     font-weight: 600;
     color: var(--text-muted);
