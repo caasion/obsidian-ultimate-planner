@@ -49,9 +49,12 @@ export interface Habit {
 	rrule: string;
 }
 
+export type PhaseStatus = 'unscheduled' | 'doing' | 'scheduled' | 'done';
+
 export interface Phase {
 	id: string;
 	label: string;
+	status?: PhaseStatus;
 	startDate?: ISODate;
 	endDate?: ISODate;
 	data: Element[];
