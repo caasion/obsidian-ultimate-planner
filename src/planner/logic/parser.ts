@@ -124,7 +124,7 @@ export class PlannerParser {
             // Extract rrule from ( ... ) suffix.
             const rruleMatch = text.match(rruleRegex);
             if (rruleMatch) {
-                const [fullMatch, , bracketContent] = rruleMatch;
+                const [fullMatch, bracketContent] = rruleMatch;
                 const rruleContent = bracketContent ?? '';
                 text = text.replace(fullMatch, '').trim();
                 rrule = RRuleService.parseRRule(rruleContent);
