@@ -50,6 +50,10 @@ export interface Habit {
     raw: string;
 	label: string;
 	rrule: string;
+	startTime?: Time;
+	duration?: number;
+	timeUnit?: 'min' | 'hr';
+	progress?: number;
 }
 
 export interface Phase {

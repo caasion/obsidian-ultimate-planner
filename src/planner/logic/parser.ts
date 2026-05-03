@@ -89,6 +89,10 @@ export class PlannerParser {
         const lines = section.split('\n');
         const habits: Record<string, Habit> = {};
 
+        const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
+        const progressDurationRegex = /\[(?:(\d+)?(\/))?(\d+)\s*(hr|min)\]/;
+        const rruleRegex = /\(([^)]*)\)\s*$/;
+
         for (const line of lines) {
             // Skip empty lines or lines that aren't bullet points
             if (!line || !line.match(/^- /)) continue;
@@ -96,26 +100,50 @@ export class PlannerParser {
             let text = line.replace(/^- /, '').trim();
             let label: string = text;
             let rrule: string = '';
-            
-            // Extract rrule from ( ... ) suffix.
-            const rruleRegex = /\(([^)]*)\)\s*$/;
+            let startTime: Habit['startTime'];
+            let duration: number | undefined;
+            let timeUnit: 'min' | 'hr' | undefined;
+            let progress: number | undefined;
 
+            const startTimeMatch = text.match(startTimeRegex);
+            if (startTimeMatch) {
+                const [fullMatch, hours, minutes] = startTimeMatch;
+                text = text.replace(fullMatch, '').trim();
+                startTime = { hours: parseInt(hours), minutes: parseInt(minutes) };
+            }
+
+            const progressDurationMatch = text.match(progressDurationRegex);
+            if (progressDurationMatch) {
+                const [fullMatch, progressMatch, hasProgress, durationMatch, unitMatch] = progressDurationMatch;
+                text = text.replace(fullMatch, '').trim();
+                progress = hasProgress ? (parseInt(progressMatch) || 0) : undefined;
+                duration = parseInt(durationMatch);
+                timeUnit = unitMatch as 'min' | 'hr';
+            }
+
+            // Extract rrule from ( ... ) suffix.
             const rruleMatch = text.match(rruleRegex);
             if (rruleMatch) {
                 const [fullMatch, , bracketContent] = rruleMatch;
                 const rruleContent = bracketContent ?? '';
-                label = text.replace(fullMatch, '').trim();
+                text = text.replace(fullMatch, '').trim();
                 rrule = RRuleService.parseRRule(rruleContent);
             }
 
+            label = text;
+
             // Generate stable index-based ID so re-parses don't create duplicates
             const id = `habit-${Object.keys(habits).length}`;
-            
+
             habits[id] = {
                 id,
-                raw: '- ' + text,
+                raw: '- ' + line.replace(/^- /, '').trim(),
                 label,
-                rrule
+                rrule,
+                startTime,
+                duration,
+                timeUnit,
+                progress,
             };
         }
 
