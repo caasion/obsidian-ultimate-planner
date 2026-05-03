@@ -188,13 +188,21 @@ export class DailyNoteService {
 
     /** Update cell content */
     updateTrackCell(date: ISODate, trackId: string, updatedData: TrackData): void {
-        this.parsedContent.update(content => ({
-            ...content,
-            [date]: {
-                ...(content[date] ?? {}),
-                [trackId]: updatedData
-            }
-        }));
+        if (updatedData.items.length === 0) {
+            this.parsedContent.update(content => {
+                const dateContent = { ...(content[date] ?? {}) };
+                delete dateContent[trackId];
+                return { ...content, [date]: dateContent };
+            });
+        } else {
+            this.parsedContent.update(content => ({
+                ...content,
+                [date]: {
+                    ...(content[date] ?? {}),
+                    [trackId]: updatedData
+                }
+            }));
+        }
 
         this.debouncedWrite(date);
     }
