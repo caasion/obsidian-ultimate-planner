@@ -5,10 +5,11 @@
         habit: Habit;
         projectLabel: string;
         color: string;
+        showProjectLabel?: boolean;
         onDismiss: () => void;
     }
 
-    let { habit, projectLabel, color, onDismiss }: HabitPreviewProps = $props();
+    let { habit, projectLabel, color, showProjectLabel = true, onDismiss }: HabitPreviewProps = $props();
 
     const shortenedProject = $derived(
         projectLabel.length > 12 ? projectLabel.slice(0, 12) + '…' : projectLabel
@@ -28,9 +29,13 @@
             <span class="habit-symbol">↻</span>
             <span class="habit-text">{habit.label.replace("[ ] ", "")}</span>
             <div class="habit-badge-container">
-                <span class="project-badge" style={`background-color: ${color}80;`}>
-                    {shortenedProject}
-                </span>
+                {#if showProjectLabel}
+                    <span class="project-badge" style={`background-color: ${color}80;`}>
+                        {shortenedProject}
+                    </span>
+                {:else}
+                    <span class="project-label-icon" title={projectLabel} style={`color: ${color}; border-color: ${color}80;`}>P</span>
+                {/if}
             </div>
         </div>
         <button class="delete-btn" onclick={onDismiss} title="Dismiss">×</button>
@@ -92,11 +97,21 @@
     }
 
     .project-badge {
-        font-size: 0.8em;
+        font-size: 0.7em;
         color: white;
-        padding: 2px 6px;
+        padding: 1px 4px;
         border-radius: 3px;
         white-space: nowrap;
+    }
+
+    .project-label-icon {
+        font-size: 0.7em;
+        font-weight: bold;
+        padding: 1px 3px;
+        border-radius: 3px;
+        border: 1px solid;
+        cursor: default;
+        line-height: 1.4;
     }
 
     .delete-btn {

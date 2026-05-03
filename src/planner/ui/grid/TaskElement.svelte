@@ -8,6 +8,8 @@
 		element: Element;
 		index: number;
 		color: string;
+		projectLabel?: string;
+		showProjectLabel?: boolean;
 		onUpdate: (index: number, updatedElement: Element) => void;
 		onDelete: (index: number) => void;
 		onToggle: (index: number) => void;
@@ -15,7 +17,11 @@
 		onCloseProjectTask?: (index: number) => void;
 	}
 
-	let { element, index, color, onUpdate, onDelete, onToggle, onCancel, onCloseProjectTask }: TaskElementProps = $props();
+	let { element, index, color, projectLabel, showProjectLabel = true, onUpdate, onDelete, onToggle, onCancel, onCloseProjectTask }: TaskElementProps = $props();
+
+	const shortenedProject = $derived(
+		projectLabel ? (projectLabel.length > 12 ? projectLabel.slice(0, 12) + '…' : projectLabel) : ''
+	);
 
 	let isEditing = $state<boolean>(false);
 	let editText = $state<string>("");
@@ -181,11 +187,11 @@
 						{/if}
 					{/if}
 				</div>
-				<span 
-					class:checked={element.taskStatus == "x" || (element.taskStatus !== " " && element.progress === undefined && element.duration) || (element.progress && element.duration && element.progress >= element.duration)} 
-					class:cancelled={element.taskStatus == "-"}	 
+				<span
+					class:checked={element.taskStatus == "x" || (element.taskStatus !== " " && element.progress === undefined && element.duration) || (element.progress && element.duration && element.progress >= element.duration)}
+					class:cancelled={element.taskStatus == "-"}
 				>
-					{element.text}
+					{element.text.replace(/\s*\[\[[^\]]+\]\]\s*$/, '')}
 				</span>
 				<div class="time-badge-container">
 					{#if element.duration && element.timeUnit}
@@ -200,6 +206,15 @@
 					{/if}
 				</div>
 			</div>
+			{#if projectLabel}
+				{#if showProjectLabel}
+					<span class="project-label-badge" style={`background-color: ${color}80;`} title={projectLabel}>
+						{shortenedProject}
+					</span>
+				{:else}
+					<span class="project-label-icon" title={projectLabel} style={`color: ${color}; border-color: ${color}80;`}>P</span>
+				{/if}
+			{/if}
 			<button class="delete-btn" onclick={deleteElement} title="Delete">×</button>
 		{/if}
 	</div>
@@ -289,6 +304,36 @@
 		border-radius: 2px;
 		background: var(--background-primary);
 		color: var(--text-normal);
+	}
+
+	.project-label-badge {
+		font-size: 0.7em;
+		color: white;
+		padding: 1px 4px;
+		border-radius: 3px;
+		white-space: nowrap;
+		flex-shrink: 0;
+		opacity: 0;
+	}
+
+	.element-row:hover .project-label-badge {
+		opacity: 1;
+	}
+
+	.project-label-icon {
+		font-size: 0.7em;
+		font-weight: bold;
+		padding: 1px 3px;
+		border-radius: 3px;
+		border: 1px solid;
+		cursor: default;
+		flex-shrink: 0;
+		opacity: 0;
+		line-height: 1.4;
+	}
+
+	.element-row:hover .project-label-icon {
+		opacity: 1;
 	}
 
 	.delete-btn {

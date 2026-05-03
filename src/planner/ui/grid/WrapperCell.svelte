@@ -19,6 +19,7 @@
         trackMeta: Track;
         trackData: TrackData | undefined;
         journalData: string | undefined;
+        showProjectLabel?: boolean;
         onUpdate: (date: ISODate, trackId: string, updatedData: TrackData) => void;
         onAdd: (date: ISODate, trackId: string, trackMeta: Track, items?: Element[]) => void;
         onTrackOpen?: (trackId: string) => void;
@@ -26,7 +27,7 @@
         onCloseProjectTask?: (trackId: string, sourceRef: string, taskStatus: ' ' | 'x') => void;
     }
 
-    let {date, showLabel, trackId, trackMeta, trackData, journalData, onUpdate, onAdd, onTrackOpen, onTrackFileOpen, onCloseProjectTask}: Props = $props();
+    let {date, showLabel, trackId, trackMeta, trackData, journalData, showProjectLabel = true, onUpdate, onAdd, onTrackOpen, onTrackFileOpen, onCloseProjectTask}: Props = $props();
 
     const totalTimeSpent = $derived(trackData ? calculateTotalTimeSpent(trackData.items) : 0);
     const totalTimeCommitment = $derived(trackData ? trackData.time ? trackData.time : trackMeta.timeCommitment : trackMeta.timeCommitment);
@@ -287,6 +288,20 @@
         }
     }
 
+    function getProjectLabel(element: Element): string | undefined {
+        if (element.sourceRef) {
+            // [[FileName#^blockId]] → FileName
+            const match = element.sourceRef.match(/\[\[([^\]#]+)(?:#[^\]]+)?\]\]/);
+            return match?.[1];
+        }
+        if (element.text.startsWith('↻ ')) {
+            // Habit: "↻ Label [[ProjectLabel]]"
+            const match = element.text.match(/\[\[([^\]]+)\]\]\s*$/);
+            return match?.[1];
+        }
+        return undefined;
+    }
+
     /* Drag and Drop */
     let elementToId = $state(new Map<Element, number>());
     let nextId = $state(0);
@@ -385,6 +400,8 @@
                         {element}
                         {index}
                         color={trackMeta.color}
+                        projectLabel={getProjectLabel(element)}
+                        {showProjectLabel}
                         onUpdate={updateElement}
                         onDelete={deleteElement}
                         onToggle={toggleTask}
@@ -403,6 +420,7 @@
                             {habit}
                             {projectLabel}
                             color={trackMeta.color}
+                            {showProjectLabel}
                             onDismiss={() => dismissHabit(projectId, habit.id)}
                         />
                     {/each}
@@ -411,6 +429,7 @@
                             {element}
                             {projectLabel}
                             color={trackMeta.color}
+                            {showProjectLabel}
                             onDismiss={() => dismissScheduledTask(projectId, element.blockId!)}
                         />
                     {/each}
