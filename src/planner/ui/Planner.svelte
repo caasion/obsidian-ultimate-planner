@@ -122,11 +122,11 @@
 		await trackNoteService.openTrackFile(trackId);
 	}
 
-	async function handleCloseProjectTask(trackId: string, sourceRef: string) {
+	async function handleCloseProjectTask(trackId: string, sourceRef: string, taskStatus: ' ' | 'x') {
 		const match = sourceRef.match(/\[\[[^\]]+#\^([a-zA-Z0-9]+)\]\]/);
 		if (!match) return;
 		const blockId = match[1];
-		await trackNoteService.closeProjectTaskByBlockId(trackId, blockId);
+		await trackNoteService.closeProjectTaskByBlockId(trackId, blockId, taskStatus);
 	}
 
 </script>

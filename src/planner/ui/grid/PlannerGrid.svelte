@@ -16,7 +16,7 @@
         openDailyNote: (date: ISODate) => void;
         onTrackOpen?: (trackId: string) => void;
         onTrackFileOpen?: (trackId: string) => void;
-        onCloseProjectTask?: (trackId: string, sourceRef: string) => void;
+        onCloseProjectTask?: (trackId: string, sourceRef: string, taskStatus: ' ' | 'x') => void;
     }
 
     let { dates, tracksByDate, parsedTracks, parsedContent, parsedJournalContent, columns, blocks, onUpdate, onAdd, openDailyNote, onTrackOpen, onTrackFileOpen, onCloseProjectTask }: Props = $props();

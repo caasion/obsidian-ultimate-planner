@@ -144,7 +144,7 @@
 			/>
 		{:else}
 			<div class="element-content" ondblclick={startEdit} role="button" tabindex="0">
-				<div class="element-checkbox-container" class:wide={!!element.sourceRef && !!element.taskStatus}>
+				<div class="element-checkbox-container">
 					{#if element.taskStatus == "x" && element.duration && element.timeUnit}
 						<button
 							onclick={toggleTask}
@@ -248,10 +248,6 @@
 		justify-content: center;
 		flex-shrink: 0;
 		gap: 3px;
-	}
-
-	.element-checkbox-container.wide {
-		min-width: 44px;
 	}
 
 	.task-checkbox {

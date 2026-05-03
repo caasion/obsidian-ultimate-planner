@@ -23,7 +23,7 @@
         onAdd: (date: ISODate, trackId: string, trackMeta: Track, items?: Element[]) => void;
         onTrackOpen?: (trackId: string) => void;
         onTrackFileOpen?: (trackId: string) => void;
-        onCloseProjectTask?: (trackId: string, sourceRef: string) => void;
+        onCloseProjectTask?: (trackId: string, sourceRef: string, taskStatus: ' ' | 'x') => void;
     }
 
     let {date, showLabel, trackId, trackMeta, trackData, journalData, onUpdate, onAdd, onTrackOpen, onTrackFileOpen, onCloseProjectTask}: Props = $props();
@@ -241,19 +241,20 @@
         if (!trackData) return;
         const element = trackData.items[index];
         if (!element.sourceRef) return;
-        // Mark session done in daily note
-        if (element.isTask && element.taskStatus !== 'x') {
+        const newTaskStatus: ' ' | 'x' = element.taskStatus === 'x' ? ' ' : 'x';
+        // Sync status in daily note
+        if (element.isTask) {
             const updatedItems = [...trackData.items];
             const raw = reconstructRawText(
-                element.text, element.isTask, 'x',
+                element.text, element.isTask, newTaskStatus,
                 element.startTime, element.progress, element.duration, element.timeUnit,
                 '\t- ', element.sourceRef, element.scheduledDate, element.blockId
             );
-            updatedItems[index] = { ...element, taskStatus: 'x', raw };
+            updatedItems[index] = { ...element, taskStatus: newTaskStatus, raw };
             onUpdate(date, trackId, { ...trackData, items: updatedItems });
         }
-        // Close the project task too
-        onCloseProjectTask?.(trackId, element.sourceRef);
+        // Sync status to source (source of truth)
+        onCloseProjectTask?.(trackId, element.sourceRef, newTaskStatus);
     }
 
     function cancelTask(index: number) {

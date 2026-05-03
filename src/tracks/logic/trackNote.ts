@@ -1785,7 +1785,7 @@ export class TrackNoteService {
     }
 
     /** Close a project task by its block ID, searching all projects in the track */
-    async closeProjectTaskByBlockId(trackId: string, blockId: string): Promise<boolean> {
+    async closeProjectTaskByBlockId(trackId: string, blockId: string, taskStatus: ' ' | 'x' = 'x'): Promise<boolean> {
         const tracks = get(this.parsedTracksContent);
         const track = tracks[trackId];
         if (!track) {
@@ -1797,7 +1797,7 @@ export class TrackNoteService {
             // Search flat data
             const dataIndex = project.data.findIndex(el => el.blockId === blockId);
             if (dataIndex !== -1) {
-                await this.updateProjectData(trackId, projectId, dataIndex, { taskStatus: 'x' });
+                await this.updateProjectData(trackId, projectId, dataIndex, { taskStatus });
                 return true;
             }
 
@@ -1805,7 +1805,7 @@ export class TrackNoteService {
             for (const phase of project.phases) {
                 const phaseDataIndex = phase.data.findIndex(el => el.blockId === blockId);
                 if (phaseDataIndex !== -1) {
-                    await this.updatePhaseData(trackId, projectId, phase.id, phaseDataIndex, { taskStatus: 'x' });
+                    await this.updatePhaseData(trackId, projectId, phase.id, phaseDataIndex, { taskStatus });
                     return true;
                 }
             }
