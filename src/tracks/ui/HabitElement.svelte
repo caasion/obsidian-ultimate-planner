@@ -22,8 +22,14 @@
 
 	function startEdit() {
 		isEditing = true;
-		// Build editable text from structured fields (label + optional rrule)
+		// Build editable text from all structured fields
 		let text = habit.label;
+		if (habit.startTime) {
+			text += ' @ ' + formatTime(habit.startTime);
+		}
+		if (habit.duration && habit.timeUnit) {
+			text += ' ' + formatProgressDuration(habit.progress, habit.duration, habit.timeUnit);
+		}
 		if (habit.rrule !== "") {
 			text += ` (${RRuleService.formatRRule(habit.rrule)})`;
 		}
