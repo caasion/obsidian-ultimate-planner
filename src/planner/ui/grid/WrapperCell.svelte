@@ -487,6 +487,7 @@
         display: grid;
         grid-template-columns: 1fr auto auto;
         width: 100%;
+        align-items: center;
     }
 
     .add-button {
