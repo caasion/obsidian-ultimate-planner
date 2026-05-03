@@ -191,7 +191,11 @@
             timeUnit: element.timeUnit,
             sourceRef,
         };
-        onAdd(date, trackId, trackMeta, [newElement]);
+        if (trackData) {
+            onUpdate(date, trackId, { ...trackData, items: [...trackData.items, newElement] });
+        } else {
+            onAdd(date, trackId, trackMeta, [newElement]);
+        }
     }
 
     function handleLabelClick(event: MouseEvent) {
