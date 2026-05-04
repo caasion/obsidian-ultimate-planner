@@ -34,6 +34,9 @@ export interface Element {
     progress?: number;
     duration?: number;
 	timeUnit?: 'min' | 'hr';
+	blockId?: string;         // Obsidian block ID (e.g. "aj23k")
+	scheduledDate?: ISODate;  // Scheduled date from 📅 YYYY-MM-DD
+	sourceRef?: string;       // Back-reference wikilink: "[[ProjectFile#^aj23k]]"
 }
 
 /* NEW Plugin Template Datatypes */
@@ -47,6 +50,10 @@ export interface Habit {
     raw: string;
 	label: string;
 	rrule: string;
+	startTime?: Time;
+	duration?: number;
+	timeUnit?: 'min' | 'hr';
+	progress?: number;
 }
 
 export interface Phase {

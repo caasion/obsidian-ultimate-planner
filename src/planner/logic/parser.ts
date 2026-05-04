@@ -1,7 +1,7 @@
 // PURPOSE: Provides tools to extract the desired section header and the information from the header section
 
 import { formatProgressDuration, formatTime } from "src/plugin/helpers";
-import type { Element, Habit, Phase, Time, Track, TrackData } from "src/plugin/types";
+import type { Element, Habit, ISODate, Phase, Time, Track, TrackData } from "src/plugin/types";
 import { RRuleService } from "src/tracks/logic/rrule";
 
 export class PlannerParser {
@@ -89,6 +89,10 @@ export class PlannerParser {
         const lines = section.split('\n');
         const habits: Record<string, Habit> = {};
 
+        const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
+        const progressDurationRegex = /\[(?:(\d+)?(\/))?(\d+)\s*(hr|min)\]/;
+        const rruleRegex = /\(([^)]*)\)\s*$/;
+
         for (const line of lines) {
             // Skip empty lines or lines that aren't bullet points
             if (!line || !line.match(/^- /)) continue;
@@ -96,25 +100,50 @@ export class PlannerParser {
             let text = line.replace(/^- /, '').trim();
             let label: string = text;
             let rrule: string = '';
-            
-            // Extract rrule from pattern: Label (FREQ=DAILY;BYDAY=MO,WE,FR)
-            const rruleRegex = /\[([^\]]*)\]\s*$/;
+            let startTime: Habit['startTime'];
+            let duration: number | undefined;
+            let timeUnit: 'min' | 'hr' | undefined;
+            let progress: number | undefined;
 
+            const startTimeMatch = text.match(startTimeRegex);
+            if (startTimeMatch) {
+                const [fullMatch, hours, minutes] = startTimeMatch;
+                text = text.replace(fullMatch, '').trim();
+                startTime = { hours: parseInt(hours), minutes: parseInt(minutes) };
+            }
+
+            const progressDurationMatch = text.match(progressDurationRegex);
+            if (progressDurationMatch) {
+                const [fullMatch, progressMatch, hasProgress, durationMatch, unitMatch] = progressDurationMatch;
+                text = text.replace(fullMatch, '').trim();
+                progress = hasProgress ? (parseInt(progressMatch) || 0) : undefined;
+                duration = parseInt(durationMatch);
+                timeUnit = unitMatch as 'min' | 'hr';
+            }
+
+            // Extract rrule from ( ... ) suffix.
             const rruleMatch = text.match(rruleRegex);
             if (rruleMatch) {
-                const [fullMatch, rruleContent] = rruleMatch;
-                label = text.replace(fullMatch, '').trim();
+                const [fullMatch, bracketContent] = rruleMatch;
+                const rruleContent = bracketContent ?? '';
+                text = text.replace(fullMatch, '').trim();
                 rrule = RRuleService.parseRRule(rruleContent);
             }
 
-            // Generate ID from label (lowercase, replace spaces with hyphens)
-            const id = 'habit-' + crypto.randomUUID();
-            
+            label = text;
+
+            // Generate stable index-based ID so re-parses don't create duplicates
+            const id = `habit-${Object.keys(habits).length}`;
+
             habits[id] = {
                 id,
-                raw: '- ' + text,
+                raw: '- ' + line.replace(/^- /, '').trim(),
                 label,
-                rrule
+                rrule,
+                startTime,
+                duration,
+                timeUnit,
+                progress,
             };
         }
 
@@ -321,6 +350,36 @@ export class PlannerParser {
 		let progress: number | undefined;
 		let duration: number | undefined;
 		let timeUnit: 'min' | 'hr' | undefined;
+		let blockId: string | undefined;
+		let scheduledDate: ISODate | undefined;
+		let sourceRef: string | undefined;
+
+		// Extract block ID at end of line (must be last): ^xxxxx
+		const blockIdRegex = /\s\^([a-zA-Z0-9]+)$/;
+		const blockIdMatch = text.match(blockIdRegex);
+		if (blockIdMatch) {
+			const [fullMatch, id] = blockIdMatch;
+			text = text.replace(fullMatch, '').trim();
+			blockId = id;
+		}
+
+		// Extract scheduled date: 📅 YYYY-MM-DD
+		const scheduledDateRegex = /📅\s*(\d{4}-\d{2}-\d{2})/;
+		const scheduledDateMatch = text.match(scheduledDateRegex);
+		if (scheduledDateMatch) {
+			const [fullMatch, date] = scheduledDateMatch;
+			text = text.replace(fullMatch, '').trim();
+			scheduledDate = date as ISODate;
+		}
+
+		// Extract source reference: [[File#^blockId]]
+		const sourceRefRegex = /(\[\[[^\]]+#\^[a-zA-Z0-9]+\]\])/;
+		const sourceRefMatch = text.match(sourceRefRegex);
+		if (sourceRefMatch) {
+			const [fullMatch, ref] = sourceRefMatch;
+			text = text.replace(fullMatch, '').trim();
+			sourceRef = ref;
+		}
 
 		const taskStatusRegex = /^\[([ x-])\]/;
 		const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
@@ -352,14 +411,17 @@ export class PlannerParser {
 
 		return {
 			raw: line,
-			text,
+			text: text.trim(),
 			children: [],
 			isTask,
 			taskStatus,
-			startTime, 
+			startTime,
 			progress,
 			duration,
 			timeUnit,
+			blockId,
+			scheduledDate,
+			sourceRef,
 		};
     }
 
@@ -384,23 +446,33 @@ export class PlannerParser {
 
 		const { text, children, isTask, taskStatus, startTime, progress, duration, timeUnit } = element;
 
-		if (isTask) 
+		if (isTask)
 			line += `[${taskStatus}] `
-        
+
         line += text.trim();
 
 		if (startTime)
 			line += ' @ ' + formatTime(startTime);
 
-		if (duration && timeUnit) 
+		if (duration && timeUnit)
 			line += ' ' + formatProgressDuration(progress, duration, timeUnit);
+
+		if ('sourceRef' in element && element.sourceRef)
+			line += ' ' + element.sourceRef;
+
+		if ('scheduledDate' in element && element.scheduledDate)
+			line += ` 📅 ${element.scheduledDate}`;
+
+		// Block ID must be absolute last on the line (Obsidian requirement)
+		if ('blockId' in element && element.blockId)
+			line += ` ^${element.blockId}`;
 
 		let result = line + `\n`;
 
 		for (const child of children) {
             result += `${childPrefix}${child}\n`;
         }
-        
+
         return result;
     }
     

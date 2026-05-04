@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { ISODate, RenderTrack, Track, TrackData } from "src/plugin/types";
+    import type { Element, ISODate, RenderTrack, Track, TrackData } from "src/plugin/types";
 	import HeaderCell from "./HeaderCell.svelte";
 	import WrapperCell from "./WrapperCell.svelte";
 
@@ -11,14 +11,16 @@
         parsedJournalContent: Record<ISODate, Record<string, string>>;
         blocks: number;
         columns: number;
+        showProjectLabel?: boolean;
         onUpdate: (date: ISODate, trackId: string, updatedData: TrackData) => void;
-        onAdd: (date: ISODate, trackId: string, trackMeta: Track) => void;
+        onAdd: (date: ISODate, trackId: string, trackMeta: Track, items?: Element[]) => void;
         openDailyNote: (date: ISODate) => void;
         onTrackOpen?: (trackId: string) => void;
         onTrackFileOpen?: (trackId: string) => void;
+        onCloseProjectTask?: (trackId: string, sourceRef: string, taskStatus: ' ' | 'x') => void;
     }
 
-    let { dates, tracksByDate, parsedTracks, parsedContent, parsedJournalContent, columns, blocks, onUpdate, onAdd, openDailyNote, onTrackOpen, onTrackFileOpen }: Props = $props();
+    let { dates, tracksByDate, parsedTracks, parsedContent, parsedJournalContent, columns, blocks, showProjectLabel = true, onUpdate, onAdd, openDailyNote, onTrackOpen, onTrackFileOpen, onCloseProjectTask }: Props = $props();
 
     function getRows(blockDates: ISODate[]): number {
         const maxTracks = Math.max(...blockDates.map((date) => tracksByDate[date]?.length ?? 0), 0);
@@ -55,10 +57,12 @@
                         trackMeta={track}
                         trackData={parsedContent[date]?.[trackId]}
                         journalData={parsedJournalContent[date]?.[track.journalHeader]}
+                        {showProjectLabel}
                         onUpdate={onUpdate}
                         onAdd={onAdd}
                         {onTrackOpen}
                         {onTrackFileOpen}
+                        {onCloseProjectTask}
                     />
                 {/if}
             {:else}

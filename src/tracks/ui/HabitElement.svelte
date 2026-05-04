@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { Habit } from "src/plugin/types";
+	import type { Habit, Time } from "src/plugin/types";
+	import { formatTime, formatProgressDuration } from "src/plugin/helpers";
 	import { RRuleService } from "../logic/rrule";
 
 	export interface HabitFunctions {
@@ -21,7 +22,18 @@
 
 	function startEdit() {
 		isEditing = true;
-    editText = habit.raw.replace(/^- /, '').trim()
+		// Build editable text from all structured fields
+		let text = habit.label;
+		if (habit.startTime) {
+			text += ' @ ' + formatTime(habit.startTime);
+		}
+		if (habit.duration && habit.timeUnit) {
+			text += ' ' + formatProgressDuration(habit.progress, habit.duration, habit.timeUnit);
+		}
+		if (habit.rrule !== "") {
+			text += ` (${RRuleService.formatRRule(habit.rrule)})`;
+		}
+		editText = text;
 	}
 
 	function cancelEdit() {
@@ -36,24 +48,64 @@
 			return;
 		}
 
-		let label: string = editText;
-		let rrule: string = habit.rrule; // Default to existing rrule
+		let text = editText;
+		let label: string;
+		let rrule: string = habit.rrule;
+		let startTime: Time | undefined;
+		let duration: number | undefined;
+		let timeUnit: 'min' | 'hr' | undefined;
+		let progress: number | undefined;
 
-		const rruleRegex = /\[([^\]]*)\]\s*$/;
+		const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
+		const progressDurationRegex = /\[(?:(\d+)?(\/))?(\d+)\s*(hr|min)\]/;
+		const rruleRegex = /\(([^)]*)\)\s*$/;
 
-		const rruleMatch = editText.match(rruleRegex);
+		const startTimeMatch = text.match(startTimeRegex);
+		if (startTimeMatch) {
+			const [fullMatch, hours, minutes] = startTimeMatch;
+			text = text.replace(fullMatch, '').trim();
+			startTime = { hours: parseInt(hours), minutes: parseInt(minutes) };
+		}
+
+		const progressDurationMatch = text.match(progressDurationRegex);
+		if (progressDurationMatch) {
+			const [fullMatch, progressMatch, hasProgress, durationMatch, unitMatch] = progressDurationMatch;
+			text = text.replace(fullMatch, '').trim();
+			progress = hasProgress ? (parseInt(progressMatch) || 0) : undefined;
+			duration = parseInt(durationMatch);
+			timeUnit = unitMatch as 'min' | 'hr';
+		}
+
+		const rruleMatch = text.match(rruleRegex);
 		if (rruleMatch) {
-			console.log('matched!')
 			const [fullMatch, rruleContent] = rruleMatch;
-			label = editText.replace(fullMatch, '').trim();
+			text = text.replace(fullMatch, '').trim();
 			rrule = RRuleService.parseRRule(rruleContent);
+		}
+
+		label = text.trim();
+
+		// Reconstruct raw
+		let raw = '- ' + label;
+		if (startTime) {
+			raw += ' @ ' + formatTime(startTime);
+		}
+		if (duration && timeUnit) {
+			raw += ' ' + formatProgressDuration(progress, duration, timeUnit);
+		}
+		if (rrule !== "") {
+			raw += ` (${RRuleService.formatRRule(rrule)})`;
 		}
 
 		const newHabit: Habit = {
 			...habit,
-			raw: "- " + editText,
+			raw,
 			label,
-			rrule
+			rrule,
+			startTime,
+			duration,
+			timeUnit,
+			progress,
 		};
 
 		habitFunctions.onEdit(newHabit);
@@ -71,7 +123,7 @@
 			skipBlur = true;
 		}
 	}
-	
+
 </script>
 
 <div class="task-element">
@@ -89,14 +141,26 @@
 				<span>↻ {habit.label}</span>
 
 				<div class="time-badge-container">
-					<div class="time-badge" style={`background-color: ${color}80;`}>
-						{RRuleService.formatRRule(habit.rrule)}
-					</div>
+					{#if habit.duration && habit.timeUnit}
+						<span class="time-badge" style={`background-color: ${color}80;`}>
+							{habit.duration} {habit.timeUnit}
+						</span>
+					{/if}
+					{#if habit.startTime}
+						<span class="time-badge" style={`background-color: ${color}80;`}>
+							{formatTime(habit.startTime)}
+						</span>
+					{/if}
+					{#if habit.rrule !== ""}
+						<div class="time-badge" style={`background-color: ${color}80;`}>
+							{RRuleService.formatRRule(habit.rrule)}
+						</div>
+					{/if}
 				</div>
 			</div>
 			<button class="delete-btn" onclick={habitFunctions.onDelete} title="Delete">×</button>
 		{/if}
-		
+
 	</div>
 </div>
 

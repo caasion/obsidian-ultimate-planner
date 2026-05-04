@@ -1,6 +1,6 @@
 import { TFolder, type App, TFile, getAllTags, type FrontMatterCache, type EventRef, Menu, Notice, getFrontMatterInfo, parseYaml } from "obsidian";
 import { PlannerParser } from "src/planner/logic/parser";
-import { getISODate } from "src/plugin/helpers";
+import { generateBlockId, getISODate } from "src/plugin/helpers";
 import type { DateInterval, Element, Habit, ISODate, Phase, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
 import { type Writable, get, writable } from "svelte/store";
 import { hashTrackFileCacheEntries } from "./trackSnapshotHash";
@@ -454,6 +454,36 @@ export class TrackNoteService {
         }
 
         const description = PlannerParser.extractFirstSection(projectContent);
+
+        // Auto-generate block IDs for elements that don't have them
+        let needsWrite = false;
+        const assignBlockIds = (elements: Element[]) => {
+            for (const el of elements) {
+                if (el.isTask && !el.blockId) {
+                    el.blockId = generateBlockId();
+                    needsWrite = true;
+                }
+            }
+        };
+
+        assignBlockIds(data);
+        for (const phase of phases) {
+            assignBlockIds(phase.data);
+        }
+
+        if (needsWrite) {
+            let updatedContent = projectContent;
+            if (hasPhases) {
+                const newPhasesSection = PlannerParser.serializePhasesSection(phases);
+                updatedContent = PlannerParser.replaceSection(updatedContent, 'Phases', newPhasesSection);
+            } else {
+                const newDataSection = this.serializeDataSection(data);
+                updatedContent = PlannerParser.replaceSection(updatedContent, 'Data', newDataSection);
+            }
+            this.isUpdatingInternally = true;
+            await this.app.vault.modify(projectFile, updatedContent);
+            this.isUpdatingInternally = false;
+        }
 
         return {
             id,
@@ -1752,6 +1782,37 @@ export class TrackNoteService {
                 },
             };
         });
+    }
+
+    /** Close a project task by its block ID, searching all projects in the track */
+    async closeProjectTaskByBlockId(trackId: string, blockId: string, taskStatus: ' ' | 'x' = 'x'): Promise<boolean> {
+        const tracks = get(this.parsedTracksContent);
+        const track = tracks[trackId];
+        if (!track) {
+            console.warn(`Track ${trackId} not found`);
+            return false;
+        }
+
+        for (const [projectId, project] of Object.entries(track.projects)) {
+            // Search flat data
+            const dataIndex = project.data.findIndex(el => el.blockId === blockId);
+            if (dataIndex !== -1) {
+                await this.updateProjectData(trackId, projectId, dataIndex, { taskStatus });
+                return true;
+            }
+
+            // Search phases
+            for (const phase of project.phases) {
+                const phaseDataIndex = phase.data.findIndex(el => el.blockId === blockId);
+                if (phaseDataIndex !== -1) {
+                    await this.updatePhaseData(trackId, projectId, phase.id, phaseDataIndex, { taskStatus });
+                    return true;
+                }
+            }
+        }
+
+        console.warn(`Task with blockId ${blockId} not found in track ${trackId}`);
+        return false;
     }
 
     // ===== Reading tracks ===== //

@@ -1,8 +1,11 @@
 <script lang="ts">
-	import type { Element, Time } from "src/plugin/types";
+	import type { Element, ISODate, Time } from "src/plugin/types";
 	import { formatTime, reconstructRawText } from "src/plugin/helpers";
 	import { longpress } from "src/plugin/actions"
 	import CircularProgress from "src/planner/ui/grid/CircularProgress.svelte";
+	import Datepicker from "src/components/Datepicker.svelte";
+	import Portal from "src/components/Portal.svelte";
+	import { onMount } from "svelte";
 
 	interface TaskElementProps {
 		element: Element;
@@ -53,6 +56,26 @@
 		let progress: number | undefined;
 		let duration: number | undefined;
 		let timeUnit: 'min' | 'hr' | undefined;
+		let blockId: string | undefined = element.blockId;
+		let scheduledDate: ISODate | undefined = element.scheduledDate;
+
+		// Extract block ID at end of text: ^xxxxx
+		const blockIdRegex = /\s\^([a-zA-Z0-9]+)$/;
+		const blockIdMatch = editText.match(blockIdRegex);
+		if (blockIdMatch) {
+			const [fullMatch, id] = blockIdMatch;
+			editText = editText.replace(fullMatch, '').trim();
+			blockId = id;
+		}
+
+		// Extract scheduled date: 📅 YYYY-MM-DD
+		const scheduledDateRegex = /📅\s*(\d{4}-\d{2}-\d{2})/;
+		const scheduledDateMatch = editText.match(scheduledDateRegex);
+		if (scheduledDateMatch) {
+			const [fullMatch, date] = scheduledDateMatch;
+			editText = editText.replace(fullMatch, '').trim();
+			scheduledDate = date as ISODate;
+		}
 
 		const taskStatusRegex = /^\[([ x-])\]/;
 		const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
@@ -82,7 +105,7 @@
 			timeUnit = unitMatch as 'min' | 'hr';
 		}
 
-		const raw = reconstructRawText(editText.trim(), isTask, taskStatus, startTime, progress, duration, timeUnit, '- ');
+		const raw = reconstructRawText(editText.trim(), isTask, taskStatus, startTime, progress, duration, timeUnit, '- ', undefined, scheduledDate, blockId);
 
 		const updatedElement: Element = {
 			...element,
@@ -94,6 +117,8 @@
 			progress,
 			duration,
 			timeUnit,
+			blockId,
+			scheduledDate,
 		}
 		
 		onUpdate(index, updatedElement);
@@ -121,6 +146,50 @@
 	function deleteElement() {
 		onDelete(index);
 	}
+
+	/* Scheduled date picker */
+	let showDatepicker = $state(false);
+	let dateBadgeEl = $state<HTMLElement | undefined>(undefined);
+	let datepickerPopupEl = $state<HTMLDivElement | undefined>(undefined);
+	let datepickerPopupStyle = $state('');
+
+	function openDatepicker() {
+		showDatepicker = true;
+		const rect = dateBadgeEl?.getBoundingClientRect();
+		if (!rect) return;
+		const spaceBelow = window.innerHeight - rect.bottom;
+		if (spaceBelow >= 320) {
+			datepickerPopupStyle = `position: fixed; top: ${rect.bottom + 4}px; left: ${rect.left}px; z-index: var(--layer-popover, 100);`;
+		} else {
+			datepickerPopupStyle = `position: fixed; bottom: ${window.innerHeight - rect.top + 4}px; left: ${rect.left}px; z-index: var(--layer-popover, 100);`;
+		}
+	}
+
+	function handleScheduledDateSelect(date: Date) {
+		const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` as ISODate;
+		const raw = reconstructRawText(element.text, element.isTask, element.taskStatus, element.startTime, element.progress, element.duration, element.timeUnit, '- ', undefined, isoDate, element.blockId);
+		onUpdate(index, { ...element, raw, scheduledDate: isoDate });
+		showDatepicker = false;
+	}
+
+	function handleClearScheduledDate() {
+		const raw = reconstructRawText(element.text, element.isTask, element.taskStatus, element.startTime, element.progress, element.duration, element.timeUnit, '- ', undefined, undefined, element.blockId);
+		onUpdate(index, { ...element, raw, scheduledDate: undefined });
+		showDatepicker = false;
+	}
+
+	function handleDatepickerOutsideClick(e: MouseEvent) {
+		if (!showDatepicker) return;
+		const target = e.target as Node;
+		if (dateBadgeEl?.contains(target) || datepickerPopupEl?.contains(target)) return;
+		if ((target as Element).closest?.('.holos-datepicker-panel')) return;
+		showDatepicker = false;
+	}
+
+	onMount(() => {
+		document.addEventListener('click', handleDatepickerOutsideClick);
+		return () => document.removeEventListener('click', handleDatepickerOutsideClick);
+	});
 </script>
 
 <div class="task-element">
@@ -161,6 +230,22 @@
 					{element.text}
 				</span>
 				<div class="time-badge-container">
+					{#if element.scheduledDate}
+						<button
+							bind:this={dateBadgeEl}
+							class="time-badge scheduled-date-badge"
+							style={`background-color: ${color}80;`}
+							onclick={openDatepicker}
+							title="Change scheduled date"
+						>📅 {element.scheduledDate}</button>
+					{:else if element.isTask}
+						<button
+							bind:this={dateBadgeEl}
+							class="schedule-add-btn"
+							onclick={openDatepicker}
+							title="Schedule task"
+						>📅</button>
+					{/if}
 					{#if element.duration && element.timeUnit}
 						<span class="time-badge" style={`background-color: ${color}80;`}>
 							{element.duration} {element.timeUnit}
@@ -185,6 +270,20 @@
 		</div>
 	{/if}
 </div>
+
+{#if showDatepicker}
+	<Portal>
+		<div class="datepicker-popup" style={datepickerPopupStyle} bind:this={datepickerPopupEl}>
+			<Datepicker
+				inline={true}
+				value={element.scheduledDate ? new Date(element.scheduledDate + 'T00:00:00') : undefined}
+				onselect={(date: Date) => handleScheduledDateSelect(date)}
+				showActionButtons={true}
+				onclear={handleClearScheduledDate}
+			/>
+		</div>
+	</Portal>
+{/if}
 
 <style>
 	.task-element {
@@ -290,5 +389,44 @@
 
 	.child-item {
 		padding: 2px 0;
+	}
+
+	.scheduled-date-badge {
+		font-size: 0.85em;
+		color: white;
+		padding: 2px 6px;
+		border-radius: 3px;
+		border: none;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+
+	.scheduled-date-badge:hover {
+		opacity: 0.85;
+	}
+
+	.schedule-add-btn {
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		font-size: 0.9em;
+		padding: 0 2px;
+		opacity: 0;
+		color: var(--text-muted);
+	}
+
+	.element-content:hover .schedule-add-btn {
+		opacity: 0.6;
+	}
+
+	.schedule-add-btn:hover {
+		opacity: 1 !important;
+	}
+
+	.datepicker-popup {
+		border: 1px solid var(--background-modifier-border);
+		border-radius: 8px;
+		background: var(--background-primary);
+		box-shadow: var(--shadow-s);
 	}
 </style>

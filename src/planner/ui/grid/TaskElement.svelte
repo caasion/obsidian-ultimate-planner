@@ -8,13 +8,20 @@
 		element: Element;
 		index: number;
 		color: string;
+		projectLabel?: string;
+		showProjectLabel?: boolean;
 		onUpdate: (index: number, updatedElement: Element) => void;
 		onDelete: (index: number) => void;
 		onToggle: (index: number) => void;
 		onCancel: (index: number) => void;
+		onCloseProjectTask?: (index: number) => void;
 	}
 
-	let { element, index, color, onUpdate, onDelete, onToggle, onCancel }: TaskElementProps = $props();
+	let { element, index, color, projectLabel, showProjectLabel = true, onUpdate, onDelete, onToggle, onCancel, onCloseProjectTask }: TaskElementProps = $props();
+
+	const shortenedProject = $derived(
+		projectLabel ? (projectLabel.length > 12 ? projectLabel.slice(0, 12) + '…' : projectLabel) : ''
+	);
 
 	let isEditing = $state<boolean>(false);
 	let editText = $state<string>("");
@@ -53,6 +60,16 @@
 		let progress: number | undefined;
 		let duration: number | undefined;
 		let timeUnit: 'min' | 'hr' | undefined;
+		let sourceRef: string | undefined = element.sourceRef;
+
+		// Extract source reference: [[File#^blockId]]
+		const sourceRefRegex = /(\[\[[^\]]+#\^[a-zA-Z0-9]+\]\])/;
+		const sourceRefMatch = editText.match(sourceRefRegex);
+		if (sourceRefMatch) {
+			const [fullMatch, ref] = sourceRefMatch;
+			editText = editText.replace(fullMatch, '').trim();
+			sourceRef = ref;
+		}
 
 		const taskStatusRegex = /^\[([ x-])\]/;
 		const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
@@ -91,6 +108,7 @@
 			progress,
 			duration,
 			timeUnit,
+			sourceRef,
 		}
 		
 		onUpdate(index, updatedElement);
@@ -138,29 +156,42 @@
 							onclick={toggleTask}
 							class="invisible-button"
 						>
-							<CircularProgress 
+							<CircularProgress
 								progress={element.progress}
-								duration={element.duration} 
+								duration={element.duration}
 								unit={element.timeUnit}
 								size={20}
 							/>
 						</button>
 					{:else if element.taskStatus}
-						<input
-							bind:this={checkboxRef}
-							type="checkbox"
-							checked={element.taskStatus == "x"}
-							onchange={toggleTask}
-							use:longpress={500}
-							class="task-checkbox"
-						/>
+						
+						{#if element.sourceRef}
+							<input
+								type="checkbox"
+								checked={element.taskStatus == "x"}
+								onchange={() => onCloseProjectTask?.(index)}
+								class="task-checkbox"
+								style={`box-shadow: 0 0 0 2px ${color};`}
+								title="Mark task done in project"
+							/>
+						{:else}
+							<input
+								bind:this={checkboxRef}
+								type="checkbox"
+								checked={element.taskStatus == "x"}
+								onchange={toggleTask}
+								use:longpress={500}
+								class="task-checkbox"
+								title="Mark session done"
+							/>
+						{/if}
 					{/if}
 				</div>
-				<span 
-					class:checked={element.taskStatus == "x" || (element.taskStatus !== " " && element.progress === undefined && element.duration) || (element.progress && element.duration && element.progress >= element.duration)} 
-					class:cancelled={element.taskStatus == "-"}	 
+				<span
+					class:checked={element.taskStatus == "x" || (element.taskStatus !== " " && element.progress === undefined && element.duration) || (element.progress && element.duration && element.progress >= element.duration)}
+					class:cancelled={element.taskStatus == "-"}
 				>
-					{element.text}
+					{element.text.replace(/\s*\[\[[^\]]+\]\]\s*$/, '')}
 				</span>
 				<div class="time-badge-container">
 					{#if element.duration && element.timeUnit}
@@ -175,6 +206,15 @@
 					{/if}
 				</div>
 			</div>
+			{#if projectLabel}
+				{#if showProjectLabel}
+					<span class="project-label-badge" style={`background-color: ${color}80;`} title={projectLabel}>
+						{shortenedProject}
+					</span>
+				{:else}
+					<span class="project-label-icon" title={projectLabel} style={`color: ${color}; border-color: ${color}80;`}>P</span>
+				{/if}
+			{/if}
 			<button class="delete-btn" onclick={deleteElement} title="Delete">×</button>
 		{/if}
 	</div>
@@ -217,11 +257,12 @@
 
 	.element-checkbox-container {
 		height: 20px;
-		width: 20px;
+		min-width: 20px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
+		gap: 3px;
 	}
 
 	.task-checkbox {
@@ -263,6 +304,36 @@
 		border-radius: 2px;
 		background: var(--background-primary);
 		color: var(--text-normal);
+	}
+
+	.project-label-badge {
+		font-size: 0.7em;
+		color: white;
+		padding: 1px 4px;
+		border-radius: 3px;
+		white-space: nowrap;
+		flex-shrink: 0;
+		opacity: 0;
+	}
+
+	.element-row:hover .project-label-badge {
+		opacity: 1;
+	}
+
+	.project-label-icon {
+		font-size: 0.7em;
+		font-weight: bold;
+		padding: 1px 3px;
+		border-radius: 3px;
+		border: 1px solid;
+		cursor: default;
+		flex-shrink: 0;
+		opacity: 0;
+		line-height: 1.4;
+	}
+
+	.element-row:hover .project-label-icon {
+		opacity: 1;
 	}
 
 	.delete-btn {

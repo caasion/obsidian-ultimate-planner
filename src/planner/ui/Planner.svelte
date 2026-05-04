@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { App } from "obsidian";
-	import type { ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
+	import type { Element, ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
 	import { DailyNoteService } from "src/planner/logic/dailyNote";
 	import { getISODate, getISODates, getLabelFromDateRange, addDaysISO } from "src/plugin/helpers";
 	import Topbar from "src/components/Topbar.svelte";
@@ -35,6 +35,8 @@
 	let localBlocks = $state<number>(settings.blocks);
 	$effect(() => { localColumns = settings.columns; });
 	$effect(() => { localBlocks = settings.blocks; });
+
+	let showProjectLabel = $state<boolean>(true);
 
 	// Set default anchor date to today
 	const today = getISODate(new Date());
@@ -96,8 +98,8 @@
 	}
 
 	// Add new track to an empty cell
-	async function addNewTrackToCell(date: ISODate, trackId: string, trackMeta: Track) {
-		await dailyNoteService.addNewTrackToCell(date, trackId, trackMeta.timeCommitment);
+	async function addNewTrackToCell(date: ISODate, trackId: string, trackMeta: Track, items?: Element[]) {
+		await dailyNoteService.addNewTrackToCell(date, trackId, trackMeta.timeCommitment, items);
 	}
 
 	// Open daily note for a specific date
@@ -122,6 +124,13 @@
 		await trackNoteService.openTrackFile(trackId);
 	}
 
+	async function handleCloseProjectTask(trackId: string, sourceRef: string, taskStatus: ' ' | 'x') {
+		const match = sourceRef.match(/\[\[[^\]]+#\^([a-zA-Z0-9]+)\]\]/);
+		if (!match) return;
+		const blockId = match[1];
+		await trackNoteService.closeProjectTaskByBlockId(trackId, blockId, taskStatus);
+	}
+
 </script>
 
 <div class="planner-container">
@@ -138,6 +147,12 @@
 	>
 		{#snippet right()}
 			<div class="holos-controls">
+				<button
+					class="holos-ctrl-btn"
+					class:active={showProjectLabel}
+					onclick={() => showProjectLabel = !showProjectLabel}
+					title={showProjectLabel ? 'Collapse project labels' : 'Expand project labels'}
+				>P</button>
 				<label class="holos-ctrl">
 					<span class="holos-ctrl-lbl">Cols</span>
 					<input type="number" class="holos-ctrl-input" min="1" max="31" value={localColumns}
@@ -160,11 +175,13 @@
 		blocks={localBlocks}
 		{parsedContent}
 		{parsedJournalContent}
+		{showProjectLabel}
 		onUpdate={handleCellUpdate}
 		onAdd={addNewTrackToCell}
 		{openDailyNote}
 		onTrackOpen={handleTrackOpen}
 		onTrackFileOpen={handleTrackFileOpen}
+		onCloseProjectTask={handleCloseProjectTask}
 	/>
 </div>
 
@@ -201,5 +218,22 @@
 		color: var(--text-normal);
 		font-size: 0.82em;
 		text-align: center;
+	}
+
+	.holos-ctrl-btn {
+		font-size: 0.78em;
+		font-weight: bold;
+		padding: 2px 6px;
+		border: 1px solid var(--background-modifier-border);
+		border-radius: 6px;
+		background: var(--background-secondary);
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+
+	.holos-ctrl-btn.active {
+		background: var(--interactive-accent);
+		color: white;
+		border-color: var(--interactive-accent);
 	}
 </style>
