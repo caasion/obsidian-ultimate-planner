@@ -6,6 +6,7 @@
 	import { type ProjectCardFunctions } from "./ProjectCard.svelte";
 	import type { HabitFunctions } from "./HabitElement.svelte";
 	import { NewTrackModal } from "./NewTrackModal";
+  import { ReorderTracksModal } from "./ReorderTracksModal";
 	import { getISODate } from "src/plugin/helpers";
 	import ViewSwitcher from "src/components/ViewSwitcher.svelte";
 	import { TRACKS_VIEW_TYPE } from "src/tracks/TracksView";
@@ -60,6 +61,12 @@
       trackNoteService.cleanupFileWatchers();
     };
   });
+
+  function handleReorderTracks() {
+    new ReorderTracksModal(app, sortedTracks, (orderedIds) => {
+      trackNoteService.reorderTracks(orderedIds);
+    }).open();
+  }
 
   /** Handles the creation of a new track (modal and creation) */
   function handleNewTrack() {
@@ -152,6 +159,19 @@
   <div class="header-row">
     <h2>Manage Tracks</h2>
     <div class="header-actions">
+      {#if sortedTracks.length > 1}
+        <button
+          class="toggle-inactive-button"
+          onclick={handleReorderTracks}
+          title="Reorder tracks"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      {/if}
       <button
         class="toggle-inactive-button"
         class:active={showInactiveTracks}
