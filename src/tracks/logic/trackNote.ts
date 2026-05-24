@@ -1815,6 +1815,37 @@ export class TrackNoteService {
         return false;
     }
 
+    /** Reorder tracks by assigning new order values matching the given ID sequence */
+    async reorderTracks(orderedIds: string[]): Promise<void> {
+        const tracks = get(this.parsedTracksContent);
+
+        // Update in-memory order immediately
+        const updated: Record<string, Track> = { ...tracks };
+        for (let i = 0; i < orderedIds.length; i++) {
+            const id = orderedIds[i];
+            if (updated[id]) {
+                updated[id] = { ...updated[id], order: i };
+            }
+        }
+        this.publishTrackState(updated, true);
+
+        // Persist each track's new order to its frontmatter
+        for (let i = 0; i < orderedIds.length; i++) {
+            const id = orderedIds[i];
+            const trackFile = this.trackFileCache[id]?.track;
+            if (!trackFile) continue;
+
+            this.isUpdatingInternally = true;
+            try {
+                await this.app.fileManager.processFrontMatter(trackFile, (fm) => {
+                    fm.order = i;
+                });
+            } finally {
+                this.isUpdatingInternally = false;
+            }
+        }
+    }
+
     // ===== Reading tracks ===== //
 
     /** Gets track metadata by ID */
