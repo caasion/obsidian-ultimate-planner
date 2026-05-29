@@ -109,6 +109,20 @@
 			startEdit();
 		}
 	}
+
+	function handleDisplayClick(e: MouseEvent) {
+		const target = e.target as HTMLElement;
+		
+		const internalLink = target.closest("a.internal-link");
+		if (internalLink) {
+			e.preventDefault();
+			e.stopPropagation();
+			const href = internalLink.getAttribute("data-href") || internalLink.getAttribute("href");
+			if (href) {
+				app.workspace.openLinkText(href, sourcePath, e.ctrlKey || e.metaKey);
+			}
+		}
+	}
 </script>
 
 {#if isEditing}
@@ -124,6 +138,7 @@
 	<div
 		class={`editable-display ${customClass}`}
 		ondblclick={startEdit}
+		onclick={handleDisplayClick}
 		role="button"
 		tabindex="0"
 		onkeydown={handleDisplayKeydown}
