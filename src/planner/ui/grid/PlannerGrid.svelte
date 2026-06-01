@@ -60,7 +60,7 @@
         <!-- Header Row: empty corner + date columns -->
         <div class="planner-header-row" style={`grid-template-columns: 160px repeat(${columns}, 1fr);`}>
             <!-- Empty corner cell -->
-            <div class="header-corner"></div>
+            <div class="header-corner" style="border-right: 1px solid rgba(255, 255, 255, 0.1);"></div>
             {#each blockDates as date (date)}
             <HeaderCell {date} {openDailyNote} />
             {/each}
@@ -131,18 +131,18 @@
         background: #333333;
         border-radius: 8px;
         overflow: hidden;
-        border: 1px solid #555555;
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .planner-header-row {
         display: grid;
         background: #2e2e2e;
-        border-bottom: 1px solid #555555;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .planner-data-row {
         display: grid;
-        border-bottom: 1px solid #555555;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .planner-data-row:last-child {
@@ -152,7 +152,7 @@
     .track-label-cell {
         padding: 0;
         background: #2e2e2e;
-        border-right: 1px solid #555555;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
         display: flex;
         align-items: flex-start;
         overflow: hidden;
@@ -220,7 +220,7 @@
 
     .cell-empty {
         min-height: 80px;
-        border-right: 1px solid #555555;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
         background: #363636;
     }
 

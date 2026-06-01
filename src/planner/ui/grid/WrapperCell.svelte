@@ -477,8 +477,7 @@
         display: flex;
         flex-direction: column;
         padding: 4px;
-        border-right: 1px dotted var(--background-modifier-border);
-        border-bottom: 1px dashed var(--background-modifier-border);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
         border-collapse: collapse;
         min-height: 40px;
     }
