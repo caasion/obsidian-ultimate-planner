@@ -19,10 +19,6 @@
 
 	let { element, index, color, projectLabel, showProjectLabel = true, onUpdate, onDelete, onToggle, onCancel, onCloseProjectTask }: TaskElementProps = $props();
 
-	const shortenedProject = $derived(
-		projectLabel ? (projectLabel.length > 12 ? projectLabel.slice(0, 12) + '…' : projectLabel) : ''
-	);
-
 	let isEditing = $state<boolean>(false);
 	let editText = $state<string>("");
 	let skipBlur = $state<boolean>(false);
@@ -139,17 +135,17 @@
 </script>
 
 <div class="task-element">
-	<div class="element-row">
-		{#if isEditing}
-			<input
-				type="text"
-				bind:value={editText}
-				onkeydown={handleKeydown}
-				onblur={saveEdit}
-				class="element-input"
-			/>
-		{:else}
-			<div class="element-content" ondblclick={startEdit} role="button" tabindex="0">
+	{#if isEditing}
+		<input
+			type="text"
+			bind:value={editText}
+			onkeydown={handleKeydown}
+			onblur={saveEdit}
+			class="element-input"
+		/>
+	{:else}
+		<div class="element-content" ondblclick={startEdit} role="button" tabindex="0">
+			<div class="element-top-row">
 				<div class="element-checkbox-container">
 					{#if element.taskStatus == "x" && element.duration && element.timeUnit}
 						<button
@@ -160,18 +156,17 @@
 								progress={element.progress}
 								duration={element.duration}
 								unit={element.timeUnit}
-								size={20}
+								size={18}
 							/>
 						</button>
 					{:else if element.taskStatus}
-						
 						{#if element.sourceRef}
 							<input
 								type="checkbox"
 								checked={element.taskStatus == "x"}
 								onchange={() => onCloseProjectTask?.(index)}
 								class="task-checkbox"
-								style={`box-shadow: 0 0 0 2px ${color};`}
+								style={`border-color: ${color};`}
 								title="Mark task done in project"
 							/>
 						{:else}
@@ -188,37 +183,37 @@
 					{/if}
 				</div>
 				<span
+					class="element-text"
 					class:checked={element.taskStatus == "x" || (element.taskStatus !== " " && element.progress === undefined && element.duration) || (element.progress && element.duration && element.progress >= element.duration)}
 					class:cancelled={element.taskStatus == "-"}
 				>
 					{element.text.replace(/\s*\[\[[^\]]+\]\]\s*$/, '')}
 				</span>
-				<div class="time-badge-container">
-					{#if element.duration && element.timeUnit}
-						<span class="time-badge" style={`background-color: ${color}80;`}>
-							 {element.duration} {element.timeUnit}
-						</span>
-					{/if}
-					{#if element.startTime}
-						<span class="time-badge" style={`background-color: ${color}80;`}>
-							{formatTime(element.startTime)}
-						</span>
-					{/if}
-				</div>
+				<button class="delete-btn" onclick={deleteElement} title="Delete">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+					</button>
 			</div>
-			{#if projectLabel}
-				{#if showProjectLabel}
-					<span class="project-label-badge" style={`background-color: ${color}80;`} title={projectLabel}>
-						{shortenedProject}
+			<div class="element-meta-row">
+				{#if element.duration && element.timeUnit}
+					<span class="meta-tag">
+						{#if element.progress !== undefined}{element.progress}/{/if}{element.duration} {element.timeUnit == 'min' ? 'm' : 'h'}
 					</span>
-				{:else}
-					<span class="project-label-icon" title={projectLabel} style={`color: ${color}; border-color: ${color}80;`}>P</span>
 				{/if}
-			{/if}
-			<button class="delete-btn" onclick={deleteElement} title="Delete">×</button>
-		{/if}
-	</div>
-	
+				{#if element.startTime}
+					<span class="meta-tag">
+						{formatTime(element.startTime)}
+					</span>
+				{/if}
+				{#if projectLabel && showProjectLabel}
+					<span class="project-label" title={projectLabel}>
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-symlink-icon lucide-folder-symlink"><path d="M2 9.35V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h7"/><path d="m8 16 3-3-3-3"/></svg>
+						{projectLabel}
+					</span>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
 	{#if element.children.length > 0}
 		<div class="children">
 			{#each element.children as child}
@@ -233,36 +228,33 @@
 		width: 100%;
 	}
 
-	.element-row {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-	}
-
 	.element-content {
-		flex: 1;
 		cursor: text;
-		padding: 2px 4px;
-		border-radius: 2px;
+		padding: 4px;
+		border-radius: 4px;
 		display: flex;
-		align-items: center;
-		min-height: 24px;
-		gap: 4px;
-		overflow: auto;
+		flex-direction: column;
 	}
 
 	.element-content:hover {
 		background-color: var(--background-modifier-hover);
 	}
 
+	.element-top-row {
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+		gap: 6px;
+	}
+
 	.element-checkbox-container {
-		height: 20px;
-		min-width: 20px;
+		height: 18px;
+		min-width: 18px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
-		gap: 3px;
+		margin-top: 1px;
 	}
 
 	.task-checkbox {
@@ -270,70 +262,65 @@
 		margin: 0;
 	}
 
+	.element-text {
+		flex: 1;
+		line-height: 1.4;
+		word-break: break-word;
+	}
+
 	.checked {
 		text-decoration: line-through;
-		opacity: 0.6;
+		opacity: 0.5;
 	}
 
 	.cancelled {
 		text-decoration: line-through;
-		opacity: 0.6;
+		opacity: 0.5;
 	}
 
-	.time-badge-container {
-		margin-left: auto;
+	.element-meta-row {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 4px;
-		justify-content: flex-end;
 		align-items: center;
+		gap: 6px;
+		padding-left: 24px;
+		overflow: hidden;
 	}
 
-	.time-badge {
-		font-size: 0.85em;
-		background-color: var(--interactive-accent);
-		color: white;
-		padding: 2px 6px;
-		border-radius: 3px;
+	.meta-tag {
+		font-size: 0.8em;
+		color: var(--text-normal);
+		padding: 1px 6px;
+		border-radius: 4px;
+		border: 1px solid var(--background-modifier-border);
+		background: var(--background-secondary);
+		white-space: nowrap;
+		line-height: 1.4;
+		flex-shrink: 0;
+	}
+
+	.project-label {
+		font-size: 0.8em;
+		color: var(--text-muted);
+		display: flex;
+		align-items: center;
+		gap: 3px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		min-width: 0;
+	}
+
+	.project-label svg {
+		flex-shrink: 0;
 	}
 
 	.element-input {
-		flex: 1;
-		padding: 2px 4px;
+		width: 100%;
+		padding: 4px;
 		border: 1px solid var(--interactive-accent);
-		border-radius: 2px;
+		border-radius: 4px;
 		background: var(--background-primary);
 		color: var(--text-normal);
-	}
-
-	.project-label-badge {
-		font-size: 0.7em;
-		color: white;
-		padding: 1px 4px;
-		border-radius: 3px;
-		white-space: nowrap;
-		flex-shrink: 0;
-		opacity: 0;
-	}
-
-	.element-row:hover .project-label-badge {
-		opacity: 1;
-	}
-
-	.project-label-icon {
-		font-size: 0.7em;
-		font-weight: bold;
-		padding: 1px 3px;
-		border-radius: 3px;
-		border: 1px solid;
-		cursor: default;
-		flex-shrink: 0;
-		opacity: 0;
-		line-height: 1.4;
-	}
-
-	.element-row:hover .project-label-icon {
-		opacity: 1;
 	}
 
 	.delete-btn {
@@ -342,12 +329,18 @@
 		border: none;
 		color: var(--text-muted);
 		cursor: pointer;
-		font-size: 1.2em;
-		padding: 0 4px;
-		line-height: 1;
+		flex-shrink: 0;
+		box-shadow: none;
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 18px;
+		height: 18px;
+		margin-top: 1px;
 	}
 
-	.element-row:hover .delete-btn {
+	.element-content:hover .delete-btn {
 		opacity: 1;
 	}
 
@@ -356,7 +349,7 @@
 	}
 
 	.children {
-		margin-left: 20px;
+		margin-left: 24px;
 		font-size: 0.9em;
 		color: var(--text-muted);
 	}
