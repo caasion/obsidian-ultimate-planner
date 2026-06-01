@@ -5,8 +5,7 @@
 	import { isValid, parseISO } from "date-fns";
 	import { type App, Notice, Component, MarkdownRenderer } from "obsidian";
 	import { NewTrackModal } from "./NewTrackModal";
-	import { dndzone } from "svelte-dnd-action";
-	import { flip } from "svelte/animate";
+	import { dropLineDnd } from "src/components/dropLineDnd";
 
 	interface TracksListViewProps {
 		app: App;
@@ -76,6 +75,110 @@
 			);
 		});
 	}
+
+	// Dynamic project tag visibility based on container width
+	let visibleCounts = $state<Map<string, number>>(new Map());
+	let projectContainerRefs = new Map<string, HTMLDivElement>();
+
+	function measureProjectTags(trackId: string) {
+		const container = projectContainerRefs.get(trackId);
+		if (!container) return;
+
+		const tags = Array.from(container.querySelectorAll<HTMLElement>('.project-tag:not(.overflow-tag)'));
+		const overflowTag = container.querySelector<HTMLElement>('.project-tag.overflow-tag');
+		if (tags.length === 0) return;
+
+		// Temporarily show all tags for measurement
+		const prevDisplay: string[] = [];
+		tags.forEach((tag, i) => {
+			prevDisplay[i] = tag.style.display;
+			tag.style.display = '';
+		});
+		const prevOverflowDisplay = overflowTag?.style.display ?? '';
+		if (overflowTag) overflowTag.style.display = '';
+
+		const containerWidth = container.clientWidth;
+		const gap = 6;
+
+		// Measure each tag's width
+		const tagWidths = tags.map(t => t.offsetWidth);
+		const overflowBadgeWidth = overflowTag ? overflowTag.offsetWidth : 30;
+
+		// First check: do ALL tags fit without any badge?
+		let totalWidth = 0;
+		for (let i = 0; i < tagWidths.length; i++) {
+			totalWidth += (i > 0 ? gap : 0) + tagWidths[i];
+		}
+
+		let fitCount: number;
+		if (totalWidth <= containerWidth) {
+			// Everything fits, no badge needed
+			fitCount = tags.length;
+		} else {
+			// Not everything fits — figure out how many fit WITH a badge
+			fitCount = 0;
+			let usedWidth = 0;
+			for (let i = 0; i < tags.length; i++) {
+				const widthNeeded = (fitCount > 0 ? gap : 0) + tagWidths[i];
+				// Always reserve space for the overflow badge since we know not everything fits
+				const badgeSpace = gap + overflowBadgeWidth;
+				if (usedWidth + widthNeeded + badgeSpace <= containerWidth) {
+					usedWidth += widthNeeded;
+					fitCount++;
+				} else {
+					break;
+				}
+			}
+			// Ensure at least 1 tag visible
+			if (fitCount === 0) fitCount = 1;
+		}
+
+		// Restore previous display values
+		tags.forEach((tag, i) => {
+			tag.style.display = prevDisplay[i];
+		});
+		if (overflowTag) overflowTag.style.display = prevOverflowDisplay;
+
+		visibleCounts.set(trackId, fitCount);
+		visibleCounts = new Map(visibleCounts);
+	}
+
+	function projectContainerAction(el: HTMLDivElement, trackId: string) {
+		projectContainerRefs.set(trackId, el);
+		return {
+			destroy() {
+				projectContainerRefs.delete(trackId);
+			}
+		};
+	}
+
+	// Measure after render and on resize
+	$effect(() => {
+		// Access filteredTracks to re-run when tracks change
+		filteredTracks;
+
+		// Use tick + rAF to ensure DOM is fully painted before measuring
+		const frame = requestAnimationFrame(() => {
+			for (const trackId of projectContainerRefs.keys()) {
+				measureProjectTags(trackId);
+			}
+		});
+
+		const observer = new ResizeObserver(() => {
+			for (const trackId of projectContainerRefs.keys()) {
+				measureProjectTags(trackId);
+			}
+		});
+
+		for (const [, el] of projectContainerRefs) {
+			observer.observe(el);
+		}
+
+		return () => {
+			cancelAnimationFrame(frame);
+			observer.disconnect();
+		};
+	});
 
 	// Track description expand state
 	let expandedDescriptions = $state<Set<string>>(new Set());
@@ -166,26 +269,8 @@
 	}
 
 	// Drag and drop
-	let isDragging = $state(false);
-	let dndItems = $state<{ id: string; track: Track }[]>([]);
-
-	$effect(() => {
-		if (!isDragging) {
-			dndItems = filteredTracks.map(t => ({ id: t.id, track: t }));
-		}
-	});
-
-	function handleDndConsider(e: { detail: { items: any[] } }) {
-		isDragging = true;
-		dndItems = e.detail.items;
-	}
-
-	function handleDndFinalize(e: { detail: { items: any[]; info: any } }) {
-		isDragging = false;
-		dndItems = e.detail.items;
-
-		// Persist the new order
-		const orderedIds = e.detail.items.map((item: any) => item.id);
+	function handleDndFinalize(reorderedItems: Track[]) {
+		const orderedIds = reorderedItems.map(t => t.id);
 		trackNoteService.reorderTracks(orderedIds);
 	}
 
@@ -206,16 +291,16 @@
 
 	<div
 		class="tracks-list-container"
-		use:dndzone={{ items: dndItems, flipDurationMs: 200, dragHandleSelector: '.track-row-drag', type: 'tracks-list' }}
-		onconsider={handleDndConsider}
-		onfinalize={handleDndFinalize}
+		use:dropLineDnd={{ items: filteredTracks, handleSelector: '.track-row-drag', direction: 'vertical', onFinalize: handleDndFinalize }}
 	>
-		{#each dndItems as { id, track } (id)}
+		{#each filteredTracks as track (track.id)}
 			{@const active = isTrackActive(track)}
 			{@const retired = isTrackRetired(track)}
 			{@const projects = getActiveProjects(track)}
 			{@const isDescExpanded = expandedDescriptions.has(track.id)}
-			<div class="track-row" animate:flip={{ duration: 200 }}>
+			{@const vCount = visibleCounts.get(track.id) ?? projects.length}
+			{@const hiddenCount = projects.length - vCount}
+			<div class="track-row">
 				<div class="track-row-drag" title="Drag to reorder">
 					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
 				</div>
@@ -237,16 +322,26 @@
 								<span class="track-row-dates">{formatDateRange(track)}</span>
 							{/if}
 						</div>
-						<div class="track-row-projects">
-							{#each projects.slice(0, 3) as project}
-								<span class="project-tag" style={`border-color: ${track.color}; color: ${track.color};`}>{project.label}</span>
+						<div
+							class="track-row-projects"
+							use:projectContainerAction={track.id}
+						>
+							{#each projects as project, i}
+								<span
+									class="project-tag"
+									style:border-color={track.color}
+									style:color={track.color}
+									style:display={i >= vCount ? 'none' : null}
+								>{project.label}</span>
 							{/each}
-							{#if projects.length > 3}
+							{#if projects.length > 1}
 								<span
 									class="project-tag overflow-tag"
-									style={`border-color: ${track.color}; color: ${track.color};`}
-									title={projects.slice(3).map(p => p.label).join('\n')}
-								>+{projects.length - 3}</span>
+									style:border-color={track.color}
+									style:color={track.color}
+									style:display={hiddenCount > 0 ? null : 'none'}
+									title={projects.slice(vCount).map(p => p.label).join('\n')}
+								>+{hiddenCount}</span>
 							{/if}
 						</div>
 					</div>
@@ -437,7 +532,6 @@
 		max-width: 50%;
 		flex-wrap: nowrap;
 		justify-content: flex-end;
-		overflow: hidden;
 	}
 
 	.project-tag {
