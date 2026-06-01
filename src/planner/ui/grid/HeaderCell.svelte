@@ -10,87 +10,83 @@
 
 	let {date, openDailyNote} = $props();
 
-	// Check if a date is today
 	function isToday(date: ISODate): boolean {
 		return date === getISODate(new Date());
 	}
 </script>
 
-<div class="header-cell">
-    <button 
-        class="date-card" 
+<div class="header-cell" class:header-cell-today={isToday(date)}>
+    <button
+        class="date-card"
         class:today={isToday(date)}
         onclick={() => openDailyNote(date)}
         title="Click to open daily note"
     >
-        <div class="dow-label">{format(parseISO(date), "E")}</div>
-        <div class="date-label">{format(parseISO(date), "dd")}</div>
+        <div class="dow-label">{format(parseISO(date), "EEE").toUpperCase()}</div>
+        <div class="date-number">{format(parseISO(date), "d")}</div>
     </button>
+    {#if isToday(date)}
+        <div class="today-indicator"></div>
+    {/if}
 </div>
 
 <style>
-    /* Table Header */
-	.header-cell {
-		padding: 8px;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-	}
+    .header-cell {
+        padding: 10px 8px 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        position: relative;
+    }
 
-	.header-cell:last-child {
-		border-right: none;
-	}
+    .today-indicator {
+        position: absolute;
+        bottom: 0;
+        left: 10%;
+        width: 80%;
+        height: 2px;
+        background: var(--interactive-accent, #7c5cbf);
+        border-radius: 1px;
+    }
 
-	.date-card {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		background-color: none;
-		opacity: 0.7;
-		border: 2px solid var(--text-muted);
-		border-radius: 8px;
-		padding: 4px 12px;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-		transition: all 0.2s;
-		cursor: pointer;
-		width: fit-content;
-		height: fit-content;
-	}
+    .date-card {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: start;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: opacity 0.15s;
+        gap: 0;
+        box-shadow: none;
+    }
 
-	.date-card:hover {
-		opacity: 1;
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-		transform: translateY(-2px);
-	}
+    .dow-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #808080;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        line-height: 1.4;
+    }
 
-	.date-card.today {
-		opacity: 1;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-		background-color: var(--interactive-accent);
-		border: 2px solid var(--text-accent);
-	}
+    .date-number {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 28px;
+        font-weight: 400;
+        color: #cccccc;
+        line-height: 1.1;
+    }
 
-	.date-card.today:hover {
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-	}
+    .date-card.today .dow-label {
+        color: #b3b3b3;
+    }
 
-	.dow-label {
-		text-align: center;
-		font-size: 0.9em;
-		font-weight: 600;
-		color: white;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
-		margin-bottom: 4px;
-		opacity: 0.9;
-	}
-
-	.date-label {
-		text-align: center;
-		font-size: 1.8em;
-		font-weight: 700;
-		color: white;
-		line-height: 1;
-	}
+    .date-card.today .date-number {
+        color: #e6e6e6;
+    }
 </style>
