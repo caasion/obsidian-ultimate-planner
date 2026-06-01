@@ -43,7 +43,8 @@
     class: className = "",
     elementRef = $bindable(),
     actionSlot = undefined,
-    inputProps = {}
+    inputProps = {},
+    anchorElement = undefined as HTMLElement | undefined,
   } = $props();
 
   const cx = (...values: Array<string | undefined | null | false>) => values.filter(Boolean).join(" ");
@@ -61,6 +62,13 @@
   $effect(() => {
     isOpen = inline;
   });
+
+  export function open() {
+    if (!isOpen) {
+      isOpen = true;
+      updatePortalPosition();
+    }
+  }
   let showMonthSelector: boolean = $state(false);
   let datepickerContainerElement: HTMLDivElement;
   let currentMonth: Date = $state(new Date());
@@ -96,9 +104,16 @@
   async function updatePortalPosition() {
     if (inline) return;
     await tick();
-    const rect = datepickerContainerElement?.getBoundingClientRect();
+    const el = anchorElement ?? datepickerContainerElement;
+    const rect = el?.getBoundingClientRect();
     if (!rect) return;
-    portalStyle = `position:fixed;top:${rect.bottom + 4}px;left:${rect.left}px;z-index:var(--layer-popover, 100);`;
+    const panelWidth = 280;
+    const viewportWidth = window.innerWidth;
+    let left = rect.left;
+    if (left + panelWidth > viewportWidth - 8) {
+      left = rect.right - panelWidth;
+    }
+    portalStyle = `position:fixed;top:${rect.bottom + 4}px;left:${left}px;z-index:var(--layer-popover, 100);`;
   }
 
   function getDaysInMonth(date: Date): Date[] {
@@ -339,7 +354,7 @@
   function handleClickOutside(event: MouseEvent) {
     if (!isOpen) return;
     const target = event.target as Node;
-    if (datepickerContainerElement?.contains(target) || calendarRef?.contains(target)) return;
+    if (datepickerContainerElement?.contains(target) || calendarRef?.contains(target) || anchorElement?.contains(target)) return;
     closeDatepicker();
   }
 
