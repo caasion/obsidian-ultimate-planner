@@ -336,7 +336,7 @@
     }
 </script>
 
-<div class="cell" style={`background-color: ${trackMeta.color}10;`}>
+<div class="cell">
     <div class="cell-header">
         {#if showLabel}
             <button

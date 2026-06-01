@@ -128,7 +128,6 @@
     }
 
     .planner-block {
-        background: #333333;
         border-radius: 8px;
         overflow: hidden;
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -136,7 +135,7 @@
 
     .planner-header-row {
         display: grid;
-        background: #2e2e2e;
+        background: rgba(255, 255, 255, 0.03);
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
@@ -151,7 +150,7 @@
 
     .track-label-cell {
         padding: 0;
-        background: #2e2e2e;
+        background: rgba(255, 255, 255, 0.03);
         border-right: 1px solid rgba(255, 255, 255, 0.1);
         display: flex;
         align-items: flex-start;
