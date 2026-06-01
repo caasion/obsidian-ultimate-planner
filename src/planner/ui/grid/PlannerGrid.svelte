@@ -97,7 +97,6 @@
                     {#if trackId && track}
                         <WrapperCell
                             {date}
-                            showLabel={false}
                             {trackId}
                             trackMeta={track}
                             trackData={parsedContent[date]?.[trackId]}
@@ -105,8 +104,6 @@
                             {showProjectLabel}
                             onUpdate={onUpdate}
                             onAdd={onAdd}
-                            {onTrackOpen}
-                            {onTrackFileOpen}
                             {onCloseProjectTask}
                         />
                     {/if}
