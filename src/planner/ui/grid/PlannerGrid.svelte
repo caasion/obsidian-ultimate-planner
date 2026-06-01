@@ -58,7 +58,7 @@
     {@const rows = getRows(blockDates)}
     <div class="planner-block">
         <!-- Header Row: empty corner + date columns -->
-        <div class="planner-header-row" style={`grid-template-columns: 160px repeat(${columns}, 1fr);`}>
+        <div class="planner-header-row" style={`grid-template-columns: 160px repeat(${columns}, minmax(0, 1fr));`}>
             <!-- Empty corner cell -->
             <div class="header-corner" style="border-right: 1px solid rgba(255, 255, 255, 0.1);"></div>
             {#each blockDates as date (date)}
@@ -69,7 +69,7 @@
         <!-- Data Rows: track label + day cells -->
         {#each {length: rows} as _, row (row)}
         {@const trackForRow = getTrackForRow(blockDates, row)}
-        <div class="planner-data-row" style={`grid-template-columns: 160px repeat(${columns}, 1fr);`}>
+        <div class="planner-data-row" style={`grid-template-columns: 160px repeat(${columns}, minmax(0, 1fr));`}>
             <!-- Track label cell -->
             <div class="track-label-cell">
                 {#if trackForRow}
