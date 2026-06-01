@@ -1,0 +1,83 @@
+<script lang="ts">
+	import type { App } from "obsidian";
+	import type { PluginSettings } from "src/plugin/types";
+	import type { DailyNoteService } from "src/planner/logic/dailyNote";
+	import type { TrackNoteService } from "src/tracks/logic/trackNote";
+	import ViewSwitcher from "src/components/ViewSwitcher.svelte";
+	import Planner from "src/planner/ui/Planner.svelte";
+	import Timeline from "src/planner/ui/timeline/TimelineView.svelte";
+	import Tracks from "src/tracks/ui/Tracks.svelte";
+	import ProjectGanttView from "src/gantt/ui/ProjectGanttView.svelte";
+
+	type ViewId = 'planner' | 'timeline' | 'tracks' | 'gantt';
+
+	interface Props {
+		app: App;
+		settings: PluginSettings;
+		dailyNoteService: DailyNoteService;
+		trackNoteService: TrackNoteService;
+		saveSettings: () => void;
+	}
+
+	let { app, settings, dailyNoteService, trackNoteService, saveSettings }: Props = $props();
+
+	let currentView = $state<ViewId>('planner');
+
+	const views = [
+		{
+			id: 'planner' as ViewId,
+			label: 'Planner',
+			svg: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-notebook-icon lucide-notebook"><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M16 2v20"/></svg>',
+		},
+		{
+			id: 'timeline' as ViewId,
+			label: 'Timeline',
+			svg: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-timeline-icon lucide-timeline"><path d="M4 12h.01"/><path d="M4 16h.01"/><path d="M4 20h.01"/><path d="M4 4h.01"/><path d="M4 8h.01"/><path d="M9.414 13.414a2 2 0 0 0 1.414.586H19a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-8.172a2 2 0 0 0-1.414.586L8 12z"/><path d="M9.414 21.414a2 2 0 0 0 1.414.586H19a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-8.172a2 2 0 0 0-1.414.586L8 20z"/><path d="M9.414 5.414A2 2 0 0 0 10.828 6H19a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1h-8.172a2 2 0 0 0-1.414.586L8 4z"/></svg>',
+		},
+		{
+			id: 'tasks' as ViewId,
+			label: 'Tasks',
+			svg: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-todo-icon lucide-list-todo"><path d="M13 5h8"/><path d="M13 12h8"/><path d="M13 19h8"/><path d="m3 17 2 2 4-4"/><rect x="3" y="4" width="6" height="6" rx="1"/></svg>'
+		},
+		{ type: 'divider' as const },
+		{
+			id: 'project' as ViewId,
+			label: 'Project',
+			svg: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-kanban-icon lucide-folder-kanban"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><path d="M8 10v4"/><path d="M12 10v2"/><path d="M16 10v6"/></svg>',
+		},
+		{
+			id: 'gantt' as ViewId,
+			label: 'Gantt',
+			svg: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-no-axes-gantt-icon lucide-chart-no-axes-gantt"><path d="M6 5h12"/><path d="M4 12h10"/><path d="M12 19h8"/></svg>',
+		},
+		{ type: 'divider' as const },
+		{
+			id: 'tracks' as ViewId,
+			label: 'Tracks',
+			svg: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>',
+		},
+	];
+</script>
+
+<div class="holos-app">
+	<ViewSwitcher {currentView} onNavigate={(view) => currentView = view} {views} />
+
+	{#if currentView === 'planner'}
+		<Planner {app} {settings} {dailyNoteService} {trackNoteService} {saveSettings} />
+	{:else if currentView === 'timeline'}
+		<Timeline {app} {settings} {dailyNoteService} {trackNoteService} {saveSettings} />
+	{:else if currentView === 'gantt'}
+		<ProjectGanttView {app} {trackNoteService} />
+	{:else if currentView === 'tracks'}
+		<Tracks {app} {trackNoteService} />
+	{/if}
+</div>
+
+<style>
+	.holos-app {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		color: #cccccc;
+	}
+</style>

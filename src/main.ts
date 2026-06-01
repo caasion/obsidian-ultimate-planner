@@ -1,6 +1,5 @@
 import { Plugin } from 'obsidian';
-import { PLANNER_VIEW_TYPE, PlannerView } from './planner/PlannerView';
-import { TRACKS_VIEW_TYPE, TracksView } from './tracks/TracksView';
+import { HOLOS_VIEW_TYPE, HolosView } from './HolosView';
 import { HolosSettingsTab } from './plugin/SettingsTab';
 import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
 import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings, type Track, type TrackSnapshot } from './plugin/types';
@@ -13,7 +12,6 @@ import { DailyNoteService } from './planner/logic/dailyNote';
 import { TrackNoteService } from './tracks/logic/trackNote';
 import { hashTrackFolder } from './tracks/logic/trackSnapshotHash';
 import { normalizeTrackSnapshot, resolveBootstrapTrackSnapshot } from './tracks/logic/trackSnapshot';
-import { GANTT_VIEW_TYPE, GanttView } from './gantt/GanttView';
 
 export default class HolosPlugin extends Plugin {
 	settings: PluginSettings;
@@ -69,33 +67,14 @@ export default class HolosPlugin extends Plugin {
 		// Add Settings Tab using Obsidian's API
 		this.addSettingTab(new HolosSettingsTab(this.app, this));
 
-		// Register views using Obsidian's API
-		this.registerView(PLANNER_VIEW_TYPE, (leaf) => new PlannerView(leaf, this));
-		this.registerView(TRACKS_VIEW_TYPE, (leaf) => new TracksView(leaf, this));
-		this.registerView(GANTT_VIEW_TYPE, (leaf) => new GanttView(leaf, this));
-
-		// Add commands to open views
-		this.addCommand({
-			id: 'open-planner-view',
-			name: 'Open Holos Planner View',
-			callback: () => {
-				this.activateView(PLANNER_VIEW_TYPE);
-			}
-		});
+		// Register single unified view
+		this.registerView(HOLOS_VIEW_TYPE, (leaf) => new HolosView(leaf, this));
 
 		this.addCommand({
-			id: 'open-tracks-view',
-			name: 'Open Holos Tracks View',
+			id: 'open-holos-view',
+			name: 'Open Holos',
 			callback: () => {
-				this.activateView(TRACKS_VIEW_TYPE);
-			}
-		});
-
-		this.addCommand({
-			id: 'open-gantt-view',
-			name: 'Open Holos Gantt View',
-			callback: () => {
-				this.activateView(GANTT_VIEW_TYPE);
+				this.activateView(HOLOS_VIEW_TYPE);
 			}
 		});
 
