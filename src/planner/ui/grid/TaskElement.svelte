@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Element, Time } from "src/plugin/types";
-	import CircularProgress from "./CircularProgress.svelte";
 	import { formatTime } from "src/plugin/helpers";
 	import { longpress } from "src/plugin/actions"
 
@@ -18,6 +17,12 @@
 	}
 
 	let { element, index, color, projectLabel, showProjectLabel = true, onUpdate, onDelete, onToggle, onCancel, onCloseProjectTask }: TaskElementProps = $props();
+
+	let progressPercent = $derived(
+		element.progress !== undefined && element.duration
+			? Math.min((element.progress / element.duration) * 100, 100)
+			: undefined
+	);
 
 	let isEditing = $state<boolean>(false);
 	let editText = $state<string>("");
@@ -147,28 +152,19 @@
 		<div class="element-content" ondblclick={startEdit} role="button" tabindex="0">
 			<div class="element-top-row">
 				<div class="element-checkbox-container">
-					{#if element.taskStatus == "x" && element.duration && element.timeUnit}
-						<button
-							onclick={toggleTask}
-							class="invisible-button"
-						>
-							<CircularProgress
-								progress={element.progress}
-								duration={element.duration}
-								unit={element.timeUnit}
-								size={18}
-							/>
-						</button>
-					{:else if element.taskStatus}
+					{#if element.taskStatus}
 						{#if element.sourceRef}
-							<input
-								type="checkbox"
-								checked={element.taskStatus == "x"}
-								onchange={() => onCloseProjectTask?.(index)}
-								class="task-checkbox"
-								style={`border-color: ${color};`}
+							<button
+								onclick={() => onCloseProjectTask?.(index)}
+								class="project-checkbox"
 								title="Mark task done in project"
-							/>
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class:project-checkbox-checked={element.taskStatus == "x"}>
+									<path d="M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"/>
+									<path d="m21 3-9 9"/>
+									<path d="M15 3h6v6"/>
+								</svg>
+							</button>
 						{:else}
 							<input
 								bind:this={checkboxRef}
@@ -195,12 +191,17 @@
 			</div>
 			<div class="element-meta-row">
 				{#if element.duration && element.timeUnit}
-					<span class="meta-tag">
+					<span
+						class="meta-tag"
+						class:meta-tag-progress={progressPercent !== undefined}
+						style={`--meta-tag-bg: ${color}5F;${progressPercent !== undefined ? ` --progress: ${progressPercent}%;` : ''}`}
+					>
 						{#if element.progress !== undefined}{element.progress}/{/if}{element.duration} {element.timeUnit == 'min' ? 'm' : 'h'}
 					</span>
 				{/if}
 				{#if element.startTime}
-					<span class="meta-tag">
+					<span class="meta-tag" style={`--meta-tag-bg: ${color}5F;`}>
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alarm-clock-icon lucide-alarm-clock"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/><path d="M6.38 18.7 4 21"/><path d="M17.64 18.67 20 21"/></svg>
 						{formatTime(element.startTime)}
 					</span>
 				{/if}
@@ -262,6 +263,28 @@
 		margin: 0;
 	}
 
+	.project-checkbox {
+		cursor: pointer;
+		background: transparent;
+		border: none;
+		padding: 0;
+		box-shadow: none;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 18px;
+		height: 18px;
+	}
+
+	.project-checkbox:hover {
+		box-shadow: none;
+		opacity: 0.8;
+	}
+
+	.project-checkbox-checked {
+		fill: var(--interactive-accent);
+	}
+
 	.element-text {
 		flex: 1;
 		line-height: 1.4;
@@ -291,11 +314,23 @@
 		color: var(--text-normal);
 		padding: 1px 6px;
 		border-radius: 4px;
-		border: 1px solid var(--background-modifier-border);
-		background: var(--background-secondary);
+		border: 1px solid var(--meta-tag-bg);
+		background: var(--meta-tag-bg);
 		white-space: nowrap;
 		line-height: 1.4;
 		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.meta-tag-progress {
+		background: linear-gradient(
+			to right,
+			var(--meta-tag-bg) var(--progress),
+			transparent var(--progress)
+		);
 	}
 
 	.project-label {
