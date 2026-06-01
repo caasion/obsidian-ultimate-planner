@@ -65,9 +65,13 @@
         background: transparent;
         border: none;
         cursor: pointer;
-        transition: opacity 0.15s;
+        transition: filter 150ms ease;
         gap: 0;
         box-shadow: none;
+    }
+
+    .date-card:hover {
+        filter: brightness(1.2);
     }
 
     .dow-label {

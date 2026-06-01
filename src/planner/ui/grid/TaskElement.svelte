@@ -137,6 +137,11 @@
 	function deleteElement() {
 		onDelete(index);
 	}
+
+	function handleProjectClick(e: MouseEvent) {
+		e.preventDefault();
+		// TODO: implement navigation to project
+	}
 </script>
 
 <div class="task-element">
@@ -206,10 +211,10 @@
 					</span>
 				{/if}
 				{#if projectLabel && showProjectLabel}
-					<span class="project-label" title={projectLabel}>
+					<a href="#" class="project-label" title={projectLabel} onclick={handleProjectClick}>
 						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-symlink-icon lucide-folder-symlink"><path d="M2 9.35V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h7"/><path d="m8 16 3-3-3-3"/></svg>
 						{projectLabel}
-					</span>
+					</a>
 				{/if}
 			</div>
 		</div>
@@ -323,6 +328,12 @@
 		align-items: center;
 		position: relative;
 		overflow: hidden;
+		transition: filter 150ms ease;
+		cursor: default;
+	}
+
+	.meta-tag:hover {
+		filter: brightness(1.2);
 	}
 
 	.meta-tag-progress {
@@ -343,6 +354,15 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		min-width: 0;
+		text-decoration: none;
+		cursor: pointer;
+		transition: color 150ms ease, text-decoration 150ms ease, filter 150ms ease;
+	}
+
+	.project-label:hover {
+		color: var(--text-normal);
+		text-decoration: underline;
+		filter: brightness(1.2);
 	}
 
 	.project-label svg {
