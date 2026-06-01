@@ -3,7 +3,6 @@
 	import type { Element, ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
 	import { DailyNoteService } from "src/planner/logic/dailyNote";
 	import { getISODate, getISODates, getLabelFromDateRange, addDaysISO } from "src/plugin/helpers";
-	import Topbar from "src/components/Topbar.svelte";
 	import PlannerGrid from "./grid/PlannerGrid.svelte";
 	import type { TrackNoteService } from "src/tracks/logic/trackNote";
 
@@ -62,16 +61,16 @@
 	let trackStore = $derived(trackNoteService.parsedTracksContent);
 	const parsedTracks = $derived($trackStore);
 
-  $effect(() => {
-    trackNoteService.loadAllTrackContent();
-  });
+	$effect(() => {
+		trackNoteService.loadAllTrackContent();
+	});
 
-  $effect(() => {
-    trackNoteService.setupFileWatchers();
-    return () => {
-      trackNoteService.cleanupFileWatchers();
-    };
-  });
+	$effect(() => {
+		trackNoteService.setupFileWatchers();
+		return () => {
+			trackNoteService.cleanupFileWatchers();
+		};
+	});
 
 	function handleCellUpdate(date: ISODate, trackId: string, updatedData: TrackData) {
 		dailyNoteService.updateTrackCell(date, trackId, updatedData);
@@ -86,7 +85,7 @@
 	}
 
 	function goTo(newDate: ISODate) {
-			anchor = newDate;
+		anchor = newDate;
 	}
 
 	async function handleTrackFileOpen(trackId: string) {
@@ -101,40 +100,12 @@
 	}
 </script>
 
-<div class="planner-container">
-	<ViewSwitcher {app} currentView={PLANNER_VIEW_TYPE} />
+<div class="planner">
+	<div class="planner-title">
+	<h1>Planner</h1>
+</div>
 
-	<Topbar
-		onPrev={() => goTo(addDaysISO(anchor, -localColumns))}
-		onNext={() => goTo(addDaysISO(anchor, localColumns))}
-		onToday={() => goTo(today)}
-		showToday={!todayInView}
-		label={getLabelFromDateRange(dates[0], dates[dates.length - 1])}
-		anchor={anchor}
-		onDateChange={goTo}
-	>
-		{#snippet right()}
-			<div class="holos-controls">
-				<button
-					class="holos-ctrl-btn"
-					class:active={showProjectLabel}
-					onclick={() => showProjectLabel = !showProjectLabel}
-					title={showProjectLabel ? 'Collapse project labels' : 'Expand project labels'}
-				>P</button>
-				<label class="holos-ctrl">
-					<span class="holos-ctrl-lbl">Cols</span>
-					<input type="number" class="holos-ctrl-input" min="1" max="31" value={localColumns}
-						oninput={(e) => { localColumns = +e.currentTarget.value; settings.columns = localColumns; saveSettings(); }} />
-				</label>
-				<label class="holos-ctrl">
-					<span class="holos-ctrl-lbl">Blocks</span>
-					<input type="number" class="holos-ctrl-input" min="1" max="52" value={localBlocks}
-						oninput={(e) => { localBlocks = +e.currentTarget.value; settings.blocks = localBlocks; saveSettings(); }} />
-				</label>
-			</div>
-		{/snippet}
-	</Topbar>
-
+<div class="planner-body">
 	<PlannerGrid
 		{dates}
 		{tracksByDate}
@@ -147,61 +118,33 @@
 		onUpdate={handleCellUpdate}
 		onAdd={addNewTrackToCell}
 		{openDailyNote}
-		onTrackOpen={handleTrackOpen}
 		onTrackFileOpen={handleTrackFileOpen}
 		onCloseProjectTask={handleCloseProjectTask}
 	/>
 </div>
+</div>
+
+
 
 <style>
-	.planner-container {
-		padding: 12px;
+	.planner {
+		background: rgb(255, 255, 255, 0.05);
 	}
 
-	.holos-controls {
-		display: flex;
-		align-items: center;
-		gap: 8px;
+	.planner-title {
+		padding: 16px 20px 8px;
 	}
 
-	.holos-ctrl {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		cursor: default;
+	.planner-title h1 {
+		font-size: 28px;
+		font-weight: 700;
+		color: #e6e6e6;
+		margin: 0;
 	}
 
-	.holos-ctrl-lbl {
-		font-size: 0.78em;
-		color: var(--text-muted);
-		white-space: nowrap;
-	}
-
-	.holos-ctrl-input {
-		width: 48px;
-		padding: 3px 6px;
-		border: 1px solid var(--background-modifier-border);
-		border-radius: 6px;
-		background: var(--background-secondary);
-		color: var(--text-normal);
-		font-size: 0.82em;
-		text-align: center;
-	}
-
-	.holos-ctrl-btn {
-		font-size: 0.78em;
-		font-weight: bold;
-		padding: 2px 6px;
-		border: 1px solid var(--background-modifier-border);
-		border-radius: 6px;
-		background: var(--background-secondary);
-		color: var(--text-muted);
-		cursor: pointer;
-	}
-
-	.holos-ctrl-btn.active {
-		background: var(--interactive-accent);
-		color: white;
-		border-color: var(--interactive-accent);
+	.planner-body {
+		flex: 1;
+		overflow: auto;
+		padding: 0 16px 16px;
 	}
 </style>
