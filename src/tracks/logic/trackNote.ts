@@ -31,8 +31,19 @@ export class TrackNoteService {
     private revisionCounter = 0;
     private onTracksSnapshot?: (snapshot: TrackSnapshot) => void;
     
-    // Flag to prevent file watcher from overwriting our own programmatic updates
-    private isUpdatingInternally = false;
+    // Guard to prevent file watcher from reacting to our own programmatic writes.
+    // Uses a counter (not a boolean) so overlapping async writes don't cancel each other.
+    // Decremented after a short delay so the vault event has time to fire and be filtered.
+    private internalUpdateCount = 0;
+    private get isUpdatingInternally(): boolean {
+        return this.internalUpdateCount > 0;
+    }
+    private beginInternalUpdate(): void {
+        this.internalUpdateCount++;
+    }
+    private endInternalUpdate(): void {
+        setTimeout(() => { this.internalUpdateCount = Math.max(0, this.internalUpdateCount - 1); }, 100);
+    }
     
     // File watcher references
     private fileModifyRef: EventRef | null = null;
@@ -480,9 +491,9 @@ export class TrackNoteService {
                 const newDataSection = this.serializeDataSection(data);
                 updatedContent = PlannerParser.replaceSection(updatedContent, 'Data', newDataSection);
             }
-            this.isUpdatingInternally = true;
+            this.beginInternalUpdate();
             await this.app.vault.modify(projectFile, updatedContent);
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         return {
@@ -727,7 +738,7 @@ export class TrackNoteService {
         }));
 
         // File system & cache changes (flagged as internal)
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             // Rename folder first, then rename the track file within the renamed folder
             await this.app.fileManager.renameFile(oldFolder, newFolderPath);
@@ -740,7 +751,7 @@ export class TrackNoteService {
             
             await this.invalidateCache();
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         return true;
@@ -757,7 +768,7 @@ export class TrackNoteService {
 
         const trackFile = trackFiles.track;
 
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             await this.app.fileManager.processFrontMatter(trackFile, (oldFrontmatter) => {
                 for (const [key, value] of Object.entries(frontmatter)) {
@@ -765,7 +776,7 @@ export class TrackNoteService {
                 }
             });
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         // Direct update - no race condition now
@@ -808,11 +819,11 @@ export class TrackNoteService {
             
             const updatedContent = PlannerParser.replaceFirstSection(content, description);
             
-            this.isUpdatingInternally = true;
+            this.beginInternalUpdate();
             try {
                 await this.app.vault.modify(file, updatedContent);
             } finally {
-                this.isUpdatingInternally = false;
+                this.endInternalUpdate();
             }
 
             // Direct update - change description in memory
@@ -998,7 +1009,7 @@ export class TrackNoteService {
         const projectParent = projectFile.parent;
         const isFolderNote = !!projectParent && projectParent.path !== trackFolder.path;
         
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             if (isFolderNote && projectParent) {
                 const newProjectFolderPath = `${trackFolder.path}/${label}`;
@@ -1016,7 +1027,7 @@ export class TrackNoteService {
                 await this.app.fileManager.renameFile(projectFile, newPath);
             }
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         // Direct update - change project label in memory
@@ -1051,11 +1062,11 @@ export class TrackNoteService {
         const content = await this.app.vault.read(projectFile);
         const updated = PlannerParser.replaceFirstSection(content, description);
         
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             await this.app.vault.modify(projectFile, updated);
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         // Direct update - change project description in memory
@@ -1087,13 +1098,13 @@ export class TrackNoteService {
             return;
         }
 
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             await this.app.fileManager.processFrontMatter(projectFile, (fm) => {
                 fm.startDate = startDate;
             });
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         // Direct update - change project startDate in memory
@@ -1125,7 +1136,7 @@ export class TrackNoteService {
             return;
         }
 
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             await this.app.fileManager.processFrontMatter(projectFile, (fm) => {
                 if (endDate) {
@@ -1135,7 +1146,7 @@ export class TrackNoteService {
                 }
             });
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         // Direct update - change project endDate in memory
@@ -1207,11 +1218,11 @@ export class TrackNoteService {
         const newHabitsSection = PlannerParser.serializeHabits(habits);
         const updated = PlannerParser.replaceSection(content, 'Habits', newHabitsSection);
         
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             await this.app.vault.modify(projectFile, updated);
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         // Direct update - add habit to memory
@@ -1255,11 +1266,11 @@ export class TrackNoteService {
         const newHabitsSection = PlannerParser.serializeHabits(habits);
         const updated = PlannerParser.replaceSection(content, 'Habits', newHabitsSection);
         
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             await this.app.vault.modify(projectFile, updated);
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         // Direct update - update habit in memory
@@ -1303,11 +1314,11 @@ export class TrackNoteService {
         const newHabitsSection = PlannerParser.serializeHabits(habits);
         const updated = PlannerParser.replaceSection(content, 'Habits', newHabitsSection);
         
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             await this.app.vault.modify(projectFile, updated);
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         // Direct update - remove habit from memory
@@ -1370,11 +1381,11 @@ export class TrackNoteService {
         const newDataSection = this.serializeDataSection(data);
         const updated = PlannerParser.replaceSection(content, 'Data', newDataSection);
         
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             await this.app.vault.modify(projectFile, updated);
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         // Direct update - add element to memory
@@ -1417,11 +1428,11 @@ export class TrackNoteService {
         const newDataSection = this.serializeDataSection(data);
         const updated = PlannerParser.replaceSection(content, 'Data', newDataSection);
         
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             await this.app.vault.modify(projectFile, updated);
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         // Direct update - update element in memory
@@ -1469,11 +1480,11 @@ export class TrackNoteService {
         const newDataSection = this.serializeDataSection(data);
         const updated = PlannerParser.replaceSection(content, 'Data', newDataSection);
         
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             await this.app.vault.modify(projectFile, updated);
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         // Direct update - remove element from memory
@@ -1523,11 +1534,11 @@ export class TrackNoteService {
         const serialized = PlannerParser.serializePhasesSection(newPhases);
         const updated = PlannerParser.replaceSection(content, 'Phases', serialized);
 
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             await this.app.vault.modify(projectFile, updated);
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         this.parsedTracksContent.update(tracks => {
@@ -1729,11 +1740,11 @@ export class TrackNoteService {
             updated = PlannerParser.replaceSection(updated, 'Data', dataContent);
         }
 
-        this.isUpdatingInternally = true;
+        this.beginInternalUpdate();
         try {
             await this.app.vault.modify(projectFile, updated);
         } finally {
-            this.isUpdatingInternally = false;
+            this.endInternalUpdate();
         }
 
         // Update store
@@ -1835,13 +1846,13 @@ export class TrackNoteService {
             const trackFile = this.trackFileCache[id]?.track;
             if (!trackFile) continue;
 
-            this.isUpdatingInternally = true;
+            this.beginInternalUpdate();
             try {
                 await this.app.fileManager.processFrontMatter(trackFile, (fm) => {
                     fm.order = i;
                 });
             } finally {
-                this.isUpdatingInternally = false;
+                this.endInternalUpdate();
             }
         }
     }
