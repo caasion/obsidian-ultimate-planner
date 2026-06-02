@@ -199,9 +199,6 @@
 
 
 <style>
-	.planner {
-		background: rgb(255, 255, 255, 0.05);
-	}
 
 	.planner-header {
 		display: flex;

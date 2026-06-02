@@ -260,12 +260,14 @@
 </script>
 
 <div class="project-view">
+	<div class="project-header">
+		<h1>Projects</h1>
+	</div>
+
+	<div class="project-body">
 	<!-- Sidebar -->
 	<div class="sidebar" class:sidebar-collapsed={sidebarCollapsed}>
 		<div class="sidebar-header">
-			{#if !sidebarCollapsed}
-				<span class="sidebar-title">Projects</span>
-			{/if}
 			<button class="sidebar-toggle" onclick={() => sidebarCollapsed = !sidebarCollapsed} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
 				<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					{#if sidebarCollapsed}
@@ -543,12 +545,40 @@
 			</div>
 		{/if}
 	</div>
+	</div>
 </div>
 
 <style>
 	.project-view {
 		display: flex;
+		flex-direction: column;
 		height: 100%;
+		overflow: hidden;
+	}
+
+	/* === Header === */
+	.project-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 16px 20px 8px;
+		flex-shrink: 0;
+	}
+
+	.project-header h1 {
+		font-size: 28px;
+		font-weight: 700;
+		color: #e6e6e6;
+		margin: 0;
+		flex-shrink: 0;
+	}
+
+	/* === Body === */
+	.project-body {
+		display: flex;
+		flex: 1;
+		min-height: 0;
 		overflow: hidden;
 	}
 
@@ -572,18 +602,10 @@
 	.sidebar-header {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		padding: 12px;
+		justify-content: center;
+		padding: 8px 12px;
 		border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 		flex-shrink: 0;
-	}
-
-	.sidebar-title {
-		font-size: 0.85em;
-		font-weight: 600;
-		color: var(--text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
 	}
 
 	.sidebar-toggle {

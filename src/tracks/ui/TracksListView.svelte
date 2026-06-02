@@ -283,7 +283,7 @@
 
 <div class="tracks-list-view">
 	<div class="tracks-list-header">
-		<h2 class="tracks-list-title">Tracks</h2>
+		<h1 class="tracks-list-title">Tracks</h1>
 		<div class="tracks-list-actions">
 			<button class="tracks-new-btn" onclick={handleNewTrack}>+ New Track</button>
 		</div>
@@ -374,23 +374,27 @@
 
 <style>
 	.tracks-list-view {
-		padding: 24px 32px;
-		max-width: 900px;
+		padding: 0;
 		margin: 0 auto;
-		background: rgba(255, 255, 255, 0.05);
+		max-width: 900px;
+		width: 100%;
 	}
 
 	.tracks-list-header {
 		display: flex;
-		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 20px;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 16px 20px 8px;
+		flex-shrink: 0;
 	}
 
 	.tracks-list-title {
-		font-size: 1.5em;
+		font-size: 28px;
 		font-weight: 700;
+		color: #e6e6e6;
 		margin: 0;
+		flex-shrink: 0;
 	}
 
 	.tracks-list-actions {
@@ -420,6 +424,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
+		padding: 0 20px 16px;
 	}
 
 	.track-row {

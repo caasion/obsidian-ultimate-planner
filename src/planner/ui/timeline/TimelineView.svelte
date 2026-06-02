@@ -194,9 +194,6 @@
 
 
 <style>
-	.timeline {
-		background: rgb(255, 255, 255, 0.05);
-	}
 
 	.timeline-header {
 		display: flex;

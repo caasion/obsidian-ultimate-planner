@@ -505,7 +505,6 @@
 
 <style>
 	.tasks-view {
-		background: rgb(255, 255, 255, 0.05);
 		display: flex;
 		flex-direction: column;
 		height: 100%;
