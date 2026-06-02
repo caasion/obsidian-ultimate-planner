@@ -6,10 +6,11 @@
 	import ViewSwitcher from "src/components/ViewSwitcher.svelte";
 	import Planner from "src/planner/ui/Planner.svelte";
 	import Timeline from "src/planner/ui/timeline/TimelineView.svelte";
+	import ProjectView from "src/tracks/ui/ProjectView.svelte";
 	import TracksListView from "src/tracks/ui/TracksListView.svelte";
 	import ProjectGanttView from "src/gantt/ui/ProjectGanttView.svelte";
 
-	type ViewId = 'planner' | 'timeline' | 'tracks' | 'gantt';
+	type ViewId = 'planner' | 'timeline' | 'project' | 'tracks' | 'gantt';
 
 	interface Props {
 		app: App;
@@ -66,6 +67,8 @@
 		<Planner {app} {settings} {dailyNoteService} {trackNoteService} {saveSettings} />
 	{:else if currentView === 'timeline'}
 		<Timeline {app} {settings} {dailyNoteService} {trackNoteService} {saveSettings} />
+	{:else if currentView === 'project'}
+		<ProjectView {app} {trackNoteService} />
 	{:else if currentView === 'gantt'}
 		<ProjectGanttView {app} {trackNoteService} />
 	{:else if currentView === 'tracks'}

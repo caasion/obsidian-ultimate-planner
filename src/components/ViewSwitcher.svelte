@@ -1,5 +1,5 @@
 <script lang="ts">
-  type ViewId = 'planner' | 'timeline' | 'tracks' | 'gantt';
+  type ViewId = 'planner' | 'timeline' | 'project' | 'tracks' | 'gantt';
 
   type ViewItem =
     | { type?: 'view'; id: ViewId; label: string; svg: string }
