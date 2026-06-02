@@ -9,6 +9,7 @@
 	import ProjectView from "src/tracks/ui/ProjectView.svelte";
 	import TracksListView from "src/tracks/ui/TracksListView.svelte";
 	import ProjectGanttView from "src/gantt/ui/ProjectGanttView.svelte";
+	import TasksView from "src/tasks/ui/TasksView.svelte";
 
 	type ViewId = 'planner' | 'timeline' | 'project' | 'tracks' | 'gantt';
 
@@ -67,6 +68,8 @@
 		<Planner {app} {settings} {dailyNoteService} {trackNoteService} {saveSettings} />
 	{:else if currentView === 'timeline'}
 		<Timeline {app} {settings} {dailyNoteService} {trackNoteService} {saveSettings} />
+	{:else if currentView === 'tasks'}
+		<TasksView {app} {settings} {dailyNoteService} {trackNoteService} {saveSettings} />
 	{:else if currentView === 'project'}
 		<ProjectView {app} {trackNoteService} />
 	{:else if currentView === 'gantt'}
