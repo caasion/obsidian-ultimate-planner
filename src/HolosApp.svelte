@@ -6,7 +6,7 @@
 	import ViewSwitcher from "src/components/ViewSwitcher.svelte";
 	import Planner from "src/planner/ui/Planner.svelte";
 	import Timeline from "src/planner/ui/timeline/TimelineView.svelte";
-	import Tracks from "src/tracks/ui/Tracks.svelte";
+	import TracksListView from "src/tracks/ui/TracksListView.svelte";
 	import ProjectGanttView from "src/gantt/ui/ProjectGanttView.svelte";
 
 	type ViewId = 'planner' | 'timeline' | 'tracks' | 'gantt';
@@ -69,7 +69,7 @@
 	{:else if currentView === 'gantt'}
 		<ProjectGanttView {app} {trackNoteService} />
 	{:else if currentView === 'tracks'}
-		<Tracks {app} {trackNoteService} />
+		<TracksListView {app} {trackNoteService} />
 	{/if}
 </div>
 
