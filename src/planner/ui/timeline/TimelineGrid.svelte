@@ -11,9 +11,10 @@
         parsedContent: Record<ISODate, Record<string, TrackData>>;
         columns: number;
         openDailyNote: (date: ISODate) => void;
+        onToggleTask: (date: ISODate, trackId: string, index: number) => void;
     }
 
-    let { dates, tracksByDate, parsedTracks, parsedContent, columns, openDailyNote }: Props = $props();
+    let { dates, tracksByDate, parsedTracks, parsedContent, columns, openDailyNote, onToggleTask }: Props = $props();
 
     const startHour = 6;
     const endHour = 17;
@@ -28,6 +29,8 @@
     interface TimelineEvent {
         element: Element;
         track: Track;
+        trackId: string;
+        index: number;
     }
 
     function getEventsForDate(date: ISODate): TimelineEvent[] {
@@ -43,9 +46,10 @@
             const trackData = parsedContent[date]?.[renderTrack.id];
             if (!trackData) continue;
 
-            for (const item of trackData.items) {
+            for (let i = 0; i < trackData.items.length; i++) {
+                const item = trackData.items[i];
                 if (item.startTime && item.duration) {
-                    events.push({ element: item, track });
+                    events.push({ element: item, track, trackId: renderTrack.id, index: i });
                 }
             }
         }
@@ -88,8 +92,8 @@
                         {/each}
 
                         <!-- Event items -->
-                        {#each events as { element, track } (`${date}-${track.id}-${element.text}-${element.startTime?.hours}-${element.startTime?.minutes}`)}
-                            <TimelineItem {element} {track} {hourHeight} {startHour} {topPad} />
+                        {#each events as { element, track, trackId, index } (`${date}-${trackId}-${element.text}-${element.startTime?.hours}-${element.startTime?.minutes}`)}
+                            <TimelineItem {element} {track} {hourHeight} {startHour} {topPad} onToggle={() => onToggleTask(date, trackId, index)} />
                         {/each}
                     </div>
                 {/each}

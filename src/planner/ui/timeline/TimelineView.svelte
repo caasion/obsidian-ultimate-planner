@@ -2,7 +2,7 @@
 	import type { App } from "obsidian";
 	import type { ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
 	import { DailyNoteService } from "src/planner/logic/dailyNote";
-	import { getISODate, getISODates, getLabelFromDateRange, addDaysISO } from "src/plugin/helpers";
+	import { getISODate, getISODates, getLabelFromDateRange, addDaysISO, reconstructRawText } from "src/plugin/helpers";
 	import Datepicker from "src/components/Datepicker.svelte";
 	import TimelineGrid from "./TimelineGrid.svelte";
 	import type { TrackNoteService } from "src/tracks/logic/trackNote";
@@ -96,6 +96,31 @@
 	async function openDailyNote(date: ISODate) {
 		await dailyNoteService.openDailyNote(date);
 	}
+
+	function handleToggleTask(date: ISODate, trackId: string, index: number) {
+		const trackData = parsedContent[date]?.[trackId];
+		if (!trackData) return;
+		const element = trackData.items[index];
+		if (!element?.isTask) return;
+
+		const newTaskStatus: ' ' | 'x' = element.taskStatus === 'x' ? ' ' : 'x';
+		const raw = reconstructRawText(
+			element.text, element.isTask, newTaskStatus,
+			element.startTime, element.progress, element.duration, element.timeUnit,
+			'\t- ', element.sourceRef, element.scheduledDate, element.blockId
+		);
+		const updatedItems = [...trackData.items];
+		updatedItems[index] = { ...element, taskStatus: newTaskStatus, raw };
+		dailyNoteService.updateTrackCell(date, trackId, { ...trackData, items: updatedItems });
+
+		// If it's a project task, also sync to the source file
+		if (element.sourceRef) {
+			const match = element.sourceRef.match(/\[\[[^\]]+#\^([a-zA-Z0-9]+)\]\]/);
+			if (match) {
+				trackNoteService.closeProjectTaskByBlockId(trackId, match[1], newTaskStatus);
+			}
+		}
+	}
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -162,6 +187,7 @@
 			{parsedContent}
 			columns={localColumns}
 			{openDailyNote}
+			onToggleTask={handleToggleTask}
 		/>
 	</div>
 </div>
