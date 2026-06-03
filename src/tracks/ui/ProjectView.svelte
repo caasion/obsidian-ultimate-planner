@@ -261,13 +261,8 @@
 
 <div class="project-view">
 	<div class="project-header">
-		<h1>Projects</h1>
-	</div>
-
-	<div class="project-body">
-	<!-- Sidebar -->
-	<div class="sidebar" class:sidebar-collapsed={sidebarCollapsed}>
-		<div class="sidebar-header">
+		<div style="display: flex; align-items: center; gap: 12px;">
+			<h1>Projects</h1>
 			<button class="sidebar-toggle" onclick={() => sidebarCollapsed = !sidebarCollapsed} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
 				<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					{#if sidebarCollapsed}
@@ -278,6 +273,11 @@
 				</svg>
 			</button>
 		</div>
+	</div>
+
+	<div class="project-body">
+	<!-- Sidebar -->
+	<div class="sidebar" class:sidebar-collapsed={sidebarCollapsed}>
 		{#if !sidebarCollapsed}
 			<div class="sidebar-tree">
 				{#each sortedTracks as track}
@@ -327,7 +327,7 @@
 					<div class="detail-header-top">
 						<span class="detail-track-label" style={`color: ${color};`}>{selectedTrack.label}</span>
 						<button class="detail-view-file-btn" onclick={fns.onOpenFile} title="View project file">
-							<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+							<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link-icon lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
 							View Project File
 						</button>
 					</div>
@@ -595,8 +595,9 @@
 	}
 
 	.sidebar-collapsed {
-		width: 40px;
-		min-width: 40px;
+		width: 0;
+		min-width: 0;
+		border-right: none;
 	}
 
 	.sidebar-header {
@@ -662,7 +663,6 @@
 	}
 
 	.tree-track-label {
-		font-size: 0.85em;
 		font-weight: 600;
 		white-space: nowrap;
 		overflow: hidden;
@@ -698,7 +698,7 @@
 	}
 
 	.tree-project-label {
-		font-size: 0.82em;
+		font-size: 0.9em;
 		color: var(--text-normal);
 		white-space: nowrap;
 		overflow: hidden;

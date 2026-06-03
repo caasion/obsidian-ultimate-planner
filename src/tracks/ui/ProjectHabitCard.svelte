@@ -171,7 +171,7 @@
 					</span>
 				{/if}
 			</div>
-			<div class="habit-squares-row">
+			<!-- <div class="habit-squares-row">
 				{#each last7Days as day}
 					<div
 						class="habit-square"
@@ -180,7 +180,7 @@
 						title={day.date}
 					></div>
 				{/each}
-			</div>
+			</div> -->
 		</div>
 	{/if}
 </div>

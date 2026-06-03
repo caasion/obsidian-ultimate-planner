@@ -375,8 +375,6 @@
 <style>
 	.tracks-list-view {
 		padding: 0;
-		margin: 0 auto;
-		max-width: 900px;
 		width: 100%;
 	}
 
@@ -424,7 +422,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
-		padding: 0 20px 16px;
+		margin: 0 auto;
+		max-width: 900px;
 	}
 
 	.track-row {
