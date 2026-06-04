@@ -71,7 +71,7 @@
 	{:else if currentView === 'tasks'}
 		<TasksView {app} {settings} {dailyNoteService} {trackNoteService} {saveSettings} />
 	{:else if currentView === 'project'}
-		<ProjectView {app} {trackNoteService} />
+		<ProjectView {app} {trackNoteService} {dailyNoteService} />
 	{:else if currentView === 'gantt'}
 		<ProjectGanttView {app} {trackNoteService} />
 	{:else if currentView === 'tracks'}

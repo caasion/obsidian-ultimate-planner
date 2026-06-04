@@ -147,20 +147,14 @@
       });
   }
 
-  /* === Hide completed === */
-  let hideCompleted = $state(false);
-
+  /* === Filter to tracks active within the current viewport === */
   const visibleTracks = $derived(
-    hideCompleted
-      ? sortedTracks.filter(track =>
-          Object.values(track.projects).some(p => {
-            const hasActiveData = (items: { isTask?: boolean; taskStatus?: string }[]) =>
-              items.some(el => el.isTask && el.taskStatus !== 'x' && el.taskStatus !== '-');
-            if (p.hasPhases) return p.phases.some(phase => hasActiveData(phase.data));
-            return hasActiveData(p.data);
-          })
-        )
-      : sortedTracks
+    sortedTracks.filter(track =>
+      track.effective.some(interval => {
+        const iEnd = interval.end ?? '9999-12-31';
+        return interval.start <= viewportEnd && iEnd >= viewportStart;
+      })
+    )
   );
 
   /* === Track heights (computed here so sidebar + gantt stay in sync) === */
