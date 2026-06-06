@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Track, Project } from "src/plugin/types";
 	import type { TrackNoteService } from "../logic/trackNote";
-	import { getISODate } from "src/plugin/helpers";
+	import { isProjectActive, isTrackActiveByProjects } from "src/plugin/helpers";
 	import { isValid, parseISO } from "date-fns";
 	import { type App, Notice, Component, MarkdownRenderer } from "obsidian";
 	import { NewTrackModal } from "./NewTrackModal";
@@ -29,19 +29,11 @@
 	let filterMode = $state<'all' | 'active' | 'retired'>('all');
 
 	function isTrackActive(track: Track): boolean {
-		if (!track.effective || track.effective.length === 0) return true;
-		const today = getISODate(new Date());
-		return track.effective.some(interval =>
-			today >= interval.start && (!interval.end || today <= interval.end)
-		);
+		return isTrackActiveByProjects(track);
 	}
 
 	function isTrackRetired(track: Track): boolean {
-		if (!track.effective || track.effective.length === 0) return false;
-		const today = getISODate(new Date());
-		return !track.effective.some(interval =>
-			today >= interval.start && (!interval.end || today <= interval.end)
-		);
+		return !isTrackActiveByProjects(track);
 	}
 
 	const filteredTracks = $derived.by(() => {
@@ -65,15 +57,7 @@
 	}
 
 	function getActiveProjects(track: Track): Project[] {
-		const today = getISODate(new Date());
-		return Object.values(track.projects).filter(p => {
-			if (!p.hasPhases) {
-				return today >= p.startDate && (p.endDate ? today <= p.endDate : true);
-			}
-			return p.phases.some(phase =>
-				phase.startDate && phase.startDate <= today && (!phase.endDate || phase.endDate >= today)
-			);
-		});
+		return Object.values(track.projects).filter(isProjectActive);
 	}
 
 	// Dynamic project tag visibility based on container width
