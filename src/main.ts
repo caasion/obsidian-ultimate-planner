@@ -2,12 +2,7 @@ import { Plugin } from 'obsidian';
 import { HOLOS_VIEW_TYPE, HolosView } from './HolosView';
 import { HolosSettingsTab } from './plugin/SettingsTab';
 import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
-import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings, type Track, type TrackSnapshot } from './plugin/types';
-import { CalendarPipeline } from './calendar/calendarPipelines';
-import { calendarState, fetchToken } from './calendar/calendarState';
-import { parseICS, parseICSBetween, normalizeEvent, normalizeOccurrenceEvent, buildEventDictionaries, getEventLabels } from './calendar/calendarHelper';
-import { fetchFromUrl, detectFetchChange } from './calendar/fetch';
-import { PlaygroundView, PLAYGROUND_VIEW_TYPE } from './playground/PlaygroundView';
+import { DEFAULT_SETTINGS, type PluginData, type PluginSettings, type Track, type TrackSnapshot } from './plugin/types';
 import { DailyNoteService } from './planner/logic/dailyNote';
 import { TrackNoteService } from './tracks/logic/trackNote';
 import { hashTrackFolder } from './tracks/logic/trackSnapshotHash';
@@ -18,11 +13,6 @@ export default class HolosPlugin extends Plugin {
 	private saveTimer: number | null = null;
 	private storeSubscriptions: Unsubscriber[] = [];
 	private trackSnapshot: TrackSnapshot | undefined;
-	public dataService: DataService;
-	public helperService: HelperService;
-	public calendarHelperService: CalendarHelperService;
-	public fetchService: FetchService;
-	public calendarPipeline: CalendarPipeline;
 	public dailyNoteService: DailyNoteService;
 	public trackNoteService: TrackNoteService;
 	private parsedTracksContent: Writable<Record<string, Track>> = writable<Record<string, Track>>({});
@@ -33,27 +23,6 @@ export default class HolosPlugin extends Plugin {
 		const currentTracksHash = trackFolder ? hashTrackFolder(trackFolder) : undefined;
 		const bootstrapSnapshot = resolveBootstrapTrackSnapshot(this.trackSnapshot, currentTracksHash);
 		this.parsedTracksContent = writable<Record<string, Track>>(bootstrapSnapshot?.tracks ?? {});
-
-		// this.calendarHelperService = {
-		// 	parseICS,
-		// 	parseICSBetween,
-		// 	normalizeEvent,
-		// 	normalizeOccurrenceEvent,
-		// 	buildEventDictionaries,
-		// 	getEventLabels
-		// }
-
-		this.fetchService = {
-			fetchFromUrl,
-			detectFetchChange
-		}
-		
-		// this.calendarPipeline = new CalendarPipeline({
-		// 	data: this.dataService, 
-		// 	fetch: this.fetchService, 
-		// 	helpers: this.helperService, 
-		// 	calHelpers: this.calendarHelperService
-		// })
 
 		this.dailyNoteService = new DailyNoteService({
 			app: this.app,
@@ -79,17 +48,6 @@ export default class HolosPlugin extends Plugin {
 		});
 
 		if (this.settings.debug) {
-			this.registerView(PLAYGROUND_VIEW_TYPE, (leaf) => new PlaygroundView(leaf, this));
-
-			this.addCommand({
-				id: 'open-playground-view',
-				name: 'Open Playground View',
-				callback: () => {
-					this.activateView(PLAYGROUND_VIEW_TYPE);
-				}
-			});
-
-			// Add debug command
 			this.addCommand({
 				id: 'debug-log-snaposhot',
 				name: 'Debug: Log snapshot',
