@@ -12,7 +12,6 @@
 	import { getISODate, getISODates, isProjectActive, isPhaseActive, isTrackActiveByProjects } from "src/plugin/helpers";
 	import { isValid, parseISO } from "date-fns";
 	import { type App } from "obsidian";
-	import { dropLineDnd } from "src/components/dropLineDnd";
 	import { onMount, untrack } from "svelte";
 
 	interface ProjectViewProps {
@@ -27,6 +26,10 @@
 	const parsedTracks = $derived($trackStore);
 	const sortedTracks = $derived(
 		Object.values(parsedTracks).sort((a, b) => {
+			// Active tracks first
+			const aActive = isTrackActiveByProjects(a) ? 0 : 1;
+			const bActive = isTrackActiveByProjects(b) ? 0 : 1;
+			if (aActive !== bActive) return aActive - bActive;
 			const orderA = Number.isFinite(a.order) ? a.order : Number.MAX_SAFE_INTEGER;
 			const orderB = Number.isFinite(b.order) ? b.order : Number.MAX_SAFE_INTEGER;
 			if (orderA !== orderB) return orderA - orderB;
@@ -104,7 +107,6 @@
 			onPhaseLabelEdit: (phaseId, label) => trackNoteService.updateProjectPhaseLabel(trackId, projectId, phaseId, label),
 			onPhaseDateEdit: (phaseId, startDate, endDate) => trackNoteService.updateProjectPhaseDates(trackId, projectId, phaseId, startDate, endDate),
 			onPhaseDelete: (phaseId) => trackNoteService.deleteProjectPhase(trackId, projectId, phaseId),
-			onPhaseReorder: (fromIndex, toIndex) => trackNoteService.reorderProjectPhase(trackId, projectId, fromIndex, toIndex),
 			onPhaseDataAdd: (phaseId) => trackNoteService.addPhaseData(trackId, projectId, phaseId),
 			onPhaseDataUpdate: (phaseId, index, el) => trackNoteService.updatePhaseData(trackId, projectId, phaseId, index, el),
 			onPhaseDataToggle: (phaseId, index) => trackNoteService.togglePhaseData(trackId, projectId, phaseId, index),
@@ -143,13 +145,6 @@
 			getISODate(range.from),
 			range.to ? getISODate(range.to) : undefined
 		);
-	}
-
-	// Phase drag and drop
-	function handlePhaseDndFinalize(_reordered: Phase[], fromIndex: number, toIndex: number) {
-		if (!selectedTrackId || !selectedProjectId) return;
-		const fns = createProjectFunctions(selectedTrackId, selectedProjectId);
-		fns.onPhaseReorder?.(fromIndex, toIndex);
 	}
 
 	// Daily note data for reference counting
@@ -217,7 +212,12 @@
 			<div class="sidebar-tree">
 				{#each sortedTracks as track}
 					{@const isCollapsed = collapsedTracks.has(track.id)}
-					{@const projects = Object.values(track.projects)}
+					{@const trackActive = isTrackActiveByProjects(track)}
+					{@const projects = Object.values(track.projects).sort((a, b) => {
+						const aActive = isProjectActive(a) ? 0 : 1;
+						const bActive = isProjectActive(b) ? 0 : 1;
+						return aActive - bActive;
+					})}
 					<div class="tree-track">
 						<button
 							class="tree-track-header"
@@ -230,6 +230,7 @@
 									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
 								{/if}
 							</span>
+							<span class="tree-track-status" class:active={trackActive}>{trackActive ? '●' : '○'}</span>
 							<span class="tree-track-label" style={`color: ${track.color};`}>{track.label}</span>
 						</button>
 						{#if !isCollapsed}
@@ -240,6 +241,7 @@
 										class:tree-project-active={selectedTrackId === track.id && selectedProjectId === project.id}
 										onclick={() => selectProject(track.id, project.id)}
 									>
+										<span class="tree-project-status" class:active={isProjectActive(project)}>{isProjectActive(project) ? '●' : '○'}</span>
 										<span class="tree-project-label">{project.label}</span>
 									</button>
 								{/each}
@@ -310,31 +312,31 @@
 				</div>
 
 				<!-- Phases / Tasks Section -->
-					<div class="detail-section phases-section">
-						<div class="detail-section-header">
+				<div class="detail-section phases-section">
+					<div class="detail-section-header">
 						<h3 class="detail-section-title">Tasks</h3>
-							<div class="detail-section-controls">
-								<button
-									class="detail-toggle-btn"
-									class:active={hideCompletedPhase}
-									onclick={() => hideCompletedPhase = !hideCompletedPhase}
-									title={hideCompletedPhase ? "Show completed" : "Hide completed"}
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-										{#if hideCompletedPhase}
-											<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
-											<path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
-											<path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
-											<line x1="2" y1="2" x2="22" y2="22"/>
-										{:else}
-											<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-											<circle cx="12" cy="12" r="3"/>
-										{/if}
-									</svg>
-								</button>
+						<div class="detail-section-controls">
+							<button
+								class="detail-toggle-btn"
+								class:active={hideCompletedPhase}
+								onclick={() => hideCompletedPhase = !hideCompletedPhase}
+								title={hideCompletedPhase ? "Show completed" : "Hide completed"}
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									{#if hideCompletedPhase}
+										<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+										<path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+										<path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+										<line x1="2" y1="2" x2="22" y2="22"/>
+									{:else}
+										<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+										<circle cx="12" cy="12" r="3"/>
+									{/if}
+								</svg>
+							</button>
 							<button class="detail-add-btn" onclick={() => fns.onPhaseAdd()} title="Add phase">+</button>
-							</div>
 						</div>
+					</div>
 					{#if selectedProject.phases.length === 1}
 						{@const phase = selectedProject.phases[0]}
 						{@const visiblePhaseData = hideCompletedPhase ? phase.data.map((el, i) => ({el, i})).filter(({el}) => !isCompletedElement(el)) : phase.data.map((el, i) => ({el, i}))}
@@ -358,79 +360,82 @@
 							<button class="phase-add-task-btn" onclick={() => fns.onPhaseDataAdd(phase.id)}>+ add</button>
 						</div>
 					{:else if selectedProject.phases.length > 1}
+						{@const sortedPhases = [...selectedProject.phases].sort((a, b) => {
+							const aActive = isPhaseActive(a) ? 0 : 1;
+							const bActive = isPhaseActive(b) ? 0 : 1;
+							if (aActive !== bActive) return aActive - bActive;
+							const aDate = a.startDate ?? '';
+							const bDate = b.startDate ?? '';
+							return aDate.localeCompare(bDate);
+						})}
 						<div class="phases-scroll-container">
-								<div
-									class="phases-scroll-track"
-									use:dropLineDnd={{ items: selectedProject.phases, handleSelector: '.phase-drag-handle', lineColor: color, direction: 'auto', onFinalize: handlePhaseDndFinalize }}
-								>
-									{#each selectedProject.phases as phase (phase.id)}
-										{@const phaseTaskCount = phase.data.length}
-										{@const phaseCompletedCount = phase.data.filter(el => el.taskStatus === 'x').length}
-										{@const visiblePhaseData = hideCompletedPhase ? phase.data.map((el, i) => ({el, i})).filter(({el}) => !isCompletedElement(el)) : phase.data.map((el, i) => ({el, i}))}
-										<div class="phase-card" style={`border-color: ${color};`}>
-											<div class="phase-card-header">
-												<div class="phase-card-header-left">
-													<div class="phase-drag-handle" title="Drag to reorder">
-														<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
-													</div>
-													<div class="phase-card-title-block">
-														<EditableText
-															value={phase.label}
+							<div class="phases-scroll-track">
+								{#each sortedPhases as phase (phase.id)}
+									{@const phaseTaskCount = phase.data.length}
+									{@const phaseCompletedCount = phase.data.filter(el => el.taskStatus === 'x').length}
+									{@const visiblePhaseData = hideCompletedPhase ? phase.data.map((el, i) => ({el, i})).filter(({el}) => !isCompletedElement(el)) : phase.data.map((el, i) => ({el, i}))}
+									{@const active = isPhaseActive(phase)}
+									<div class="phase-card" class:phase-card-active={active} style={`border-color: ${color};`}>
+										<div class="phase-card-header">
+											<div class="phase-card-header-left">
+												<div class="phase-card-title-block">
+													<EditableText
+														value={phase.label}
 														onSave={(label) => fns.onPhaseLabelEdit(phase.id, label)}
-															placeholder="Phase name..."
-															class="phase-card-label"
+														placeholder="Phase name..."
+														class="phase-card-label"
+													/>
+													<div class="phase-card-dates">
+														<Datepicker
+															range
+															rangeFrom={toDate(phase.startDate)}
+															rangeTo={toDate(phase.endDate)}
+															openEndedLabel="?"
+															rangeSeparator=" - "
+															onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
+															showToggleButton={false}
+															inputProps={{ readonly: true }}
+															inputClass="phase-date-input"
 														/>
-														<div class="phase-card-dates">
-															<Datepicker
-																range
-																rangeFrom={toDate(phase.startDate)}
-																rangeTo={toDate(phase.endDate)}
-																openEndedLabel="?"
-																rangeSeparator=" - "
-																onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
-																showToggleButton={false}
-																inputProps={{ readonly: true }}
-																inputClass="phase-date-input"
-															/>
-														</div>
 													</div>
-												</div>
-												<div class="phase-card-header-right">
-													<span class="phase-task-count" style={`color: ${color};`}>
-														{phaseCompletedCount}/{phaseTaskCount}
-													</span>
-												<button class="phase-delete-btn" onclick={() => fns.onPhaseDelete(phase.id)} title="Delete phase">
-														<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-													</button>
 												</div>
 											</div>
-											<div class="phase-card-tasks">
-												{#each visiblePhaseData as {el: element, i: idx} (idx)}
-													{@const refCount = getRefCount(element.blockId)}
-													<DataTaskElement
-														{element}
-														index={idx}
-														{color}
-														{refCount}
+											<div class="phase-card-header-right">
+												<span class="phase-task-count" style={`color: ${color};`}>
+													{phaseCompletedCount}/{phaseTaskCount}
+												</span>
+												<button class="phase-delete-btn" onclick={() => fns.onPhaseDelete(phase.id)} title="Delete phase">
+													<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+												</button>
+											</div>
+										</div>
+										<div class="phase-card-tasks">
+											{#each visiblePhaseData as {el: element, i: idx} (idx)}
+												{@const refCount = getRefCount(element.blockId)}
+												<DataTaskElement
+													{element}
+													index={idx}
+													{color}
+													{refCount}
 													onUpdate={(i, el) => fns.onPhaseDataUpdate(phase.id, i, el)}
 													onToggle={(i) => fns.onPhaseDataToggle(phase.id, i)}
 													onCancel={(i) => fns.onPhaseDataCancel(phase.id, i)}
 													onDelete={(i) => fns.onPhaseDataDelete(phase.id, i)}
-													/>
-												{/each}
-												{#if visiblePhaseData.length === 0 && phaseTaskCount > 0}
-													<div class="phase-empty-state">All tasks completed</div>
-												{/if}
-											</div>
-										<button class="phase-add-task-btn" onclick={() => fns.onPhaseDataAdd(phase.id)}>+ add</button>
+												/>
+											{/each}
+											{#if visiblePhaseData.length === 0 && phaseTaskCount > 0}
+												<div class="phase-empty-state">All tasks completed</div>
+											{/if}
 										</div>
-									{/each}
+										<button class="phase-add-task-btn" onclick={() => fns.onPhaseDataAdd(phase.id)}>+ add</button>
+									</div>
+								{/each}
 							</div>
-								</div>
-							{:else}
-								<div class="empty-state">No phases yet.</div>
-							{/if}
 						</div>
+					{:else}
+						<div class="empty-state">No phases yet.</div>
+					{/if}
+				</div>
 			</div>
 		{:else}
 			<div class="detail-empty">
@@ -493,15 +498,6 @@
 		border-right: none;
 	}
 
-	.sidebar-header {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 8px 12px;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-		flex-shrink: 0;
-	}
-
 	.sidebar-toggle {
 		background: transparent;
 		border: none;
@@ -562,6 +558,27 @@
 		text-overflow: ellipsis;
 	}
 
+	.tree-track-status {
+		font-size: 0.6em;
+		color: var(--text-faint);
+		flex-shrink: 0;
+	}
+
+	.tree-track-status.active {
+		color: var(--color-green, #4CAF50);
+	}
+
+	.tree-project-status {
+		font-size: 0.55em;
+		color: var(--text-faint);
+		flex-shrink: 0;
+		margin-right: 4px;
+	}
+
+	.tree-project-status.active {
+		color: var(--color-green, #4CAF50);
+	}
+
 	.tree-projects {
 		margin-left: 18px;
 		padding-left: 10px;
@@ -606,8 +623,6 @@
 	}
 
 	.detail-content {
-		max-width: 900px;
-		margin: 0 auto;
 		padding: 24px 32px;
 	}
 
@@ -796,6 +811,11 @@
 		flex-direction: column;
 	}
 
+	.phase-card-active {
+		background: rgba(255, 255, 255, 0.06);
+		box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-green, #4CAF50) 30%, transparent);
+	}
+
 	.phase-card-header {
 		display: flex;
 		align-items: flex-start;
@@ -830,22 +850,6 @@
 		align-items: center;
 		gap: 4px;
 		flex-shrink: 0;
-	}
-
-	.phase-drag-handle {
-		cursor: grab;
-		color: var(--text-faint);
-		display: flex;
-		align-items: center;
-		padding: 2px;
-		opacity: 0.5;
-		flex-shrink: 0;
-		margin-top: 1px;
-	}
-
-	.phase-drag-handle:hover {
-		opacity: 1;
-		color: var(--text-muted);
 	}
 
 	:global(.phase-card-label) {
