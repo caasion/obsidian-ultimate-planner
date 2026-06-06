@@ -68,12 +68,8 @@ export interface Project {
 	id: string
 	label: string;
 	description: string;
-	startDate: ISODate;
-    endDate?: ISODate;
     habits: Record<string, Habit>;
-    data: Element[];
 	phases: Phase[];
-	hasPhases: boolean;
 
     file?: TFile;
 }
