@@ -1,12 +1,8 @@
 import type { Day } from "date-fns";
-import type { Writable } from "svelte/store";
-import ICAL from "ical.js";
-import type { occurrenceDetails } from "ical.js/dist/types/types";
-import type { RequestUrlResponse, TFile } from "obsidian";
+import type { TFile } from "obsidian";
 
 /* Plugin Data Types */
 export type ISODate = string; // Create date type for dates in ISO 8601 for simplification (not as heavy as a Date object)
-export type CalendarID = string;
 
 /* Plugin Daydata Datatypes */
 export type Time = {
@@ -74,14 +70,6 @@ export interface Project {
     file?: TFile;
 }
 
-export interface CalendarMeta {
-    url: string;
-    etag?: string;
-    lastFetched?: number;
-    lastModified?: string;
-    contentHash?: string;
-}
-
 export interface Track {
     id: string;
     order: number;
@@ -121,33 +109,6 @@ export interface TrackData {
 export interface RenderTrack {
     id: string;
     isStartOfInterval: boolean;
-}
-
-/* Plugin Template Datatypes */
-export type TDate = ISODate;
-
-export interface Template {
-  id: string;
-  name: string;
-  effectiveFrom: ISODate; 
-  tracks: string[];
-}
-
-export type Templates = Record<TDate, Template>;
-
-export interface PlannerState {
-    templates: Templates;
-}
-
-/* Planner Table Rendering */
-export interface DateMapping {
-    date: ISODate;
-    tDate: TDate;
-}
-
-export interface BlockMeta {
-    rows: number;
-    dateTDateMapping: DateMapping[];
 }
 
 /* Data persistence */
@@ -198,56 +159,3 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     debug: false,
 }
 
-export type CalendarStatus = "idle" | "fetching" | "unchanged" | "updated" | "error";
-
-/* Core Data Service */
-export interface DataService {
-    // Svelte Stores (The Writable objects themselves)
-    templates: Writable<Record<ISODate, Record<string, Track>>>;
-    calendarState: Writable<CalendarState>;
-    fetchToken: Writable<number>;
-}
-
-// Core Helper Service Contract (Pure Functions from helper.ts)
-export interface HelperService {
-    hashText: (text: string) => Promise<string>;
-    generateID: (prefix: string) => string;
-    getISODate: (date: Date) => ISODate;
-    getISODates: (anchor: ISODate, amount: number, weekStartsOn?: Day) => ISODate[];
-    getLabelFromDateRange: (first: ISODate, last: ISODate) => string;
-    addDaysISO: (iso: ISODate, n: number) => ISODate;
-    swapArrayItems: <T>(array: T[], a: number, b: number) => T[]; 
-    idUsedInTemplates: (templates: Record<ISODate, Record<string, Track>>, rowID: string) => boolean;
-}
-
-export interface CalendarHelperService {
-    parseICS: (ics: string, calendarId: string) => NormalizedEvent[];
-    parseICSBetween: (ics: string, calendarId: CalendarID, after: Date, before: Date) => NormalizedEvent[];
-    normalizeEvent: (event: ICAL.Event, calendarId: CalendarID) => NormalizedEvent;
-    normalizeOccurrenceEvent: (occurance: occurrenceDetails, calendarId: string) => NormalizedEvent;
-    buildEventDictionaries: (events: NormalizedEvent[]) => { index: Record<ISODate, string[]>, eventsById: Record<string, NormalizedEvent> }
-    getEventLabels: (events: NormalizedEvent[]) => string;
-}
-
-export interface FetchService {
-    fetchFromUrl: (url: string, etag?: string, lastFetched?: string) => Promise<RequestUrlResponse>;
-    detectFetchChange: (response: RequestUrlResponse, contentHash: string, oldContentHash?: string) => boolean;
-}
-
-/* Calendar State */
-export interface CalendarState {
-    status: CalendarStatus;
-    lastError?: string;
-}
-
-export interface NormalizedEvent {
-    id: string;
-    recurrId?: Date;
-    start: Date;
-    end: Date;
-    allDay: boolean;
-    summary: string;
-    location?: string;
-    description?: string;
-    calendarId: string;
-}
