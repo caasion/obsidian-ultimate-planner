@@ -210,15 +210,17 @@ export class TrackNoteService {
     }
 
     private hydrateFromSnapshot(tracks: Record<string, Track>): void {
-        // Ensure projects from old snapshots get phases defaults
         const normalized: Record<string, Track> = {};
         for (const [trackId, track] of Object.entries(tracks)) {
             const projects: Record<string, Project> = {};
             for (const [projectId, project] of Object.entries(track.projects)) {
                 projects[projectId] = {
-                    ...project,
+                    id: project.id,
+                    label: project.label,
+                    description: project.description ?? '',
+                    habits: project.habits ?? {},
                     phases: project.phases ?? [],
-                    hasPhases: project.hasPhases ?? false,
+                    file: project.file,
                 };
             }
             normalized[trackId] = { ...track, projects };
@@ -434,7 +436,7 @@ export class TrackNoteService {
         const cache = this.app.metadataCache.getFileCache(projectFile);
         let frontmatter = cache?.frontmatter;
         const projectContent = await this.app.vault.read(projectFile);
-        
+
         if (forceFrontmatterUpdate) {
             const frontmatterInfo = getFrontMatterInfo(projectContent)
             if (frontmatterInfo.exists) {
@@ -442,27 +444,16 @@ export class TrackNoteService {
             } else {
                 console.warn("Manual frontmatter read and processing failed")
             }
-        } 
-        
-        if (!projectContent || !frontmatter) return null;
+        }
 
-        const { startDate, endDate } = frontmatter;
-        const hasPhases = frontmatter?.phases === true;
+        if (!projectContent || !frontmatter) return null;
 
         // Parse habits section
         const habitSection = PlannerParser.extractSection(projectContent, "Habits");
         const habits = PlannerParser.parseHabitSection(habitSection);
 
-        let data: Element[] = [];
-        let phases: Phase[] = [];
-
-        if (hasPhases) {
-            const phasesSection = PlannerParser.extractSection(projectContent, "Phases");
-            phases = PlannerParser.parsePhasesSection(phasesSection);
-        } else {
-            const dataSection = PlannerParser.extractSection(projectContent, "Data") || PlannerParser.extractSection(projectContent, "Tasks");
-            data = PlannerParser.parseTaskSection(dataSection);
-        }
+        const phasesSection = PlannerParser.extractSection(projectContent, "Phases");
+        const phases = PlannerParser.parsePhasesSection(phasesSection);
 
         const description = PlannerParser.extractFirstSection(projectContent);
 
@@ -477,20 +468,14 @@ export class TrackNoteService {
             }
         };
 
-        assignBlockIds(data);
         for (const phase of phases) {
             assignBlockIds(phase.data);
         }
 
         if (needsWrite) {
-            let updatedContent = projectContent;
-            if (hasPhases) {
-                const newPhasesSection = PlannerParser.serializePhasesSection(phases);
-                updatedContent = PlannerParser.replaceSection(updatedContent, 'Phases', newPhasesSection);
-            } else {
-                const newDataSection = this.serializeDataSection(data);
-                updatedContent = PlannerParser.replaceSection(updatedContent, 'Data', newDataSection);
-            }
+            const newPhasesSection = PlannerParser.serializePhasesSection(phases);
+            let updatedContent = PlannerParser.replaceSection(projectContent, 'Phases', newPhasesSection);
+
             this.beginInternalUpdate();
             await this.app.vault.modify(projectFile, updatedContent);
             this.endInternalUpdate();
@@ -501,13 +486,85 @@ export class TrackNoteService {
             label: projectFile.basename,
             file: projectFile,
             description,
-            startDate,
-            endDate,
-            data,
             habits,
             phases,
-            hasPhases,
         };
+    }
+
+    // ===== Migration ===== //
+
+    /** Migrate all task-based projects to phase-based format. Returns the number of projects migrated. */
+    async migrateProjectsToPhases(): Promise<number> {
+        if (!this.trackFileCache || Object.keys(this.trackFileCache).length === 0) {
+            await this.populateFileCache();
+        }
+
+        let migrated = 0;
+
+        for (const trackFiles of Object.values(this.trackFileCache)) {
+            for (const [id, projectFile] of Object.entries(trackFiles.projects)) {
+                const didMigrate = await this.migrateProjectFile(projectFile);
+                if (didMigrate) migrated++;
+            }
+        }
+
+        if (migrated > 0) {
+            await this.loadAllTrackContent();
+        }
+
+        return migrated;
+    }
+
+    /** Migrate a single project file from task-based to phase-based. Returns true if migration was performed. */
+    private async migrateProjectFile(projectFile: TFile): Promise<boolean> {
+        const cache = this.app.metadataCache.getFileCache(projectFile);
+        const frontmatter = cache?.frontmatter;
+        const projectContent = await this.app.vault.read(projectFile);
+
+        if (!projectContent || !frontmatter) return false;
+
+        const hasPhases = frontmatter?.phases === true;
+        if (hasPhases) return false; // Already migrated
+
+        // Parse old task data
+        const dataSection = PlannerParser.extractSection(projectContent, "Data") || PlannerParser.extractSection(projectContent, "Tasks");
+        const data = PlannerParser.parseTaskSection(dataSection);
+        const phases: Phase[] = [{
+            id: 'phase-0',
+            label: 'Phase 1',
+            startDate: frontmatter.startDate,
+            endDate: frontmatter.endDate,
+            data,
+        }];
+
+        // Update frontmatter: add phases: true, remove startDate/endDate
+        let updatedContent = projectContent.replace(
+            /^(---[\s\S]*?)(?=\n---)/m,
+            (match) => {
+                let result = match;
+                if (!result.includes('phases:')) {
+                    result += '\nphases: true';
+                } else {
+                    result = result.replace(/phases:\s*false/, 'phases: true');
+                }
+                result = result.replace(/\nstartDate:.*$/m, '');
+                result = result.replace(/\nendDate:.*$/m, '');
+                return result;
+            }
+        );
+
+        // Remove Data/Tasks section and add Phases section
+        updatedContent = PlannerParser.replaceSection(updatedContent, 'Data', '');
+        updatedContent = PlannerParser.replaceSection(updatedContent, 'Tasks', '');
+        const phasesContent = PlannerParser.serializePhasesSection(phases);
+        updatedContent = PlannerParser.replaceSection(updatedContent, 'Phases', phasesContent);
+
+        this.beginInternalUpdate();
+        await this.app.vault.modify(projectFile, updatedContent);
+        this.endInternalUpdate();
+
+        console.log(`[Holos] Migrated project: ${projectFile.basename}`);
+        return true;
     }
 
     // ===== File watchers ===== //
@@ -913,11 +970,13 @@ export class TrackNoteService {
             id,
             label,
             description: '',
-            startDate: today,
             habits: {},
-            data: [],
-            phases: [],
-            hasPhases: false,
+            phases: [{
+                id: 'phase-0',
+                label: 'Phase 1',
+                startDate: today,
+                data: [],
+            }],
         }
     }
 
@@ -930,9 +989,7 @@ export class TrackNoteService {
         lines.push('tags:');
         lines.push('  - holos/project');
         lines.push(`id: ${project.id}`);
-        lines.push(`startDate: ${project.startDate}`);
-        lines.push(`endDate: ${project.endDate ?? ''}`);
-        if (project.hasPhases) lines.push('phases: true');
+        lines.push('phases: true');
         lines.push('---');
         lines.push('');
 
@@ -945,24 +1002,10 @@ export class TrackNoteService {
         }
         lines.push('');
 
-        if (project.hasPhases) {
-            // Phases section
-            lines.push('## Phases');
-            lines.push('');
-            lines.push(PlannerParser.serializePhasesSection(project.phases));
-        } else {
-            // Data section
-            lines.push('## Data');
-            lines.push('');
-            for (const element of project.data) {
-                const taskMarker = element.isTask ? `[${element.taskStatus || ' '}] ` : '';
-                lines.push(`- ${taskMarker}${element.text}`);
-
-                for (const child of element.children) {
-                    lines.push(`- ${child}`);
-                }
-            }
-        }
+        // Phases section
+        lines.push('## Phases');
+        lines.push('');
+        lines.push(PlannerParser.serializePhasesSection(project.phases));
 
         return lines.join('\n');
     }
@@ -1083,86 +1126,6 @@ export class TrackNoteService {
                         [projectId]: {
                             ...track.projects[projectId],
                             description
-                        }
-                    }
-                }
-            };
-        });
-    }
-
-    /** Update project start date */
-    async updateProjectStartDate(trackId: string, projectId: string, startDate: string): Promise<void> {
-        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
-        if (!projectFile) {
-            console.warn(`Project ${projectId} not found in track ${trackId}`);
-            return;
-        }
-
-        this.beginInternalUpdate();
-        try {
-            await this.app.fileManager.processFrontMatter(projectFile, (fm) => {
-                fm.startDate = startDate;
-            });
-        } finally {
-            this.endInternalUpdate();
-        }
-
-        // Direct update - change project startDate in memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            startDate
-                        }
-                    }
-                }
-            };
-        });
-    }
-
-    /** Update project end date */
-    async updateProjectEndDate(trackId: string, projectId: string, endDate: string | null): Promise<void> {
-        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
-        if (!projectFile) {
-            console.warn(`Project ${projectId} not found in track ${trackId}`);
-            return;
-        }
-
-        this.beginInternalUpdate();
-        try {
-            await this.app.fileManager.processFrontMatter(projectFile, (fm) => {
-                if (endDate) {
-                    fm.endDate = endDate;
-                } else {
-                    delete fm.endDate;
-                }
-            });
-        } finally {
-            this.endInternalUpdate();
-        }
-
-        // Direct update - change project endDate in memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            endDate: endDate ?? undefined
                         }
                     }
                 }
@@ -1347,172 +1310,6 @@ export class TrackNoteService {
 
     // ===== Project data operations ===== //
 
-    /** Serialize elements array to string for Data section */
-    private serializeDataSection(elements: Element[]): string {
-        let result = '';
-        for (const element of elements) {
-            result += PlannerParser.serializeProjectElement(element);
-        }
-        return result;
-    }
-
-    /** Add a new data element to a project */
-    async addProjectData(trackId: string, projectId: string): Promise<void> {
-        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
-        if (!projectFile) {
-            console.warn(`Project ${projectId} not found in track ${trackId}`);
-            return;
-        }
-
-        const newElement: Element = {
-            raw: "- [ ] New Task",
-            text: "New Task",
-            isTask: true,
-            taskStatus: " ",
-            children: [],
-        };
-
-        const content = await this.app.vault.read(projectFile);
-        const dataSection = PlannerParser.extractSection(content, "Data");
-        const data = PlannerParser.parseTaskSection(dataSection);
-        
-        data.push(newElement);
-        
-        const newDataSection = this.serializeDataSection(data);
-        const updated = PlannerParser.replaceSection(content, 'Data', newDataSection);
-        
-        this.beginInternalUpdate();
-        try {
-            await this.app.vault.modify(projectFile, updated);
-        } finally {
-            this.endInternalUpdate();
-        }
-
-        // Direct update - add element to memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            data: [...track.projects[projectId].data, newElement]
-                        }
-                    }
-                }
-            };
-        });
-    }
-
-    /** Update a specific data element in a project */
-    async updateProjectData(trackId: string, projectId: string, elementIndex: number, updatedElement: Partial<Element>): Promise<void> {
-        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
-        if (!projectFile) {
-            console.warn(`Project ${projectId} not found in track ${trackId}`);
-            return;
-        }
-
-        const content = await this.app.vault.read(projectFile);
-        const dataSection = PlannerParser.extractSection(content, "Data");
-        const data = PlannerParser.parseTaskSection(dataSection);
-        
-        if (elementIndex >= 0 && elementIndex < data.length) {
-            data[elementIndex] = { ...data[elementIndex], ...updatedElement };
-        }
-        
-        const newDataSection = this.serializeDataSection(data);
-        const updated = PlannerParser.replaceSection(content, 'Data', newDataSection);
-        
-        this.beginInternalUpdate();
-        try {
-            await this.app.vault.modify(projectFile, updated);
-        } finally {
-            this.endInternalUpdate();
-        }
-
-        // Direct update - update element in memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            const newData = [...track.projects[projectId].data];
-            if (elementIndex >= 0 && elementIndex < newData.length) {
-                newData[elementIndex] = { ...newData[elementIndex], ...updatedElement };
-            }
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            data: newData
-                        }
-                    }
-                }
-            };
-        });
-    }
-
-    /** Delete a data element from a project */
-    async deleteProjectData(trackId: string, projectId: string, elementIndex: number): Promise<void> {
-        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
-        if (!projectFile) {
-            console.warn(`Project ${projectId} not found in track ${trackId}`);
-            return;
-        }
-
-        const content = await this.app.vault.read(projectFile);
-        const dataSection = PlannerParser.extractSection(content, "Data");
-        const data = PlannerParser.parseTaskSection(dataSection);
-        
-        if (elementIndex >= 0 && elementIndex < data.length) {
-            data.splice(elementIndex, 1);
-        }
-        
-        const newDataSection = this.serializeDataSection(data);
-        const updated = PlannerParser.replaceSection(content, 'Data', newDataSection);
-        
-        this.beginInternalUpdate();
-        try {
-            await this.app.vault.modify(projectFile, updated);
-        } finally {
-            this.endInternalUpdate();
-        }
-
-        // Direct update - remove element from memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            const newData = [...track.projects[projectId].data];
-            if (elementIndex >= 0 && elementIndex < newData.length) {
-                newData.splice(elementIndex, 1);
-            }
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            data: newData
-                        }
-                    }
-                }
-            };
-        });
-    }
-
     // ===== Project Phase operations ===== //
 
     /** Helper: read phases from file, apply mutation, write back, update store */
@@ -1678,123 +1475,6 @@ export class TrackNoteService {
         );
     }
 
-    /** Toggle phase mode on/off for a project */
-    async toggleProjectPhases(trackId: string, projectId: string, enable: boolean): Promise<void> {
-        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
-        if (!projectFile) {
-            console.warn(`Project ${projectId} not found in track ${trackId}`);
-            return;
-        }
-
-        const content = await this.app.vault.read(projectFile);
-        let updated = content;
-
-        if (enable) {
-            // Enable phases: move existing tasks into a default phase
-            const dataSection = PlannerParser.extractSection(content, "Data") || PlannerParser.extractSection(content, "Tasks");
-            const data = PlannerParser.parseTaskSection(dataSection);
-
-            // Create initial phase with existing tasks
-            const initialPhase: Phase = {
-                id: 'phase-0',
-                label: 'Phase 1',
-                data,
-            };
-
-            // Update frontmatter to set phases: true
-            updated = content.replace(
-                /^(---[\s\S]*?)(?=\n---)/m,
-                (match) => {
-                    if (!match.includes('phases:')) {
-                        return match + '\nphases: true';
-                    }
-                    return match.replace(/phases:\s*false/, 'phases: true');
-                }
-            );
-
-            // Remove Data/Tasks section and add Phases section
-            updated = PlannerParser.replaceSection(updated, 'Data', '');
-            updated = PlannerParser.replaceSection(updated, 'Tasks', '');
-            const phasesContent = PlannerParser.serializePhasesSection([initialPhase]);
-            updated = PlannerParser.replaceSection(updated, 'Phases', phasesContent);
-        } else {
-            // Disable phases: flatten all phase tasks into Data section
-            const phasesSection = PlannerParser.extractSection(content, "Phases");
-            const phases = PlannerParser.parsePhasesSection(phasesSection);
-
-            // Flatten all tasks from all phases
-            const allData: Element[] = [];
-            for (const phase of phases) {
-                allData.push(...phase.data);
-            }
-
-            // Update frontmatter to set phases: false
-            updated = content.replace(
-                /^(---[\s\S]*?)(?=\n---)/m,
-                (match) => match.replace(/\nphases:\s*true/, '').replace(/phases:\s*true\n/, '')
-            );
-
-            // Remove Phases section and add back Data section
-            updated = PlannerParser.replaceSection(updated, 'Phases', '');
-            const dataContent = this.serializeDataSection(allData);
-            updated = PlannerParser.replaceSection(updated, 'Data', dataContent);
-        }
-
-        this.beginInternalUpdate();
-        try {
-            await this.app.vault.modify(projectFile, updated);
-        } finally {
-            this.endInternalUpdate();
-        }
-
-        // Update store
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            const project = track.projects[projectId];
-            let newProject: Project;
-
-            if (enable) {
-                // Create initial phase with existing tasks
-                const initialPhase: Phase = {
-                    id: 'phase-0',
-                    label: 'Phase 1',
-                    data: project.data,
-                };
-                newProject = {
-                    ...project,
-                    phases: [initialPhase],
-                    data: [],
-                    hasPhases: true,
-                };
-            } else {
-                // Flatten all phase tasks into data
-                const allData: Element[] = [];
-                for (const phase of project.phases) {
-                    allData.push(...phase.data);
-                }
-                newProject = {
-                    ...project,
-                    phases: [],
-                    data: allData,
-                    hasPhases: false,
-                };
-            }
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: newProject,
-                    },
-                },
-            };
-        });
-    }
-
     /** Close a project task by its block ID, searching all projects in the track */
     async closeProjectTaskByBlockId(trackId: string, blockId: string, taskStatus: ' ' | 'x' = 'x'): Promise<boolean> {
         const tracks = get(this.parsedTracksContent);
@@ -1805,14 +1485,6 @@ export class TrackNoteService {
         }
 
         for (const [projectId, project] of Object.entries(track.projects)) {
-            // Search flat data
-            const dataIndex = project.data.findIndex(el => el.blockId === blockId);
-            if (dataIndex !== -1) {
-                await this.updateProjectData(trackId, projectId, dataIndex, { taskStatus });
-                return true;
-            }
-
-            // Search phases
             for (const phase of project.phases) {
                 const phaseDataIndex = phase.data.findIndex(el => el.blockId === blockId);
                 if (phaseDataIndex !== -1) {
