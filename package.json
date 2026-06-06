@@ -20,7 +20,6 @@
 		"builtin-modules": "3.3.0",
 		"esbuild": "^0.25.8",
 		"esbuild-svelte": "^0.9.3",
-		"ical.js": "^2.2.1",
 		"obsidian": "latest",
 		"svelte": "^5.38.0",
 		"svelte-check": "^4.3.1",
@@ -30,13 +29,7 @@
 		"typescript": "^5.9.2"
 	},
 	"dependencies": {
-		"@milkdown/core": "^7.15.3",
-		"@milkdown/kit": "^7.15.3",
-		"@milkdown/preset-commonmark": "^7.15.3",
-		"@milkdown/prose": "^7.15.3",
-		"@milkdown/theme-nord": "^7.15.3",
 		"date-fns": "^4.1.0",
-		"ical-expander": "^3.2.0",
 		"obsidian-daily-notes-interface": "^0.9.4"
 	}
 }
