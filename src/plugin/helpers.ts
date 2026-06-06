@@ -59,23 +59,6 @@ export function generateID(prefix: string) {
     return prefix + crypto.randomUUID();
 }
 
-/** [PURE HELPER] Hash a string using SHA-1. */
-export async function hashText(text: string): Promise<string> {
-  const data = new TextEncoder().encode(text);
-  const buf = await crypto.subtle.digest('SHA-1', data);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-/** [PURE HELPER] Takes in an array, swaps two items, and returns a new array. Returns the same array if swapping causes an item to go beyond the array. */
-export function swapArrayItems<T>(array: T[], a: number, b: number): T[] {
-    if (a < 0 || b < 0) return array;
-    if (a >= array.length || b >= array.length) return array;
-
-    const newArray = array.slice();
-    [newArray[a], newArray[b]] = [newArray[b], newArray[a]];
-    return newArray;
-}
-
 /** [PURE HELPER] Takes in an array of Elements, then calculates the sum of the time spent in minutes. */
 export function calculateTotalTimeSpent(items: Element[]): number {
     return items.reduce((total, element) => {
@@ -93,18 +76,6 @@ export function calculateTotalTimeSpent(items: Element[]): number {
         }
         return total;
     }, 0);
-}
-
-/** [PURE HELPER] Formats minutes into hours and minutes. */
-export function formatTotalTime(totalMinutes: number): string {
-    if (totalMinutes === 0) return "0 min";
-    
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    
-    if (hours === 0) return `${minutes} min`;
-    if (minutes === 0) return `${hours} hr`;
-    return `${hours} hr ${minutes} min`;
 }
 
 type TimeUnit = 'min' | 'hr';
