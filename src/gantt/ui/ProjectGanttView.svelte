@@ -1,8 +1,6 @@
 <script lang="ts">
   import type { App } from "obsidian";
   import type { TrackNoteService } from "src/tracks/logic/trackNote";
-  import type { ProjectCardFunctions } from "src/tracks/ui/ProjectCard.svelte";
-  import type { HabitFunctions } from "src/tracks/ui/HabitElement.svelte";
   import type { Track, ISODate } from "src/plugin/types";
   import { format, parseISO, addDays, differenceInDays } from "date-fns";
   import { getISODate } from "src/plugin/helpers";
@@ -85,68 +83,6 @@
     windowDays = days;
   }
 
-  function createProjectFunctionsFactory(trackId: string) {
-    return (projectId: string): ProjectCardFunctions => ({
-      onLabelEdit: (label) =>
-        trackNoteService.updateProjectLabel(trackId, projectId, label),
-      onDescriptionEdit: (description) =>
-        trackNoteService.updateProjectDescription(trackId, projectId, description),
-      onOpenFile: () => trackNoteService.openProjectFile(trackId, projectId),
-      onStartDateEdit: (date) =>
-        trackNoteService.updateProjectStartDate(trackId, projectId, date),
-      onEndDateEdit: (date) =>
-        trackNoteService.updateProjectEndDate(trackId, projectId, date),
-      onDelete: () => trackNoteService.deleteProject(trackId, projectId),
-      onHabitAdd: () => trackNoteService.addProjectHabit(trackId, projectId),
-      onDataAdd: () => trackNoteService.addProjectData(trackId, projectId),
-      onDataUpdate: (index, updatedElement) =>
-        trackNoteService.updateProjectData(trackId, projectId, index, updatedElement),
-      onDataToggle: (index) => {
-        const track = trackNoteService.getTrack(trackId);
-        const element = track?.projects[projectId]?.data[index];
-        if (!element?.isTask) return;
-        const newStatus = element.taskStatus === "x" ? " " : "x";
-        trackNoteService.updateProjectData(trackId, projectId, index, {
-          taskStatus: newStatus,
-        });
-      },
-      onDataCancel: (index) => {
-        const track = trackNoteService.getTrack(trackId);
-        const element = track?.projects[projectId]?.data[index];
-        if (!element?.isTask) return;
-        trackNoteService.updateProjectData(trackId, projectId, index, {
-          taskStatus: "-",
-        });
-      },
-      onDataDelete: (index) =>
-        trackNoteService.deleteProjectData(trackId, projectId, index),
-
-      // Phase operations
-      onPhaseAdd: () => trackNoteService.addProjectPhase(trackId, projectId),
-      onPhaseLabelEdit: (phaseId, label) => trackNoteService.updateProjectPhaseLabel(trackId, projectId, phaseId, label),
-      onPhaseDelete: (phaseId) => trackNoteService.deleteProjectPhase(trackId, projectId, phaseId),
-      onPhaseReorder: (fromIndex, toIndex) => trackNoteService.reorderProjectPhase(trackId, projectId, fromIndex, toIndex),
-      onPhaseDataAdd: (phaseId) => trackNoteService.addPhaseData(trackId, projectId, phaseId),
-      onPhaseDataUpdate: (phaseId, index, el) => trackNoteService.updatePhaseData(trackId, projectId, phaseId, index, el),
-      onPhaseDataToggle: (phaseId, index) => trackNoteService.togglePhaseData(trackId, projectId, phaseId, index),
-      onPhaseDataCancel: (phaseId, index) => trackNoteService.cancelPhaseData(trackId, projectId, phaseId, index),
-      onPhaseDataDelete: (phaseId, index) => trackNoteService.deletePhaseData(trackId, projectId, phaseId, index),
-
-      // Enable phase mode (one-way)
-      onEnablePhases: () => trackNoteService.toggleProjectPhases(trackId, projectId, true),
-    });
-  }
-
-  function createHabitFunctionsFactory(trackId: string) {
-    return (projectId: string) =>
-      (habitId: string): HabitFunctions => ({
-        onEdit: (habit) =>
-          trackNoteService.updateProjectHabit(trackId, projectId, habitId, habit),
-        onDelete: () =>
-          trackNoteService.deleteProjectHabit(trackId, projectId, habitId),
-      });
-  }
-
   /* === Filter to tracks active within the current viewport === */
   const visibleTracks = $derived(
     sortedTracks.filter(track =>
@@ -160,12 +96,8 @@
   /* === Track heights (computed here so sidebar + gantt stay in sync) === */
   const trackHeights = $derived(
     visibleTracks.map(track => {
-      const packResult = packProjectsIntoRows(track.projects, viewportStart, viewportEnd);
-      const packed = packResult.packedProjects;
-      const packedPhases = packResult.packedPhases;
-      const projectRows = packed.length === 0 ? 0 : Math.max(...packed.map(p => p.row)) + 1;
-      const phaseRows = packedPhases.length === 0 ? 0 : Math.max(...packedPhases.map(p => p.row)) + 1;
-      const numRows = Math.max(projectRows, phaseRows);
+      const packedPhases = packProjectsIntoRows(track.projects, viewportStart, viewportEnd);
+      const numRows = packedPhases.length === 0 ? 0 : Math.max(...packedPhases.map(p => p.row)) + 1;
       return calcTrackHeight(numRows);
     })
   );
@@ -325,8 +257,6 @@
                     {pxPerDay}
                     onEffectiveChange={(next) =>
                       trackNoteService.updateTrackFrontmatter(track.id, { effective: next })}
-                    createProjectFunctions={createProjectFunctionsFactory(track.id)}
-                    createHabitFunctions={createHabitFunctionsFactory(track.id)}
                   />
                 {/each}
               </div>

@@ -12,7 +12,6 @@ import { getISODate } from "src/plugin/helpers";
 import type { ISODate, Phase, Project } from "src/plugin/types";
 
 export const ROW_HEIGHT = 36;
-export const PROJECT_BAR_HEIGHT = 28;
 export const PHASE_BAR_HEIGHT = 24;
 export const TRACK_HEADER_HEIGHT = 44;
 export const TRACK_PADDING_BOTTOM = 16;
@@ -124,11 +123,6 @@ export function getHeaderTicks(
   return ticks;
 }
 
-export interface PackedProject {
-  project: Project;
-  row: number;
-}
-
 export interface PackedPhase {
   phase: Phase;
   projectId: string;
@@ -136,63 +130,17 @@ export interface PackedPhase {
   row: number;
 }
 
-export interface PackResult {
-  packedProjects: PackedProject[];
-  packedPhases: PackedPhase[];
-}
-
 export function packProjectsIntoRows(
   projects: Record<string, Project>,
   viewportStart: ISODate,
   viewportEnd: ISODate
-): PackResult {
+): PackedPhase[] {
   const today = getISODate(new Date());
 
-  const nonPhased: Project[] = [];
-  const phased: Project[] = [];
-
-  for (const p of Object.values(projects)) {
-    if (p.hasPhases && p.phases.length > 0) {
-      phased.push(p);
-    } else {
-      nonPhased.push(p);
-    }
-  }
-
-  // Pack non-phased projects as before
-  const visibleNonPhased = nonPhased.filter((p) => {
-    const end = p.endDate ?? today;
-    return p.startDate <= viewportEnd && end >= viewportStart;
-  });
-  visibleNonPhased.sort((a, b) => a.startDate.localeCompare(b.startDate));
-
-  const rowEnds: ISODate[] = [];
-  const packedProjects: PackedProject[] = [];
-
-  for (const project of visibleNonPhased) {
-    const end = project.endDate ?? today;
-    let placed = false;
-    for (let r = 0; r < rowEnds.length; r++) {
-      if (project.startDate > rowEnds[r]) {
-        rowEnds[r] = end;
-        packedProjects.push({ project, row: r });
-        placed = true;
-        break;
-      }
-    }
-    if (!placed) {
-      rowEnds.push(end);
-      packedProjects.push({ project, row: rowEnds.length - 1 });
-    }
-  }
-
-  // Pack phased projects — each project's phases are packed together,
-  // starting from the next available row after non-phased projects
-  const baseRow = rowEnds.length;
   const packedPhases: PackedPhase[] = [];
-  let currentRow = baseRow;
+  let currentRow = 0;
 
-  for (const project of phased) {
+  for (const project of Object.values(projects)) {
     const visiblePhases = project.phases.filter((ph) => {
       if (!ph.startDate) return false;
       const end = ph.endDate ?? today;
@@ -226,7 +174,7 @@ export function packProjectsIntoRows(
     currentRow += Math.max(1, phaseRowEnds.length);
   }
 
-  return { packedProjects, packedPhases };
+  return packedPhases;
 }
 
 export function calcTrackHeight(numRows: number): number {

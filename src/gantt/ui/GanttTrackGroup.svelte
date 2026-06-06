@@ -1,7 +1,5 @@
 <script lang="ts">
   import type { DateInterval, ISODate, Track } from "src/plugin/types";
-  import type { ProjectCardFunctions } from "src/tracks/ui/ProjectCard.svelte";
-  import type { HabitFunctions } from "src/tracks/ui/HabitElement.svelte";
   import { getISODate } from "src/plugin/helpers";
   import {
     calcTrackHeight,
@@ -9,7 +7,6 @@
     getViewportWidth,
     packProjectsIntoRows,
   } from "../logic/ganttUtils";
-  import GanttProjectBar from "./GanttProjectBar.svelte";
   import GanttPhaseBar from "./GanttPhaseBar.svelte";
 
   interface Props {
@@ -18,8 +15,6 @@
     viewportEnd: ISODate;
     pxPerDay: number;
     onEffectiveChange: (next: DateInterval[]) => void;
-    createProjectFunctions: (projectId: string) => ProjectCardFunctions;
-    createHabitFunctions: (projectId: string) => (habitId: string) => HabitFunctions;
   }
 
   let {
@@ -28,21 +23,15 @@
     viewportEnd,
     pxPerDay,
     onEffectiveChange,
-    createProjectFunctions,
-    createHabitFunctions,
   }: Props = $props();
 
   const today = $derived(getISODate(new Date()));
-  const packResult = $derived(
+  const packedPhases = $derived(
     packProjectsIntoRows(track.projects, viewportStart, viewportEnd)
   );
-  const packed = $derived(packResult.packedProjects);
-  const packedPhases = $derived(packResult.packedPhases);
-  const numRows = $derived.by(() => {
-    const projectRows = packed.length === 0 ? 0 : Math.max(...packed.map((p) => p.row)) + 1;
-    const phaseRows = packedPhases.length === 0 ? 0 : Math.max(...packedPhases.map((p) => p.row)) + 1;
-    return Math.max(projectRows, phaseRows);
-  });
+  const numRows = $derived(
+    packedPhases.length === 0 ? 0 : Math.max(...packedPhases.map((p) => p.row)) + 1
+  );
   const trackHeight = $derived(calcTrackHeight(numRows));
   const totalWidth = $derived(
     getViewportWidth(viewportStart, viewportEnd, pxPerDay)
@@ -65,19 +54,6 @@
         style={`left: ${clampedLeft}px; width: ${bgWidth}px; height: ${trackHeight}px; background-color: ${track.color}10; border: 1px solid ${track.color}40; border-radius: 12px;`}
       ></div>
     {/if}
-  {/each}
-
-  <!-- Project bars -->
-  {#each packed as { project, row }}
-    <GanttProjectBar
-      {project}
-      {row}
-      {viewportStart}
-      {pxPerDay}
-      color={track.color}
-      projectFunctions={createProjectFunctions(project.id)}
-      createHabitFunctions={createHabitFunctions(project.id)}
-    />
   {/each}
 
   <!-- Phase bars -->
