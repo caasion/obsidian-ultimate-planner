@@ -5,7 +5,7 @@
     import HabitPreviewElement from './HabitPreviewElement.svelte';
     import ScheduledTaskPreviewElement from './ScheduledTaskPreviewElement.svelte';
     import UnscheduledTasksPopup from './UnscheduledTasksPopup.svelte';
-    import { calculateTotalTimeSpent, formatTimeArguments, reconstructRawText } from 'src/plugin/helpers';
+    import { calculateTotalTimeSpent, formatTimeArguments, reconstructRawText, getProjectStartDate } from 'src/plugin/helpers';
     import { RRuleService } from 'src/tracks/logic/rrule';
     import { dndzone } from 'svelte-dnd-action';
     import { flip } from 'svelte/animate';
@@ -46,8 +46,10 @@
     const habitsForDate = $derived.by(() => {
         const habits: HabitPreview[] = [];
         for (const project of Object.values(trackMeta.projects)) {
+            const projectStart = getProjectStartDate(project);
+            if (!projectStart) continue;
             for (const habit of Object.values(project.habits)) {
-                if (RRuleService.occursOn(habit.rrule, date, project.startDate)) {
+                if (RRuleService.occursOn(habit.rrule, date, projectStart)) {
                     habits.push({ habit, projectLabel: project.label, projectId: project.id });
                 }
             }
@@ -96,7 +98,6 @@
                     }
                 }
             };
-            collectFromElements(project.data);
             for (const phase of project.phases) {
                 collectFromElements(phase.data);
             }
@@ -163,7 +164,6 @@
                     }
                 });
             };
-            collectUnscheduled(project.data);
             for (const phase of project.phases) {
                 collectUnscheduled(phase.data);
             }
