@@ -9,10 +9,9 @@
 	import EditableText from "src/components/EditableText.svelte";
 	import EditableMarkdownText from "src/components/EditableMarkdownText.svelte";
 	import Datepicker from "src/components/Datepicker.svelte";
-	import { getISODate, getISODates } from "src/plugin/helpers";
+	import { getISODate, getISODates, isProjectActive, isPhaseActive, isTrackActiveByProjects } from "src/plugin/helpers";
 	import { isValid, parseISO } from "date-fns";
 	import { type App } from "obsidian";
-	import { ConfirmationModal } from "src/plugin/ConfirmationModal";
 	import { dropLineDnd } from "src/components/dropLineDnd";
 	import { onMount, untrack } from "svelte";
 
@@ -79,17 +78,6 @@
 		selectedProjectId = projectId;
 	}
 
-	function isProjectActive(project: Project): boolean {
-		const today = getISODate(new Date());
-		if (!project.hasPhases) {
-			return today >= project.startDate && (project.endDate ? today <= project.endDate : true);
-		} else {
-			return project.phases.some(p =>
-				p.startDate && p.startDate <= today && (!p.endDate || p.endDate >= today)
-			);
-		}
-	}
-
 	// Format date range for display
 	function formatDateRange(track: Track): string {
 		if (!track.effective || track.effective.length === 0) return '';
@@ -110,26 +98,8 @@
 			onLabelEdit: (label) => trackNoteService.updateProjectLabel(trackId, projectId, label),
 			onDescriptionEdit: (desc) => trackNoteService.updateProjectDescription(trackId, projectId, desc),
 			onOpenFile: () => trackNoteService.openProjectFile(trackId, projectId),
-			onStartDateEdit: (date) => trackNoteService.updateProjectStartDate(trackId, projectId, date),
-			onEndDateEdit: (date) => trackNoteService.updateProjectEndDate(trackId, projectId, date),
 			onDelete: () => trackNoteService.deleteProject(trackId, projectId),
 			onHabitAdd: () => trackNoteService.addProjectHabit(trackId, projectId),
-			onDataAdd: () => trackNoteService.addProjectData(trackId, projectId),
-			onDataUpdate: (index, el) => trackNoteService.updateProjectData(trackId, projectId, index, el),
-			onDataToggle: (index) => {
-				const track = trackNoteService.getTrack(trackId);
-				const element = track?.projects[projectId]?.data[index];
-				if (!element?.isTask) return;
-				const newStatus = element.taskStatus === 'x' ? ' ' : 'x';
-				trackNoteService.updateProjectData(trackId, projectId, index, { taskStatus: newStatus });
-			},
-			onDataCancel: (index) => {
-				const track = trackNoteService.getTrack(trackId);
-				const element = track?.projects[projectId]?.data[index];
-				if (!element?.isTask) return;
-				trackNoteService.updateProjectData(trackId, projectId, index, { taskStatus: '-' });
-			},
-			onDataDelete: (index) => trackNoteService.deleteProjectData(trackId, projectId, index),
 			onPhaseAdd: () => trackNoteService.addProjectPhase(trackId, projectId),
 			onPhaseLabelEdit: (phaseId, label) => trackNoteService.updateProjectPhaseLabel(trackId, projectId, phaseId, label),
 			onPhaseDateEdit: (phaseId, startDate, endDate) => trackNoteService.updateProjectPhaseDates(trackId, projectId, phaseId, startDate, endDate),
@@ -140,7 +110,6 @@
 			onPhaseDataToggle: (phaseId, index) => trackNoteService.togglePhaseData(trackId, projectId, phaseId, index),
 			onPhaseDataCancel: (phaseId, index) => trackNoteService.cancelPhaseData(trackId, projectId, phaseId, index),
 			onPhaseDataDelete: (phaseId, index) => trackNoteService.deletePhaseData(trackId, projectId, phaseId, index),
-			onEnablePhases: () => trackNoteService.toggleProjectPhases(trackId, projectId, true),
 		};
 	}
 
@@ -159,27 +128,9 @@
 	}
 
 	let hideCompletedPhase = $state(false);
-	let hideCompleted = $state(false);
 
 	function isCompletedElement(el: Element): boolean {
 		return el.taskStatus === 'x' || el.taskStatus === '-';
-	}
-
-	let visibleTasks = $derived(
-		selectedProject
-			? (hideCompleted
-				? selectedProject.data.map((el, i) => ({ el, i })).filter(({ el }) => !isCompletedElement(el))
-				: selectedProject.data.map((el, i) => ({ el, i })))
-			: []
-	);
-
-	function handleProjectRangeSelect(selection: unknown) {
-		if (!selectedTrackId || !selectedProjectId) return;
-		const range = selection as { from?: Date; to?: Date } | undefined;
-		if (!range?.from) return;
-		const fns = createProjectFunctions(selectedTrackId, selectedProjectId);
-		fns.onStartDateEdit(getISODate(range.from));
-		fns.onEndDateEdit(range.to ? getISODate(range.to) : null);
 	}
 
 	function handlePhaseRangeSelect(phaseId: string, selection: unknown) {
@@ -192,17 +143,6 @@
 			getISODate(range.from),
 			range.to ? getISODate(range.to) : undefined
 		);
-	}
-
-	function confirmEnablePhases() {
-		if (!selectedTrackId || !selectedProjectId) return;
-		const fns = createProjectFunctions(selectedTrackId, selectedProjectId);
-		new ConfirmationModal(
-			app,
-			() => fns.onEnablePhases?.(),
-			'Enable Phases',
-			'This will organize your tasks into phases. Existing tasks will be moved into "Phase 1". To revert, you will need to edit the markdown file manually.'
-		).open();
 	}
 
 	// Phase drag and drop
@@ -333,22 +273,6 @@
 						placeholder="Project name..."
 						class="detail-project-title"
 					/>
-					{#if !selectedProject.hasPhases}
-						<div class="detail-date-range">
-							<span class="detail-date-label">Span</span>
-							<Datepicker
-								range
-								rangeFrom={toDate(selectedProject.startDate)}
-								rangeTo={toDate(selectedProject.endDate)}
-								openEndedLabel="Present"
-								rangeSeparator=" - "
-								onselect={handleProjectRangeSelect}
-								showToggleButton={false}
-								inputProps={{ readonly: true }}
-								inputClass="detail-date-input"
-							/>
-						</div>
-					{/if}
 					<EditableMarkdownText
 						value={selectedProject.description}
 						onSave={(desc) => fns.onDescriptionEdit(desc)}
@@ -385,11 +309,10 @@
 					</div>
 				</div>
 
-				<!-- Phases Section -->
-				{#if selectedProject.hasPhases}
+				<!-- Phases / Tasks Section -->
 					<div class="detail-section phases-section">
 						<div class="detail-section-header">
-							<h3 class="detail-section-title">Phases</h3>
+						<h3 class="detail-section-title">Tasks</h3>
 							<div class="detail-section-controls">
 								<button
 									class="detail-toggle-btn"
@@ -409,11 +332,33 @@
 										{/if}
 									</svg>
 								</button>
-								<button class="detail-add-btn" onclick={() => fns.onPhaseAdd?.()} title="Add phase">+</button>
+							<button class="detail-add-btn" onclick={() => fns.onPhaseAdd()} title="Add phase">+</button>
 							</div>
 						</div>
+					{#if selectedProject.phases.length === 1}
+						{@const phase = selectedProject.phases[0]}
+						{@const visiblePhaseData = hideCompletedPhase ? phase.data.map((el, i) => ({el, i})).filter(({el}) => !isCompletedElement(el)) : phase.data.map((el, i) => ({el, i}))}
+						<div class="single-phase-tasks">
+							{#each visiblePhaseData as {el: element, i: idx} (idx)}
+								{@const refCount = getRefCount(element.blockId)}
+								<DataTaskElement
+									{element}
+									index={idx}
+									{color}
+									{refCount}
+									onUpdate={(i, el) => fns.onPhaseDataUpdate(phase.id, i, el)}
+									onToggle={(i) => fns.onPhaseDataToggle(phase.id, i)}
+									onCancel={(i) => fns.onPhaseDataCancel(phase.id, i)}
+									onDelete={(i) => fns.onPhaseDataDelete(phase.id, i)}
+								/>
+							{/each}
+							{#if visiblePhaseData.length === 0 && phase.data.length > 0}
+								<div class="phase-empty-state">All tasks completed</div>
+							{/if}
+							<button class="phase-add-task-btn" onclick={() => fns.onPhaseDataAdd(phase.id)}>+ add</button>
+						</div>
+					{:else if selectedProject.phases.length > 1}
 						<div class="phases-scroll-container">
-							{#if selectedProject.phases.length > 0}
 								<div
 									class="phases-scroll-track"
 									use:dropLineDnd={{ items: selectedProject.phases, handleSelector: '.phase-drag-handle', lineColor: color, direction: 'auto', onFinalize: handlePhaseDndFinalize }}
@@ -431,7 +376,7 @@
 													<div class="phase-card-title-block">
 														<EditableText
 															value={phase.label}
-															onSave={(label) => fns.onPhaseLabelEdit?.(phase.id, label)}
+														onSave={(label) => fns.onPhaseLabelEdit(phase.id, label)}
 															placeholder="Phase name..."
 															class="phase-card-label"
 														/>
@@ -454,7 +399,7 @@
 													<span class="phase-task-count" style={`color: ${color};`}>
 														{phaseCompletedCount}/{phaseTaskCount}
 													</span>
-													<button class="phase-delete-btn" onclick={() => fns.onPhaseDelete?.(phase.id)} title="Delete phase">
+												<button class="phase-delete-btn" onclick={() => fns.onPhaseDelete(phase.id)} title="Delete phase">
 														<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
 													</button>
 												</div>
@@ -467,75 +412,25 @@
 														index={idx}
 														{color}
 														{refCount}
-														onUpdate={(i, el) => fns.onPhaseDataUpdate?.(phase.id, i, el)}
-														onToggle={(i) => fns.onPhaseDataToggle?.(phase.id, i)}
-														onCancel={(i) => fns.onPhaseDataCancel?.(phase.id, i)}
-														onDelete={(i) => fns.onPhaseDataDelete?.(phase.id, i)}
+													onUpdate={(i, el) => fns.onPhaseDataUpdate(phase.id, i, el)}
+													onToggle={(i) => fns.onPhaseDataToggle(phase.id, i)}
+													onCancel={(i) => fns.onPhaseDataCancel(phase.id, i)}
+													onDelete={(i) => fns.onPhaseDataDelete(phase.id, i)}
 													/>
 												{/each}
 												{#if visiblePhaseData.length === 0 && phaseTaskCount > 0}
 													<div class="phase-empty-state">All tasks completed</div>
 												{/if}
 											</div>
-											<button class="phase-add-task-btn" onclick={() => fns.onPhaseDataAdd?.(phase.id)}>+ add</button>
+										<button class="phase-add-task-btn" onclick={() => fns.onPhaseDataAdd(phase.id)}>+ add</button>
 										</div>
 									{/each}
+							</div>
 								</div>
 							{:else}
 								<div class="empty-state">No phases yet.</div>
 							{/if}
 						</div>
-					</div>
-				{:else}
-					<!-- Tasks Section (flat) -->
-					<div class="detail-section">
-						<div class="detail-section-header">
-							<h3 class="detail-section-title">Tasks</h3>
-							<div class="detail-section-controls">
-								<button class="detail-text-btn" onclick={confirmEnablePhases} title="Organize tasks into phases">
-									Use Phases
-								</button>
-								<button
-									class="detail-toggle-btn"
-									class:active={hideCompleted}
-									onclick={() => hideCompleted = !hideCompleted}
-									title={hideCompleted ? "Show completed" : "Hide completed"}
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-										{#if hideCompleted}
-											<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
-											<path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
-											<path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
-											<line x1="2" y1="2" x2="22" y2="22"/>
-										{:else}
-											<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-											<circle cx="12" cy="12" r="3"/>
-										{/if}
-									</svg>
-								</button>
-								<button class="detail-add-btn" onclick={fns.onDataAdd} title="Add task">+</button>
-							</div>
-						</div>
-						<div class="tasks-list">
-							{#if visibleTasks.length > 0}
-								{#each visibleTasks as { el, i }}
-									<DataTaskElement
-										element={el}
-										index={i}
-										{color}
-										refCount={getRefCount(el.blockId)}
-										onUpdate={fns.onDataUpdate}
-										onToggle={fns.onDataToggle}
-										onCancel={fns.onDataCancel}
-										onDelete={fns.onDataDelete}
-									/>
-								{/each}
-							{:else}
-								<div class="tasks-list-empty-state">{selectedProject.data.length > 0 ? "All tasks completed" : "No tasks yet"}</div>
-							{/if}
-						</div>
-					</div>
-				{/if}
 			</div>
 		{:else}
 			<div class="detail-empty">
@@ -757,33 +652,6 @@
 		width: 100%;
 	}
 
-	.detail-date-range {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		margin-top: 4px;
-	}
-
-	.detail-date-label {
-		font-size: 0.8em;
-		color: var(--text-faint);
-	}
-
-	:global(.detail-date-input) {
-		width: auto;
-		border: none;
-		background: transparent;
-		padding: 0;
-		cursor: pointer;
-		font-size: 0.85em;
-		color: var(--text-muted);
-		font-weight: 600;
-	}
-
-	:global(.detail-date-input:hover) {
-		color: var(--text-normal);
-	}
-
 	:global(.detail-project-description) {
 		font-size: 0.9em;
 		color: var(--text-muted);
@@ -867,21 +735,6 @@
 		stroke: var(--interactive-accent);
 	}
 
-	.detail-text-btn {
-		background: transparent;
-		color: var(--text-muted);
-		border: 1px solid var(--background-modifier-border);
-		border-radius: 4px;
-		padding: 3px 8px;
-		font-size: 0.82em;
-		cursor: pointer;
-	}
-
-	.detail-text-btn:hover {
-		background: rgba(255, 255, 255, 0.1);
-		color: var(--text-normal);
-	}
-
 	/* Habits Grid */
 	.habits-grid {
 		display: flex;
@@ -903,6 +756,12 @@
 	.define-habit-btn:hover {
 		background: rgba(255, 255, 255, 0.06);
 		border-color: rgba(255, 255, 255, 0.25);
+	}
+
+	.single-phase-tasks {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
 	}
 
 	/* Phases Section - allow horizontal scroll beyond detail-content max-width */
@@ -1075,19 +934,6 @@
 	.phase-add-task-btn:hover {
 		background: rgba(255, 255, 255, 0.08);
 		color: var(--text-normal);
-	}
-
-	/* Tasks List */
-	.tasks-list {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.tasks-list-empty-state {
-		color: var(--text-faint);
-		font-style: italic;
-		font-size: 0.85em;
-		padding: 12px;
 	}
 
 	.empty-state {
