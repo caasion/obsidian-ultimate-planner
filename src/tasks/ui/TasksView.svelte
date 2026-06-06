@@ -112,20 +112,12 @@
 					let phaseLabel: string | undefined;
 					if (element.sourceRef && element.blockId) {
 						outer: for (const [pId, project] of Object.entries(track.projects)) {
-							if (project.hasPhases) {
-								for (const phase of project.phases) {
-									if (phase.data.some(d => d.blockId === element.blockId)) {
-										projectLabel = project.label;
-										projectId = pId;
-										phaseId = phase.id;
-										phaseLabel = phase.label;
-										break outer;
-									}
-								}
-							} else {
-								if (project.data.some(d => d.blockId === element.blockId)) {
+							for (const phase of project.phases) {
+								if (phase.data.some(d => d.blockId === element.blockId)) {
 									projectLabel = project.label;
 									projectId = pId;
+									phaseId = phase.id;
+									phaseLabel = phase.label;
 									break outer;
 								}
 							}
@@ -189,12 +181,8 @@
 					});
 				};
 
-				if (project.hasPhases) {
-					for (const phase of project.phases) {
-						phase.data.forEach((el, idx) => addProjectElement(el, idx, phase.id, phase.label));
-					}
-				} else {
-					project.data.forEach((el, idx) => addProjectElement(el, idx));
+				for (const phase of project.phases) {
+					phase.data.forEach((el, idx) => addProjectElement(el, idx, phase.id, phase.label));
 				}
 			}
 		}
@@ -341,20 +329,8 @@
 					trackNoteService.closeProjectTaskByBlockId(task.trackId, match[1], newStatus);
 				}
 			}
-		} else if (task.source === 'project' && task.projectId) {
-			if (task.phaseId !== undefined && task.projectDataIndex !== undefined) {
-				if (newStatus === 'x') {
-					trackNoteService.togglePhaseData(task.trackId, task.projectId, task.phaseId, task.projectDataIndex);
-				} else {
-					trackNoteService.togglePhaseData(task.trackId, task.projectId, task.phaseId, task.projectDataIndex);
-				}
-			} else if (task.projectDataIndex !== undefined) {
-				const track = parsedTracks[task.trackId];
-				const element = track?.projects[task.projectId]?.data[task.projectDataIndex];
-				if (element?.isTask) {
-					trackNoteService.updateProjectData(task.trackId, task.projectId, task.projectDataIndex, { taskStatus: newStatus });
-				}
-			}
+		} else if (task.source === 'project' && task.projectId && task.phaseId !== undefined && task.projectDataIndex !== undefined) {
+			trackNoteService.togglePhaseData(task.trackId, task.projectId, task.phaseId, task.projectDataIndex);
 		}
 	}
 
