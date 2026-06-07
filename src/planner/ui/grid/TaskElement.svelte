@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { Element, Time } from "src/plugin/types";
-	import CircularProgress from "./CircularProgress.svelte";
 	import { formatTime } from "src/plugin/helpers";
-	import { longpress } from "src/plugin/actions"
+	import TaskCheckbox from "src/components/TaskCheckbox.svelte";
 
 	interface TaskElementProps {
 		element: Element;
@@ -19,23 +18,15 @@
 
 	let { element, index, color, projectLabel, showProjectLabel = true, onUpdate, onDelete, onToggle, onCancel, onCloseProjectTask }: TaskElementProps = $props();
 
-	const shortenedProject = $derived(
-		projectLabel ? (projectLabel.length > 12 ? projectLabel.slice(0, 12) + '…' : projectLabel) : ''
+	let progressPercent = $derived(
+		element.progress !== undefined && element.duration
+			? Math.min((element.progress / element.duration) * 100, 100)
+			: undefined
 	);
 
 	let isEditing = $state<boolean>(false);
 	let editText = $state<string>("");
 	let skipBlur = $state<boolean>(false);
-	let checkboxRef = $state<HTMLInputElement>();
-
-	// Handle longpress event
-	$effect(() => {
-		if (checkboxRef) {
-			const handler = () => onCancel(index);
-			checkboxRef.addEventListener('longpress', handler);
-			return () => checkboxRef?.removeEventListener('longpress', handler);
-		}
-	});
 
 	function startEdit() {
 		isEditing = true;
@@ -55,7 +46,7 @@
 		}
 
 		let isTask = false;
-		let taskStatus: ' ' | 'x' | '-' | undefined;
+		let taskStatus: ' ' | '/' | 'x' | '-' | undefined;
 		let startTime: Time | undefined;
 		let progress: number | undefined;
 		let duration: number | undefined;
@@ -71,7 +62,7 @@
 			sourceRef = ref;
 		}
 
-		const taskStatusRegex = /^\[([ x-])\]/;
+		const taskStatusRegex = /^\[([ x\/\-])\]/;
 		const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
 		const progressDurationRegex = /\[(?:(\d+)?(\/))?(\d+)\s*(hr|min)\]/;
 
@@ -127,98 +118,89 @@
 		}
 	}
 
-	function toggleTask() {
-		if (element.isTask) {
-			onToggle(index);
-		}
-	}
-
 	function deleteElement() {
 		onDelete(index);
+	}
+
+	function handleProjectClick(e: MouseEvent) {
+		e.preventDefault();
+		// TODO: implement navigation to project
 	}
 </script>
 
 <div class="task-element">
-	<div class="element-row">
-		{#if isEditing}
-			<input
-				type="text"
-				bind:value={editText}
-				onkeydown={handleKeydown}
-				onblur={saveEdit}
-				class="element-input"
-			/>
-		{:else}
-			<div class="element-content" ondblclick={startEdit} role="button" tabindex="0">
+	{#if isEditing}
+		<input
+			type="text"
+			bind:value={editText}
+			onkeydown={handleKeydown}
+			onblur={saveEdit}
+			class="element-input"
+		/>
+	{:else}
+		<div class="element-content" ondblclick={startEdit} role="button" tabindex="0">
+			<div class="element-top-row">
 				<div class="element-checkbox-container">
-					{#if element.taskStatus == "x" && element.duration && element.timeUnit}
-						<button
-							onclick={toggleTask}
-							class="invisible-button"
-						>
-							<CircularProgress
-								progress={element.progress}
-								duration={element.duration}
-								unit={element.timeUnit}
-								size={20}
-							/>
-						</button>
-					{:else if element.taskStatus}
-						
+					{#if element.taskStatus}
 						{#if element.sourceRef}
-							<input
-								type="checkbox"
-								checked={element.taskStatus == "x"}
-								onchange={() => onCloseProjectTask?.(index)}
-								class="task-checkbox"
-								style={`box-shadow: 0 0 0 2px ${color};`}
+							<button
+								onclick={() => onCloseProjectTask?.(index)}
+								class="project-checkbox"
 								title="Mark task done in project"
-							/>
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class:project-checkbox-checked={element.taskStatus == "x"}>
+									<path d="M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"/>
+									<path d="m21 3-9 9"/>
+									<path d="M15 3h6v6"/>
+								</svg>
+							</button>
 						{:else}
-							<input
-								bind:this={checkboxRef}
-								type="checkbox"
-								checked={element.taskStatus == "x"}
-								onchange={toggleTask}
-								use:longpress={500}
-								class="task-checkbox"
-								title="Mark session done"
+							<TaskCheckbox
+								status={element.taskStatus}
+								onToggle={() => onToggle(index)}
+								onCancel={() => onCancel(index)}
 							/>
 						{/if}
 					{/if}
 				</div>
 				<span
-					class:checked={element.taskStatus == "x" || (element.taskStatus !== " " && element.progress === undefined && element.duration) || (element.progress && element.duration && element.progress >= element.duration)}
+					class="element-text"
+					class:checked={element.taskStatus == "x"}
+					class:partial={element.taskStatus == "/"}
 					class:cancelled={element.taskStatus == "-"}
 				>
 					{element.text.replace(/\s*\[\[[^\]]+\]\]\s*$/, '')}
 				</span>
-				<div class="time-badge-container">
-					{#if element.duration && element.timeUnit}
-						<span class="time-badge" style={`background-color: ${color}80;`}>
-							 {element.duration} {element.timeUnit}
-						</span>
-					{/if}
-					{#if element.startTime}
-						<span class="time-badge" style={`background-color: ${color}80;`}>
-							{formatTime(element.startTime)}
-						</span>
-					{/if}
-				</div>
+				<button class="delete-btn" onclick={deleteElement} title="Delete">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+					</button>
 			</div>
-			{#if projectLabel}
-				{#if showProjectLabel}
-					<span class="project-label-badge" style={`background-color: ${color}80;`} title={projectLabel}>
-						{shortenedProject}
+			<div class="element-meta-row">
+				{#if element.duration && element.timeUnit}
+					<span
+						class="meta-tag"
+						class:meta-tag-progress={progressPercent !== undefined}
+						style={`--meta-tag-bg: ${color}5F;${progressPercent !== undefined ? ` --progress: ${progressPercent}%;` : ''}`}
+					>
+						{#if element.progress !== undefined}{element.progress}/{/if}{element.duration} {element.timeUnit == 'min' ? 'm' : 'h'}
 					</span>
-				{:else}
-					<span class="project-label-icon" title={projectLabel} style={`color: ${color}; border-color: ${color}80;`}>P</span>
 				{/if}
-			{/if}
-			<button class="delete-btn" onclick={deleteElement} title="Delete">×</button>
-		{/if}
-	</div>
-	
+				{#if element.startTime}
+					<span class="meta-tag" style={`--meta-tag-bg: ${color}5F;`}>
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alarm-clock-icon lucide-alarm-clock"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/><path d="M6.38 18.7 4 21"/><path d="M17.64 18.67 20 21"/></svg>
+						{formatTime(element.startTime)}
+					</span>
+				{/if}
+				{#if projectLabel && showProjectLabel}
+					<a href="#" class="project-label" title={projectLabel} onclick={handleProjectClick}>
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-symlink-icon lucide-folder-symlink"><path d="M2 9.35V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h7"/><path d="m8 16 3-3-3-3"/></svg>
+						{projectLabel}
+					</a>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
 	{#if element.children.length > 0}
 		<div class="children">
 			{#each element.children as child}
@@ -233,107 +215,147 @@
 		width: 100%;
 	}
 
-	.element-row {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-	}
-
 	.element-content {
-		flex: 1;
 		cursor: text;
-		padding: 2px 4px;
-		border-radius: 2px;
+		padding: 4px;
+		border-radius: 4px;
 		display: flex;
-		align-items: center;
-		min-height: 24px;
-		gap: 4px;
-		overflow: auto;
+		flex-direction: column;
 	}
 
 	.element-content:hover {
 		background-color: var(--background-modifier-hover);
 	}
 
+	.element-top-row {
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+		gap: 6px;
+	}
+
 	.element-checkbox-container {
-		height: 20px;
-		min-width: 20px;
+		height: 18px;
+		min-width: 18px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
-		gap: 3px;
+		margin-top: 1px;
 	}
 
-	.task-checkbox {
+	.project-checkbox {
 		cursor: pointer;
-		margin: 0;
+		background: transparent;
+		border: none;
+		padding: 0;
+		box-shadow: none;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 18px;
+		height: 18px;
+	}
+
+	.project-checkbox:hover {
+		box-shadow: none;
+		opacity: 0.8;
+	}
+
+	.project-checkbox-checked {
+		fill: var(--interactive-accent);
+	}
+
+	.element-text {
+		flex: 1;
+		line-height: 1.4;
+		word-break: break-word;
 	}
 
 	.checked {
 		text-decoration: line-through;
-		opacity: 0.6;
+		opacity: 0.5;
+	}
+
+	.partial {
+		opacity: 0.9;
 	}
 
 	.cancelled {
 		text-decoration: line-through;
-		opacity: 0.6;
+		opacity: 0.5;
 	}
 
-	.time-badge-container {
-		margin-left: auto;
+	.element-meta-row {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 4px;
-		justify-content: flex-end;
 		align-items: center;
+		gap: 6px;
+		padding-left: 24px;
+		overflow: hidden;
 	}
 
-	.time-badge {
-		font-size: 0.85em;
-		background-color: var(--interactive-accent);
-		color: white;
-		padding: 2px 6px;
-		border-radius: 3px;
+	.meta-tag {
+		font-size: 0.8em;
+		color: var(--text-normal);
+		padding: 1px 6px;
+		border-radius: 4px;
+		border: 1px solid var(--meta-tag-bg);
+		background: var(--meta-tag-bg);
+		white-space: nowrap;
+		line-height: 1.4;
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		position: relative;
+		overflow: hidden;
+		transition: filter 150ms ease;
+		cursor: default;
+	}
+
+	.meta-tag:hover {
+		filter: brightness(1.2);
+	}
+
+	.meta-tag-progress {
+		background: linear-gradient(
+			to right,
+			var(--meta-tag-bg) var(--progress),
+			transparent var(--progress)
+		);
+	}
+
+	.project-label {
+		font-size: 0.8em;
+		color: var(--text-muted);
+		display: flex;
+		align-items: center;
+		gap: 3px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		min-width: 0;
+		text-decoration: none;
+		cursor: pointer;
+		transition: color 150ms ease, text-decoration 150ms ease, filter 150ms ease;
+	}
+
+	.project-label:hover {
+		color: var(--text-normal);
+		text-decoration: underline;
+		filter: brightness(1.2);
+	}
+
+	.project-label svg {
+		flex-shrink: 0;
 	}
 
 	.element-input {
-		flex: 1;
-		padding: 2px 4px;
+		width: 100%;
+		padding: 4px;
 		border: 1px solid var(--interactive-accent);
-		border-radius: 2px;
+		border-radius: 4px;
 		background: var(--background-primary);
 		color: var(--text-normal);
-	}
-
-	.project-label-badge {
-		font-size: 0.7em;
-		color: white;
-		padding: 1px 4px;
-		border-radius: 3px;
-		white-space: nowrap;
-		flex-shrink: 0;
-		opacity: 0;
-	}
-
-	.element-row:hover .project-label-badge {
-		opacity: 1;
-	}
-
-	.project-label-icon {
-		font-size: 0.7em;
-		font-weight: bold;
-		padding: 1px 3px;
-		border-radius: 3px;
-		border: 1px solid;
-		cursor: default;
-		flex-shrink: 0;
-		opacity: 0;
-		line-height: 1.4;
-	}
-
-	.element-row:hover .project-label-icon {
-		opacity: 1;
 	}
 
 	.delete-btn {
@@ -342,12 +364,18 @@
 		border: none;
 		color: var(--text-muted);
 		cursor: pointer;
-		font-size: 1.2em;
-		padding: 0 4px;
-		line-height: 1;
+		flex-shrink: 0;
+		box-shadow: none;
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 18px;
+		height: 18px;
+		margin-top: 1px;
 	}
 
-	.element-row:hover .delete-btn {
+	.element-content:hover .delete-btn {
 		opacity: 1;
 	}
 
@@ -356,7 +384,7 @@
 	}
 
 	.children {
-		margin-left: 20px;
+		margin-left: 24px;
 		font-size: 0.9em;
 		color: var(--text-muted);
 	}

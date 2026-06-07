@@ -1,30 +1,18 @@
 import { Plugin } from 'obsidian';
-import { PLANNER_VIEW_TYPE, PlannerView } from './planner/PlannerView';
-import { TRACKS_VIEW_TYPE, TracksView } from './tracks/TracksView';
+import { HOLOS_VIEW_TYPE, HolosView } from './HolosView';
 import { HolosSettingsTab } from './plugin/SettingsTab';
 import { get, writable, type Unsubscriber, type Writable } from 'svelte/store';
-import { DEFAULT_SETTINGS, type CalendarHelperService, type DataService, type FetchService, type HelperService, type PluginData, type PluginSettings, type Track, type TrackSnapshot } from './plugin/types';
-import { CalendarPipeline } from './calendar/calendarPipelines';
-import { calendarState, fetchToken } from './calendar/calendarState';
-import { parseICS, parseICSBetween, normalizeEvent, normalizeOccurrenceEvent, buildEventDictionaries, getEventLabels } from './calendar/calendarHelper';
-import { fetchFromUrl, detectFetchChange } from './calendar/fetch';
-import { PlaygroundView, PLAYGROUND_VIEW_TYPE } from './playground/PlaygroundView';
+import { DEFAULT_SETTINGS, type PluginData, type PluginSettings, type Track, type TrackSnapshot } from './plugin/types';
 import { DailyNoteService } from './planner/logic/dailyNote';
 import { TrackNoteService } from './tracks/logic/trackNote';
 import { hashTrackFolder } from './tracks/logic/trackSnapshotHash';
 import { normalizeTrackSnapshot, resolveBootstrapTrackSnapshot } from './tracks/logic/trackSnapshot';
-import { GANTT_VIEW_TYPE, GanttView } from './gantt/GanttView';
 
 export default class HolosPlugin extends Plugin {
 	settings: PluginSettings;
 	private saveTimer: number | null = null;
 	private storeSubscriptions: Unsubscriber[] = [];
 	private trackSnapshot: TrackSnapshot | undefined;
-	public dataService: DataService;
-	public helperService: HelperService;
-	public calendarHelperService: CalendarHelperService;
-	public fetchService: FetchService;
-	public calendarPipeline: CalendarPipeline;
 	public dailyNoteService: DailyNoteService;
 	public trackNoteService: TrackNoteService;
 	private parsedTracksContent: Writable<Record<string, Track>> = writable<Record<string, Track>>({});
@@ -35,27 +23,6 @@ export default class HolosPlugin extends Plugin {
 		const currentTracksHash = trackFolder ? hashTrackFolder(trackFolder) : undefined;
 		const bootstrapSnapshot = resolveBootstrapTrackSnapshot(this.trackSnapshot, currentTracksHash);
 		this.parsedTracksContent = writable<Record<string, Track>>(bootstrapSnapshot?.tracks ?? {});
-
-		// this.calendarHelperService = {
-		// 	parseICS,
-		// 	parseICSBetween,
-		// 	normalizeEvent,
-		// 	normalizeOccurrenceEvent,
-		// 	buildEventDictionaries,
-		// 	getEventLabels
-		// }
-
-		this.fetchService = {
-			fetchFromUrl,
-			detectFetchChange
-		}
-		
-		// this.calendarPipeline = new CalendarPipeline({
-		// 	data: this.dataService, 
-		// 	fetch: this.fetchService, 
-		// 	helpers: this.helperService, 
-		// 	calHelpers: this.calendarHelperService
-		// })
 
 		this.dailyNoteService = new DailyNoteService({
 			app: this.app,
@@ -69,48 +36,18 @@ export default class HolosPlugin extends Plugin {
 		// Add Settings Tab using Obsidian's API
 		this.addSettingTab(new HolosSettingsTab(this.app, this));
 
-		// Register views using Obsidian's API
-		this.registerView(PLANNER_VIEW_TYPE, (leaf) => new PlannerView(leaf, this));
-		this.registerView(TRACKS_VIEW_TYPE, (leaf) => new TracksView(leaf, this));
-		this.registerView(GANTT_VIEW_TYPE, (leaf) => new GanttView(leaf, this));
-
-		// Add commands to open views
-		this.addCommand({
-			id: 'open-planner-view',
-			name: 'Open Holos Planner View',
-			callback: () => {
-				this.activateView(PLANNER_VIEW_TYPE);
-			}
-		});
+		// Register single unified view
+		this.registerView(HOLOS_VIEW_TYPE, (leaf) => new HolosView(leaf, this));
 
 		this.addCommand({
-			id: 'open-tracks-view',
-			name: 'Open Holos Tracks View',
+			id: 'open-holos-view',
+			name: 'Open Holos',
 			callback: () => {
-				this.activateView(TRACKS_VIEW_TYPE);
-			}
-		});
-
-		this.addCommand({
-			id: 'open-gantt-view',
-			name: 'Open Holos Gantt View',
-			callback: () => {
-				this.activateView(GANTT_VIEW_TYPE);
+				this.activateView(HOLOS_VIEW_TYPE);
 			}
 		});
 
 		if (this.settings.debug) {
-			this.registerView(PLAYGROUND_VIEW_TYPE, (leaf) => new PlaygroundView(leaf, this));
-
-			this.addCommand({
-				id: 'open-playground-view',
-				name: 'Open Playground View',
-				callback: () => {
-					this.activateView(PLAYGROUND_VIEW_TYPE);
-				}
-			});
-
-			// Add debug command
 			this.addCommand({
 				id: 'debug-log-snaposhot',
 				name: 'Debug: Log snapshot',

@@ -1,11 +1,11 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { mount } from 'svelte';
-import PlannerComponent from './ui/Planner.svelte';
-import HolosPlugin from '../main';
+import HolosApp from './HolosApp.svelte';
+import HolosPlugin from './main';
 
-export const PLANNER_VIEW_TYPE = "holos-view"
+export const HOLOS_VIEW_TYPE = "holos-view"
 
-export class PlannerView extends ItemView {
+export class HolosView extends ItemView {
     plugin: HolosPlugin;
 
     constructor(leaf: WorkspaceLeaf, plugin: HolosPlugin) {
@@ -14,11 +14,11 @@ export class PlannerView extends ItemView {
     }
 
     getViewType(): string {
-        return PLANNER_VIEW_TYPE;
+        return HOLOS_VIEW_TYPE;
     }
 
     getDisplayText(): string {
-        return "Planner View"
+        return "Holos"
     }
 
     getIcon(): string {
@@ -26,19 +26,23 @@ export class PlannerView extends ItemView {
     }
 
     async onOpen() {
+        if (!this.plugin.trackNoteService) {
+            await this.plugin.initializeTrackNoteService();
+        }
+
         const container = this.contentEl;
-		container.empty();
-        
-        mount(PlannerComponent, {target: container, props: {
+        container.empty();
+
+        mount(HolosApp, { target: container, props: {
             app: this.plugin.app,
             settings: this.plugin.settings,
             dailyNoteService: this.plugin.dailyNoteService,
             trackNoteService: this.plugin.trackNoteService,
             saveSettings: () => this.plugin.queueSave(),
-        }})
+        }});
     }
 
     async onClose() {
 
     }
-} 
+}

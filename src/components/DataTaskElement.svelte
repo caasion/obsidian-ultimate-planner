@@ -1,9 +1,8 @@
 <script lang="ts">
 	import type { Element, ISODate, Time } from "src/plugin/types";
 	import { formatTime, reconstructRawText } from "src/plugin/helpers";
-	import { longpress } from "src/plugin/actions"
-	import CircularProgress from "src/planner/ui/grid/CircularProgress.svelte";
 	import Datepicker from "src/components/Datepicker.svelte";
+	import TaskCheckbox from "src/components/TaskCheckbox.svelte";
 	import Portal from "src/components/Portal.svelte";
 	import { onMount } from "svelte";
 
@@ -11,27 +10,24 @@
 		element: Element;
 		index: number;
 		color: string;
+		refCount?: number;
 		onUpdate: (index: number, updatedElement: Element) => void;
 		onDelete: (index: number) => void;
 		onToggle: (index: number) => void;
 		onCancel: (index: number) => void;
 	}
 
-	let { element, index, color, onUpdate, onDelete, onToggle, onCancel }: TaskElementProps = $props();
+	let { element, index, color, refCount = 0, onUpdate, onDelete, onToggle, onCancel }: TaskElementProps = $props();
+
+	let progressPercent = $derived(
+		element.progress !== undefined && element.duration
+			? Math.min((element.progress / element.duration) * 100, 100)
+			: undefined
+	);
 
 	let isEditing = $state<boolean>(false);
 	let editText = $state<string>("");
 	let skipBlur = $state<boolean>(false);
-	let checkboxRef = $state<HTMLInputElement>();
-
-	// Handle longpress event
-	$effect(() => {
-		if (checkboxRef) {
-			const handler = () => onCancel(index);
-			checkboxRef.addEventListener('longpress', handler);
-			return () => checkboxRef?.removeEventListener('longpress', handler);
-		}
-	});
 
 	function startEdit() {
 		isEditing = true;
@@ -51,7 +47,7 @@
 		}
 
 		let isTask = false;
-		let taskStatus: ' ' | 'x' | '-' | undefined;
+		let taskStatus: ' ' | '/' | 'x' | '-' | undefined;
 		let startTime: Time | undefined;
 		let progress: number | undefined;
 		let duration: number | undefined;
@@ -77,7 +73,7 @@
 			scheduledDate = date as ISODate;
 		}
 
-		const taskStatusRegex = /^\[([ x-])\]/;
+		const taskStatusRegex = /^\[([ x\/\-])\]/;
 		const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
 		const progressDurationRegex = /\[(?:(\d+)?(\/))?(\d+)\s*(hr|min)\]/;
 
@@ -137,12 +133,6 @@
 		}
 	}
 
-	function toggleTask() {
-		if (element.isTask) {
-			onToggle(index);
-		}
-	}
-
 	function deleteElement() {
 		onDelete(index);
 	}
@@ -193,75 +183,87 @@
 </script>
 
 <div class="task-element">
-	<div class="element-row">
-		{#if isEditing}
-			<input
-				type="text"
-				bind:value={editText}
-				onkeydown={handleKeydown}
-				onblur={saveEdit}
-				class="element-input"
-			/>
-		{:else}
-			<div class="element-content" ondblclick={startEdit} role="button" tabindex="0">
+	{#if isEditing}
+		<input
+			type="text"
+			bind:value={editText}
+			onkeydown={handleKeydown}
+			onblur={saveEdit}
+			class="element-input"
+		/>
+	{:else}
+		<div class="element-content" ondblclick={startEdit} role="button" tabindex="0">
+			<div class="element-top-row">
 				<div class="element-checkbox-container">
-					{#if element.duration && element.timeUnit}
-						<CircularProgress 
-							progress={element.progress}
-							duration={element.duration} 
-							unit={element.timeUnit}
-							size={20}
-						/>
-					{:else if element.taskStatus}
-						<input
-							bind:this={checkboxRef}
-							type="checkbox"
-							checked={element.taskStatus == "x"}
-							onchange={toggleTask}
-							use:longpress={500}
-							class="task-checkbox"
+					{#if element.taskStatus}
+						<TaskCheckbox
+							status={element.taskStatus}
+							onToggle={() => onToggle(index)}
+							onCancel={() => onCancel(index)}
 						/>
 					{/if}
 				</div>
-				<span 
-					class:checked={element.taskStatus == "x" || (!element.progress && element.duration) || (element.progress && element.duration && element.progress >= element.duration)} 
-					class:cancelled={element.taskStatus == "-"}	
+				<span
+					class="element-text"
+					class:checked={element.taskStatus == "x"}
+					class:partial={element.taskStatus == '/'}
+					class:cancelled={element.taskStatus == "-"}
 				>
 					{element.text}
 				</span>
-				<div class="time-badge-container">
+				<div class="top-row-actions">
 					{#if element.scheduledDate}
 						<button
 							bind:this={dateBadgeEl}
-							class="time-badge scheduled-date-badge"
-							style={`background-color: ${color}80;`}
+							class="schedule-overlay-btn has-date"
 							onclick={openDatepicker}
 							title="Change scheduled date"
-						>📅 {element.scheduledDate}</button>
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+						</button>
 					{:else if element.isTask}
 						<button
 							bind:this={dateBadgeEl}
-							class="schedule-add-btn"
+							class="schedule-overlay-btn"
 							onclick={openDatepicker}
 							title="Schedule task"
-						>📅</button>
-					{/if}
-					{#if element.duration && element.timeUnit}
-						<span class="time-badge" style={`background-color: ${color}80;`}>
-							{element.duration} {element.timeUnit}
-						</span>
-					{/if}
-					{#if element.startTime}
-						<span class="time-badge" style={`background-color: ${color}80;`}>
-							{formatTime(element.startTime)}
-						</span>
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+						</button>
 					{/if}
 				</div>
+				<button class="delete-btn" onclick={deleteElement} title="Delete">
+					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+				</button>
 			</div>
-			<button class="delete-btn" onclick={deleteElement} title="Delete">×</button>
-		{/if}
-	</div>
-	
+			<div class="element-meta-row">
+				{#if element.duration && element.timeUnit}
+					<span
+						class="meta-tag"
+						class:meta-tag-progress={progressPercent !== undefined}
+						style={`--meta-tag-bg: ${color}5F;${progressPercent !== undefined ? ` --progress: ${progressPercent}%;` : ''}`}
+					>
+						{#if element.progress !== undefined}{element.progress}/{/if}{element.duration} {element.timeUnit == 'min' ? 'm' : 'h'}
+					</span>
+				{/if}
+				{#if element.scheduledDate}
+					<span
+						class="meta-tag scheduled-date-tag"
+						style={`--meta-tag-bg: ${color}5F;`}
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+						{element.scheduledDate}
+					</span>
+				{/if}
+				{#if refCount > 0}
+					<span class="meta-tag ref-count-tag" style={`--meta-tag-bg: ${color}5F;`} title="{refCount} daily note {refCount === 1 ? 'reference' : 'references'}">
+						{refCount} {refCount === 1 ? 'session' : 'sessions'}
+					</span>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
 	{#if element.children.length > 0}
 		<div class="children">
 			{#each element.children as child}
@@ -290,76 +292,128 @@
 		width: 100%;
 	}
 
-	.element-row {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-	}
-
 	.element-content {
-		flex: 1;
 		cursor: text;
-		padding: 2px 4px;
-		border-radius: 2px;
+		padding: 4px;
+		border-radius: 4px;
 		display: flex;
-		align-items: center;
-		min-height: 24px;
-		gap: 4px;
-		overflow: auto;
+		flex-direction: column;
 	}
 
 	.element-content:hover {
 		background-color: var(--background-modifier-hover);
 	}
 
+	.element-top-row {
+		display: flex;
+		align-items: flex-start;
+		gap: 6px;
+		position: relative;
+	}
+
 	.element-checkbox-container {
-		height: 20px;
-		width: 20px;
+		height: 18px;
+		min-width: 18px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
+		margin-top: 1px;
 	}
 
-	.task-checkbox {
-		cursor: pointer;
-		margin: 0;
+	.element-text {
+		flex: 1;
+		line-height: 1.4;
+		word-break: break-word;
 	}
 
 	.checked {
 		text-decoration: line-through;
-		opacity: 0.6;
+		opacity: 0.5;
+	}
+
+	.partial {
+		opacity: 0.9;
 	}
 
 	.cancelled {
 		text-decoration: line-through;
-		opacity: 0.6;
+		opacity: 0.5;
 	}
 
-	.time-badge-container {
-		margin-left: auto;
+	.element-meta-row {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 4px;
-		justify-content: flex-end;
 		align-items: center;
+		gap: 6px;
+		padding-left: 24px;
+		overflow: hidden;
+		flex-wrap: wrap;
 	}
 
-	.time-badge {
-		font-size: 0.85em;
-		background-color: var(--interactive-accent);
-		color: white;
-		padding: 2px 6px;
-		border-radius: 3px;
+	.meta-tag {
+		font-size: 0.8em;
+		color: var(--text-normal);
+		padding: 1px 6px;
+		border-radius: 4px;
+		border: 1px solid var(--meta-tag-bg);
+		background: var(--meta-tag-bg);
+		white-space: nowrap;
+		line-height: 1.4;
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		gap: 3px;
+		position: relative;
+		overflow: hidden;
+		transition: filter 150ms ease;
+		cursor: default;
+	}
+
+	.meta-tag:hover {
+		filter: brightness(1.2);
+	}
+
+	.meta-tag-progress {
+		background: linear-gradient(
+			to right,
+			var(--meta-tag-bg) var(--progress),
+			transparent var(--progress)
+		);
+	}
+
+	.scheduled-date-tag {
+		gap: 3px;
 	}
 
 	.element-input {
-		flex: 1;
-		padding: 2px 4px;
+		width: 100%;
+		padding: 4px;
 		border: 1px solid var(--interactive-accent);
-		border-radius: 2px;
+		border-radius: 4px;
 		background: var(--background-primary);
 		color: var(--text-normal);
+	}
+
+	.top-row-actions {
+		position: absolute;
+		right: 20px;
+		top: 0;
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		opacity: 0;
+		pointer-events: none;
+		padding-left: 4px;
+		border-radius: 4px;
+	}
+
+	.element-content:hover .delete-btn {
+		opacity: 1;
+	}
+
+	.element-content:hover .top-row-actions {
+		opacity: 1;
+		pointer-events: auto;
 	}
 
 	.delete-btn {
@@ -368,12 +422,18 @@
 		border: none;
 		color: var(--text-muted);
 		cursor: pointer;
-		font-size: 1.2em;
-		padding: 0 4px;
-		line-height: 1;
+		flex-shrink: 0;
+		box-shadow: none;
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 18px;
+		height: 18px;
+		margin-top: 1px;
 	}
 
-	.element-row:hover .delete-btn {
+	.element-content:hover .delete-btn {
 		opacity: 1;
 	}
 
@@ -381,8 +441,28 @@
 		color: var(--text-error);
 	}
 
+	.schedule-overlay-btn {
+		background: var(--background-primary);
+		border: none;
+		color: var(--text-muted);
+		cursor: pointer;
+		flex-shrink: 0;
+		box-shadow: none;
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 18px;
+		height: 18px;
+		margin-top: 1px;
+	}
+
+	.schedule-overlay-btn:hover {
+		color: var(--text-normal);
+	}
+
 	.children {
-		margin-left: 20px;
+		margin-left: 24px;
 		font-size: 0.9em;
 		color: var(--text-muted);
 	}
@@ -391,36 +471,10 @@
 		padding: 2px 0;
 	}
 
-	.scheduled-date-badge {
-		font-size: 0.85em;
-		color: white;
-		padding: 2px 6px;
-		border-radius: 3px;
-		border: none;
-		cursor: pointer;
-		white-space: nowrap;
-	}
 
-	.scheduled-date-badge:hover {
-		opacity: 0.85;
-	}
-
-	.schedule-add-btn {
-		background: transparent;
-		border: none;
-		cursor: pointer;
-		font-size: 0.9em;
-		padding: 0 2px;
-		opacity: 0;
-		color: var(--text-muted);
-	}
-
-	.element-content:hover .schedule-add-btn {
-		opacity: 0.6;
-	}
-
-	.schedule-add-btn:hover {
-		opacity: 1 !important;
+	.ref-count-tag {
+		font-size: 0.75em;
+		opacity: 0.8;
 	}
 
 	.datepicker-popup {

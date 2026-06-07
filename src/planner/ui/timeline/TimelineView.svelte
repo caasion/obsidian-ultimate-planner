@@ -1,13 +1,13 @@
 <script lang="ts">
 	import type { App } from "obsidian";
-	import type { Element, ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
+	import type { ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
 	import { DailyNoteService } from "src/planner/logic/dailyNote";
-	import { getISODate, getISODates, getLabelFromDateRange, addDaysISO } from "src/plugin/helpers";
-	import PlannerGrid from "./grid/PlannerGrid.svelte";
+	import { getISODate, getISODates, getLabelFromDateRange, addDaysISO, reconstructRawText } from "src/plugin/helpers";
 	import Datepicker from "src/components/Datepicker.svelte";
+	import TimelineGrid from "./TimelineGrid.svelte";
 	import type { TrackNoteService } from "src/tracks/logic/trackNote";
 
-	interface ViewProps {
+	interface Props {
 		app: App;
 		settings: PluginSettings;
 		dailyNoteService: DailyNoteService;
@@ -15,9 +15,8 @@
 		saveSettings: () => void;
 	}
 
-	let { app, settings, dailyNoteService, trackNoteService, saveSettings }: ViewProps = $props();
+	let { app, settings, dailyNoteService, trackNoteService, saveSettings }: Props = $props();
 
-	/* === Table Rendering === */
 	let weekFormat = $derived(settings.weekFormat);
 	let weekStartOn = $derived(settings.weekStartOn);
 
@@ -26,13 +25,12 @@
 	$effect(() => { localColumns = settings.columns; });
 	$effect(() => { localBlocks = settings.blocks; });
 
-	let showProjectLabel = $state<boolean>(true);
 	let showSettings = $state<boolean>(false);
 
 	const today = getISODate(new Date());
 	let anchor = $state<ISODate>(today);
 
-	let dates = $derived<ISODate[]>(weekFormat ? getISODates(anchor, localBlocks, weekStartOn) : getISODates(anchor, localColumns * localBlocks))
+	let dates = $derived<ISODate[]>(weekFormat ? getISODates(anchor, localBlocks, weekStartOn) : getISODates(anchor, localColumns * localBlocks));
 
 	const todayInView = $derived(dates.includes(today));
 	const dateLabel = $derived(getLabelFromDateRange(dates[0], dates[dates.length - 2]));
@@ -65,11 +63,9 @@
 		trackMetaRevision;
 		return trackNoteService.getTracksForDates(dates, localColumns);
 	});
-	let parsedContentStore = $derived(dailyNoteService.parsedContent);
-	let parsedJournalContentStore = $derived(dailyNoteService.parsedJournalContent);
 
+	let parsedContentStore = $derived(dailyNoteService.parsedContent);
 	let parsedContent = $derived<Record<ISODate, Record<string, TrackData>>>($parsedContentStore);
-	let parsedJournalContent = $derived<Record<ISODate, Record<string, string>>>($parsedJournalContentStore)
 
 	$effect(() => {
 		dailyNoteService.loadMultipleDates(dates);
@@ -96,45 +92,50 @@
 		};
 	});
 
-	function handleCellUpdate(date: ISODate, trackId: string, updatedData: TrackData) {
-		dailyNoteService.updateTrackCell(date, trackId, updatedData);
-	}
-
-	async function addNewTrackToCell(date: ISODate, trackId: string, trackMeta: Track, items?: Element[]) {
-		await dailyNoteService.addNewTrackToCell(date, trackId, trackMeta.timeCommitment, items);
-	}
-
 	async function openDailyNote(date: ISODate) {
 		await dailyNoteService.openDailyNote(date);
 	}
 
-	async function handleTrackFileOpen(trackId: string) {
-		await trackNoteService.openTrackFile(trackId);
-	}
+	function handleToggleTask(date: ISODate, trackId: string, index: number) {
+		const trackData = parsedContent[date]?.[trackId];
+		if (!trackData) return;
+		const element = trackData.items[index];
+		if (!element?.isTask) return;
 
-	async function handleCloseProjectTask(trackId: string, sourceRef: string, taskStatus: ' ' | 'x') {
-		const match = sourceRef.match(/\[\[[^\]]+#\^([a-zA-Z0-9]+)\]\]/);
-		if (!match) return;
-		const blockId = match[1];
-		await trackNoteService.closeProjectTaskByBlockId(trackId, blockId, taskStatus);
+		const newTaskStatus = element.taskStatus === ' ' ? '/' : element.taskStatus === '/' ? 'x' : ' ';
+		const raw = reconstructRawText(
+			element.text, element.isTask, newTaskStatus,
+			element.startTime, element.progress, element.duration, element.timeUnit,
+			'\t- ', element.sourceRef, element.scheduledDate, element.blockId
+		);
+		const updatedItems = [...trackData.items];
+		updatedItems[index] = { ...element, taskStatus: newTaskStatus, raw };
+		dailyNoteService.updateTrackCell(date, trackId, { ...trackData, items: updatedItems });
+
+		// If it's a project task, also sync to the source file
+		if (element.sourceRef && newTaskStatus !== '/') {
+			const match = element.sourceRef.match(/\[\[[^\]]+#\^([a-zA-Z0-9]+)\]\]/);
+			if (match) {
+				trackNoteService.closeProjectTaskByBlockId(trackId, match[1], newTaskStatus as ' ' | 'x');
+			}
+		}
 	}
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="planner" onclick={handleSettingsClickOutside}>
-	<div class="planner-header">
-		<h1>Planner</h1>
+<div class="timeline" onclick={handleSettingsClickOutside}>
+	<div class="timeline-header">
+		<h1>Timeline</h1>
 
 		<div class="header-controls">
 			<span class="date-label">{dateLabel}</span>
 
 			{#if !todayInView}
 				<button class="today-btn" onclick={() => goTo(today)}>Today</button>
-			{/if}			
+			{/if}
 			<button class="nav-btn" onclick={() => goTo(addDaysISO(anchor, -localColumns))} aria-label="Previous">‹</button>
 			<button class="nav-btn" onclick={() => goTo(addDaysISO(anchor, localColumns))} aria-label="Next">›</button>
-			
 
 			<div class="datepicker-wrap" bind:this={datepickerAnchor}>
 				<Datepicker
@@ -146,7 +147,7 @@
 					placeholder=""
 					inputClass="datepicker-hidden-input"
 					anchorElement={datepickerAnchor}
-					onselect={(date) => handleDatepickerSelect(date)}
+					onselect={(date: Date) => handleDatepickerSelect(date)}
 				/>
 				<button class="icon-btn" onclick={(e) => { e.stopPropagation(); datepickerRef?.open(); }} aria-label="Jump to date">
 					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-search-icon lucide-calendar-search"><path d="M16 2v4"/><path d="M21 11.75V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7.25"/><path d="m22 22-1.875-1.875"/><path d="M3 10h18"/><path d="M8 2v4"/><circle cx="18" cy="18" r="3"/></svg>
@@ -177,21 +178,15 @@
 		</div>
 	</div>
 
-	<div class="planner-body">
-		<PlannerGrid
+	<div class="timeline-body">
+		<TimelineGrid
 			{dates}
 			{tracksByDate}
 			{parsedTracks}
-			columns={localColumns}
-			blocks={localBlocks}
 			{parsedContent}
-			{parsedJournalContent}
-			{showProjectLabel}
-			onUpdate={handleCellUpdate}
-			onAdd={addNewTrackToCell}
+			columns={localColumns}
 			{openDailyNote}
-			onTrackFileOpen={handleTrackFileOpen}
-			onCloseProjectTask={handleCloseProjectTask}
+			onToggleTask={handleToggleTask}
 		/>
 	</div>
 </div>
@@ -199,7 +194,7 @@
 
 <style>
 
-	.planner-header {
+	.timeline-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -207,7 +202,7 @@
 		padding: 16px 20px 8px;
 	}
 
-	.planner-header h1 {
+	.timeline-header h1 {
 		font-size: 28px;
 		font-weight: 700;
 		color: #e6e6e6;
@@ -345,7 +340,7 @@
 		text-align: center;
 	}
 
-	.planner-body {
+	.timeline-body {
 		flex: 1;
 		overflow: auto;
 		padding: 0 16px 16px;

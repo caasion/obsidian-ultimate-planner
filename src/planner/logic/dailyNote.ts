@@ -113,9 +113,7 @@ export class DailyNoteService {
             const updatedContent = PlannerParser.replaceSection(currentContent, this.settings.sectionHeading, newSection);
             
             await this.app.vault.modify(dailyNoteFile, updatedContent); // Write back to file
-            
-            console.log(`Updated planner section for ${date}`);
-        } catch (error) {
+                    } catch (error) {
             console.error(`Error writing to daily note for ${date}:`, error);
         } finally {
             // Add a small delay before allowing reads again

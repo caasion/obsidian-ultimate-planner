@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Habit, Time } from "src/plugin/types";
 	import { formatTime, formatProgressDuration } from "src/plugin/helpers";
-	import { RRuleService } from "../logic/rrule";
+	import { RRuleService } from "src/tracks/logic/rrule";
 
 	export interface HabitFunctions {
 		onEdit: (habit: Habit) => void;

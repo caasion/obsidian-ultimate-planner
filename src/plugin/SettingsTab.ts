@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
 import HolosPlugin from '../main';
 import type { Day } from 'date-fns';
 
@@ -136,6 +136,34 @@ export class HolosSettingsTab extends PluginSettingTab {
                         await this.plugin.queueSave();
                     })
             )
+
+        new Setting(containerEl).setName('Migration').setHeading();
+
+        new Setting(containerEl)
+            .setName('Migrate projects to phases')
+            .setDesc('Convert all task-based projects to the phase-based format. This is a one-time operation — already migrated projects are skipped.')
+            .addButton(button => {
+                button
+                    .setButtonText('Migrate')
+                    .onClick(async () => {
+                        button.setDisabled(true);
+                        button.setButtonText('Migrating...');
+                        try {
+                            const count = await this.plugin.trackNoteService.migrateProjectsToPhases();
+                            if (count > 0) {
+                                new Notice(`Migrated ${count} project${count === 1 ? '' : 's'} to phase format.`);
+                            } else {
+                                new Notice('All projects are already migrated.');
+                            }
+                        } catch (e) {
+                            console.error('[Holos] Migration failed', e);
+                            new Notice('Migration failed. See console for details.');
+                        } finally {
+                            button.setDisabled(false);
+                            button.setButtonText('Migrate');
+                        }
+                    });
+            });
 
         new Setting(containerEl).setName('Developer Mode').setHeading();
 

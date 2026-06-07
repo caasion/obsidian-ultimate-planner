@@ -1,4 +1,4 @@
-import type { ISODate, Element, Time } from './types';
+import type { ISODate, Element, Time, Phase, Project, Track } from './types';
 import { addDays, eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek, type Day } from 'date-fns';
 
 /** Formats a Date into an ISODate. */
@@ -59,23 +59,6 @@ export function generateID(prefix: string) {
     return prefix + crypto.randomUUID();
 }
 
-/** [PURE HELPER] Hash a string using SHA-1. */
-export async function hashText(text: string): Promise<string> {
-  const data = new TextEncoder().encode(text);
-  const buf = await crypto.subtle.digest('SHA-1', data);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-/** [PURE HELPER] Takes in an array, swaps two items, and returns a new array. Returns the same array if swapping causes an item to go beyond the array. */
-export function swapArrayItems<T>(array: T[], a: number, b: number): T[] {
-    if (a < 0 || b < 0) return array;
-    if (a >= array.length || b >= array.length) return array;
-
-    const newArray = array.slice();
-    [newArray[a], newArray[b]] = [newArray[b], newArray[a]];
-    return newArray;
-}
-
 /** [PURE HELPER] Takes in an array of Elements, then calculates the sum of the time spent in minutes. */
 export function calculateTotalTimeSpent(items: Element[]): number {
     return items.reduce((total, element) => {
@@ -93,18 +76,6 @@ export function calculateTotalTimeSpent(items: Element[]): number {
         }
         return total;
     }, 0);
-}
-
-/** [PURE HELPER] Formats minutes into hours and minutes. */
-export function formatTotalTime(totalMinutes: number): string {
-    if (totalMinutes === 0) return "0 min";
-    
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    
-    if (hours === 0) return `${minutes} min`;
-    if (minutes === 0) return `${hours} hr`;
-    return `${hours} hr ${minutes} min`;
 }
 
 type TimeUnit = 'min' | 'hr';
@@ -161,7 +132,7 @@ export function formatProgressDuration(progress: number | undefined, duration: n
 export function reconstructRawText(
     text: string,
     isTask: boolean,
-    taskStatus: ' ' | 'x' | '-' | undefined,
+    taskStatus: ' ' | '/' | 'x' | '-' | undefined,
     startTime: Time | undefined,
     progress: number | undefined,
     duration: number | undefined,
@@ -206,4 +177,42 @@ export function reconstructRawText(
 /** Generates a random Obsidian-compatible block ID. */
 export function generateBlockId(): string {
     return Math.random().toString(36).substring(2, 7);
+}
+
+/** Returns true if a phase is currently active (its date range includes today). */
+export function isPhaseActive(phase: Phase): boolean {
+    if (!phase.startDate) return false;
+    const today = getISODate(new Date());
+    return phase.startDate <= today && (!phase.endDate || phase.endDate >= today);
+}
+
+/** Returns true if a project is currently active (any phase is active). */
+export function isProjectActive(project: Project): boolean {
+    return project.phases.some(isPhaseActive);
+}
+
+/** Returns true if a track is currently active (any project is active). */
+export function isTrackActiveByProjects(track: Track): boolean {
+    return Object.values(track.projects).some(isProjectActive);
+}
+
+/** Returns the earliest phase start date across all phases, or undefined if none have dates. */
+export function getProjectStartDate(project: Project): ISODate | undefined {
+    const dates = project.phases
+        .map(p => p.startDate)
+        .filter((d): d is ISODate => d !== undefined);
+    if (dates.length === 0) return undefined;
+    return dates.sort()[0];
+}
+
+/** Returns the latest phase end date, or undefined if any phase is open-ended. */
+export function getProjectEndDate(project: Project): ISODate | undefined {
+    const phasesWithStart = project.phases.filter(p => p.startDate);
+    if (phasesWithStart.length === 0) return undefined;
+    if (phasesWithStart.some(p => !p.endDate)) return undefined;
+    const dates = phasesWithStart
+        .map(p => p.endDate)
+        .filter((d): d is ISODate => d !== undefined);
+    if (dates.length === 0) return undefined;
+    return dates.sort().reverse()[0];
 }

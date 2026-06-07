@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Element, ISODate, RenderTrack, Track, TrackData } from "src/plugin/types";
-	import HeaderCell from "./HeaderCell.svelte";
+	import HeaderCell from "../components/HeaderCell.svelte";
 	import WrapperCell from "./WrapperCell.svelte";
 
     interface Props {
@@ -26,81 +26,201 @@
         const maxTracks = Math.max(...blockDates.map((date) => tracksByDate[date]?.length ?? 0), 0);
         return Math.max(1, maxTracks);
     }
+
+    /** Get the unique track IDs for a given row across all dates in a block. Returns the first valid track found. */
+    function getTrackForRow(blockDates: ISODate[], row: number): Track | undefined {
+        for (const date of blockDates) {
+            const renderTrack = tracksByDate[date]?.[row];
+            if (renderTrack?.id) {
+                const track = parsedTracks[renderTrack.id];
+                if (track) return track;
+            }
+        }
+        return undefined;
+    }
+
+    function countActiveProjects(track: Track): number {
+        return Object.keys(track.projects).length;
+    }
+
+    function formatTimePerWeek(minutes: number): string {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        if (hours > 0 && mins > 0) return `${hours} h ${mins} m / week`;
+        if (hours > 0) return `${hours} h ${mins > 0 ? mins + ' m' : ''} / week`.replace(/  /, ' ').trim();
+        return `${mins} m / week`;
+    }
 </script>
 
-<div class="main-grid-container">
-    {#each {length: blocks} as _, block (block)} 
+<div class="planner-grid-container">
+    {#each {length: blocks} as _, block (block)}
     {@const blockDates = dates.slice(block * columns, (block + 1) * columns)}
     {@const rows = getRows(blockDates)}
-    <div class="block-container">
-        <!-- Header Row -->
-        <div class="header-row" style={`grid-template-columns: repeat(${columns}, 1fr);`}>
+    <div class="planner-block">
+        <!-- Header Row: empty corner + date columns -->
+        <div class="planner-header-row" style={`grid-template-columns: 160px repeat(${columns}, minmax(0, 1fr));`}>
+            <!-- Empty corner cell -->
+            <div class="header-corner" style="border-right: 1px solid rgba(255, 255, 255, 0.1);"></div>
             {#each blockDates as date (date)}
             <HeaderCell {date} {openDailyNote} />
             {/each}
         </div>
 
-        <!-- Data Grid -->
-        <div class="data-grid" style={`grid-template-columns: repeat(${columns}, minmax(0, 1fr)); grid-template-rows: repeat(${rows}, minmax(40px, auto)); grid-auto-flow: column;`}>
-            {#each blockDates as date, col (date)}
-            {#each {length: rows} as _, row (row)}
-            
-            {#if tracksByDate[date]?.[row]}
-                {@const {id: trackId, isStartOfInterval} = tracksByDate[date]?.[row]}
-                {@const track = trackId ? parsedTracks[trackId] : undefined}
-
-                {#if trackId && track}
-                    <WrapperCell
-                        {date}
-                        showLabel={isStartOfInterval || col == 0}
-                        {trackId}
-                        trackMeta={track}
-                        trackData={parsedContent[date]?.[trackId]}
-                        journalData={parsedJournalContent[date]?.[track.journalHeader]}
-                        {showProjectLabel}
-                        onUpdate={onUpdate}
-                        onAdd={onAdd}
-                        {onTrackOpen}
-                        {onTrackFileOpen}
-                        {onCloseProjectTask}
-                    />
+        <!-- Data Rows: track label + day cells -->
+        {#each {length: rows} as _, row (row)}
+        {@const trackForRow = getTrackForRow(blockDates, row)}
+        <div class="planner-data-row" style={`grid-template-columns: 160px repeat(${columns}, minmax(0, 1fr));`}>
+            <!-- Track label cell -->
+            <div class="track-label-cell">
+                {#if trackForRow}
+                    <div class="track-label-content">
+                        <div class="track-info">
+                            <div class="track-accent" style={`background-color: ${trackForRow.color};`}></div>
+                            <div class="track-name">{trackForRow.label}</div>
+                            <div class="track-meta">
+                                <span class="track-time">Σ {formatTimePerWeek(trackForRow.timeCommitment * 7)}</span>
+                            </div>
+                            <div class="track-projects"><span class="track-projects-count">{countActiveProjects(trackForRow)}</span> Active Projects</div>
+                        </div>
+                    </div>
+                {:else}
+                    <div class="track-label-empty"></div>
                 {/if}
-            {:else}
-                <div class="cell">-</div>
-            {/if}
-            {/each}
+            </div>
+
+            <!-- Day cells for this track row -->
+            {#each blockDates as date, col (date)}
+                {#if tracksByDate[date]?.[row]}
+                    {@const {id: trackId, isStartOfInterval} = tracksByDate[date]?.[row]}
+                    {@const track = trackId ? parsedTracks[trackId] : undefined}
+
+                    {#if trackId && track}
+                        <WrapperCell
+                            {date}
+                            {trackId}
+                            trackMeta={track}
+                            trackData={parsedContent[date]?.[trackId]}
+                            journalData={parsedJournalContent[date]?.[track.journalHeader]}
+                            {showProjectLabel}
+                            onUpdate={onUpdate}
+                            onAdd={onAdd}
+                            {onCloseProjectTask}
+                        />
+                    {/if}
+                {:else}
+                    <div class="cell-empty"></div>
+                {/if}
             {/each}
         </div>
+        {/each}
     </div>
     {/each}
 </div>
 
 <style>
-	/* Grid Layout */
-	.main-grid-container {
-		display: flex;
-		flex-direction: column;
-		gap: 20px;
-	}
-    
-	.header-row {
-		display: grid;
-		/* grid-template-columns is set dynamically in the Svelte component */
-		border-bottom: 2px solid var(--background-modifier-border);
-		background-color: var(--background-primary);
-	}
+    .planner-grid-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
 
-	.data-grid {
-		display: grid;
-        border: 1px solid var(--background-modifier-border); 
-		/* grid-template-columns is set dynamically in the Svelte component */
-	}
+    .planner-block {
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
 
-	.cell {
-		padding: 4px;
-		border-right: 1px dotted var(--background-modifier-border);
-		border-bottom: 1px dashed var(--background-modifier-border);
-		border-collapse: collapse;
-		min-height: 40px; 
-	}
+    .planner-header-row {
+        display: grid;
+        background: rgba(255, 255, 255, 0.03);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .planner-data-row {
+        display: grid;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .planner-data-row:last-child {
+        border-bottom: none;
+    }
+
+    .track-label-cell {
+        padding: 0;
+        background: rgba(255, 255, 255, 0.03);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: flex-start;
+        overflow: hidden;
+    }
+
+    .track-label-content {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .track-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+        padding: 10px 12px 10px;
+    }
+
+    .track-accent {
+        height: 3px;
+        border-radius: 2px;
+        flex-shrink: 0;
+        width: 40px;
+        margin-bottom: 4px;
+    }
+
+    .track-name {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 16px;
+        font-weight: 500;
+        color: #e6e6e6;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
+    }
+
+    .track-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .track-time {
+        font-size: 12px;
+        color: #808080;
+        white-space: nowrap;
+    }
+
+    .track-projects {
+        font-size: 13px;
+        color: #808080;
+        margin-top: 4px;
+    }
+
+    .track-projects-count {
+        font-weight: 700;
+        color: #e6e6e6;
+    }
+
+    .track-label-empty {
+        height: 100%;
+    }
+
+    .cell-empty {
+        min-height: 80px;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        background: #363636;
+    }
+
+    .cell-empty:last-child {
+        border-right: none;
+    }
 </style>

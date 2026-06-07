@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ISODate } from "src/plugin/types";
-  import { getHeaderTicks } from "../logic/ganttUtils";
+  import { getHeaderTicks } from "../../logic/ganttUtils";
 
   interface Props {
     viewportStart: ISODate;
@@ -26,7 +26,8 @@
   .gantt-header {
     position: relative;
     height: 32px;
-    border-bottom: 1px solid var(--background-modifier-border);
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     flex-shrink: 0;
   }
 

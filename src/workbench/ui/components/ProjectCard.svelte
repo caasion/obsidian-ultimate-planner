@@ -6,11 +6,10 @@
 	import Datepicker from "src/components/Datepicker.svelte";
 	import { getISODate } from "src/plugin/helpers";
 	import { isValid, parseISO } from "date-fns";
-	import DataTaskElement from "./DataTaskElement.svelte";
+	import DataTaskElement from "src/components/DataTaskElement.svelte";
 	import type { App } from "obsidian";
 	import { ConfirmationModal } from "src/plugin/ConfirmationModal";
-	import { dndzone } from "svelte-dnd-action";
-	import { flip } from "svelte/animate";
+	import { dropLineDnd } from "src/components/dropLineDnd";
 
 	export interface ProjectCardFunctions {
 		onLabelEdit: (label: string) => void;
@@ -50,15 +49,22 @@
 		color: string;
 		projectFunctions: ProjectCardFunctions;
 		createHabitFunctions: (habitId: string) => HabitFunctions;
+		refCountMap?: Map<string, number>;
 	}
 
-	let { 
+	let {
 		app,
-		project, 
-		color, 
+		project,
+		color,
 		projectFunctions,
 		createHabitFunctions,
+		refCountMap = new Map(),
 	}: ProjectCardProps = $props();
+
+	function getRefCount(blockId?: string): number {
+		if (!blockId) return 0;
+		return refCountMap.get(blockId) ?? 0;
+	}
 
 	// Check if project is currently active
 	function isProjectActive(): boolean {
@@ -98,29 +104,6 @@
 		).open();
 	}
 
-	// Phase expand/collapse state — default: expand the active phase
-	function getDefaultExpandedId(phases: Phase[]): string | undefined {
-		if (phases.length === 0) return undefined;
-		const today = getISODate(new Date());
-
-		const activeByDate = phases.find(p => 
-			p.startDate && p.startDate <= today && 
-			(!p.endDate || p.endDate >= today)
-		);
-		if (activeByDate) return activeByDate.id;
-
-		const future = phases
-			.filter(p => p.startDate && p.startDate > today)
-			.sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? ''));
-		if (future.length > 0) return future[0].id;
-
-        const unscheduled = phases.find(p => !p.startDate);
-        if (unscheduled) return unscheduled.id;
-
-		return phases[0]?.id;
-	}
-
-	let expandedPhaseId = $state(getDefaultExpandedId(project.phases));
 	let hideCompleted = $state(false);
 	let hideCompletedPhase = $state(false);
 
@@ -134,10 +117,6 @@
 			: project.data.map((el, i) => ({ el, i }))
 	);
 
-	function togglePhase(phaseId: string) {
-		expandedPhaseId = expandedPhaseId === phaseId ? undefined : phaseId;
-	}
-
 	function handlePhaseRangeSelect(phaseId: string, selection: unknown) {
 		const range = selection as { from?: Date; to?: Date } | undefined;
 		if (!range?.from) return;
@@ -148,40 +127,9 @@
 		);
 	}
 
-	// Drag and drop state for phases
-	let isDraggingPhases = $state(false);
-	let phaseItems = $state<{id: string, phase: Phase}[]>([]);
-
-	// Sync local items with upstream prop
-	$effect(() => {
-		if (!isDraggingPhases) {
-			phaseItems = project.phases.map(phase => ({ id: phase.id, phase }));
-		}
-	});
-
-	function handlePhaseDndConsider(e: { detail: { items: any[] } }) {
-		if (!isDraggingPhases) {
-			// Collapse any expanded phase before dragging starts so all items
-			// have consistent heights — svelte-dnd-action uses bounding box
-			// centers, so variable heights cause inaccurate drop positions.
-			expandedPhaseId = undefined;
-		}
-		isDraggingPhases = true;
-		phaseItems = e.detail.items;
-	}
-
-	function handlePhaseDndFinalize(e: { detail: { items: any[], info: any } }) {
-		isDraggingPhases = false;
-		phaseItems = e.detail.items;
-
-		// Map the new array back to the expected fromIndex/toIndex logic
-		const movedId = e.detail.info.id;
-		const fromIndex = project.phases.findIndex(p => p.id === movedId);
-		const toIndex = e.detail.items.findIndex((item: any) => item.id === movedId);
-		
-		if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
-			projectFunctions.onPhaseReorder?.(fromIndex, toIndex);
-		}
+	// Drag and drop for phases
+	function handlePhaseDndFinalize(_reordered: Phase[], fromIndex: number, toIndex: number) {
+		projectFunctions.onPhaseReorder?.(fromIndex, toIndex);
 	}
 </script>
 
@@ -285,70 +233,76 @@
 					<button class="add-button" onclick={() => projectFunctions.onPhaseAdd?.()} title="Add a new phase">+</button>
 				</div>
 			</div>
-			<div class="section-content">
+			<div class="phases-scroll-container">
 				{#if project.phases.length > 0}
-					<div 
-						class="phases-container"
-						use:dndzone={{ items: phaseItems, flipDurationMs: 200, dropTargetStyle: { outline: `1px dashed ${color}`, background: `${color}15` }, dragHandleSelector: '.drag-handle', type: `phases-${project.id}` }}
-						onconsider={handlePhaseDndConsider}
-						onfinalize={handlePhaseDndFinalize}
+					<div
+						class="phases-scroll-track"
+						use:dropLineDnd={{ items: project.phases, handleSelector: '.drag-handle', lineColor: color, direction: 'auto', onFinalize: handlePhaseDndFinalize }}
 					>
-						{#each phaseItems as { id, phase }, index (id)}
-							{@const isExpanded = expandedPhaseId === phase.id}
-							<div class="phase-item" animate:flip={{ duration: 200 }}>
-								<div class="phase-row">
-									<div class="drag-handle" title="Drag to reorder phase">
-										<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
-									</div>
-									<button class="phase-toggle" onclick={() => togglePhase(phase.id)} aria-label={isExpanded ? 'Collapse phase' : 'Expand phase'}>
-									{#if isExpanded}&#9660;{:else}&#9654;{/if}
-								</button>
-								<EditableText
-									value={phase.label}
-									onSave={(newLabel) => projectFunctions.onPhaseLabelEdit?.(phase.id, newLabel)}
-									placeholder="Phase name..."
-									class="phase-label"
-								/>
-								<div class="phase-row-right">
-									<Datepicker
-										range
-										rangeFrom={toDate(phase.startDate)}
-										rangeTo={toDate(phase.endDate)}
-										openEndedLabel="?"
-										rangeSeparator=" → "
-										onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
-										showToggleButton={false}
-										inputProps={{ readonly: true }}
-										inputClass="phase-date-input"
-									/>
-									<button
-										class="phase-delete-btn"
-										onclick={() => projectFunctions.onPhaseDelete?.(phase.id)}
-										title="Delete this phase"
-									>
-										<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-									</button>
-								</div>
-							</div>
-							{#if isExpanded}
-								<div class="phase-content">
-									{#each phase.data as element, index (index)}
-									{#if !hideCompletedPhase || !isCompletedElement(element)}
-											<DataTaskElement
-												{element}
-												{index}
-												{color}
-												onUpdate={(idx, el) => projectFunctions.onPhaseDataUpdate?.(phase.id, idx, el)}
-												onToggle={(idx) => projectFunctions.onPhaseDataToggle?.(phase.id, idx)}
-												onCancel={(idx) => projectFunctions.onPhaseDataCancel?.(phase.id, idx)}
-												onDelete={(idx) => projectFunctions.onPhaseDataDelete?.(phase.id, idx)}
+						{#each project.phases as phase (phase.id)}
+							{@const phaseTaskCount = phase.data.length}
+							{@const phaseCompletedCount = phase.data.filter(el => el.taskStatus === 'x').length}
+							{@const visiblePhaseData = hideCompletedPhase ? phase.data.map((el, i) => ({el, i})).filter(({el}) => !isCompletedElement(el)) : phase.data.map((el, i) => ({el, i}))}
+							<div class="phase-card" style={`border-color: ${color};`}>
+								<div class="phase-card-header">
+									<div class="phase-card-header-left">
+										<div class="drag-handle" title="Drag to reorder phase">
+											<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+										</div>
+										<div class="phase-card-title-block">
+											<EditableText
+												value={phase.label}
+												onSave={(newLabel) => projectFunctions.onPhaseLabelEdit?.(phase.id, newLabel)}
+												placeholder="Phase name..."
+												class="phase-label"
 											/>
-									{/if}
-									{/each}
-									<button class="add-button phase-add-task" onclick={() => projectFunctions.onPhaseDataAdd?.(phase.id)} title="Add task to phase">+ Task</button>
+											<div class="phase-card-dates">
+												<Datepicker
+													range
+													rangeFrom={toDate(phase.startDate)}
+													rangeTo={toDate(phase.endDate)}
+													openEndedLabel="?"
+													rangeSeparator=" - "
+													onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
+													showToggleButton={false}
+													inputProps={{ readonly: true }}
+													inputClass="phase-date-input"
+												/>
+											</div>
+										</div>
+									</div>
+									<div class="phase-card-header-right">
+										<span class="phase-task-count" style={`color: ${color};`}>
+											{phaseCompletedCount}/{phaseTaskCount}
+										</span>
+										<button
+											class="phase-delete-btn"
+											onclick={() => projectFunctions.onPhaseDelete?.(phase.id)}
+											title="Delete this phase"
+										>
+											<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+										</button>
+									</div>
 								</div>
-							{/if}
-						</div>
+								<div class="phase-card-tasks">
+									{#each visiblePhaseData as {el: element, i: idx} (idx)}
+										<DataTaskElement
+											{element}
+											index={idx}
+											{color}
+											refCount={getRefCount(element.blockId)}
+											onUpdate={(i, el) => projectFunctions.onPhaseDataUpdate?.(phase.id, i, el)}
+											onToggle={(i) => projectFunctions.onPhaseDataToggle?.(phase.id, i)}
+											onCancel={(i) => projectFunctions.onPhaseDataCancel?.(phase.id, i)}
+											onDelete={(i) => projectFunctions.onPhaseDataDelete?.(phase.id, i)}
+										/>
+									{/each}
+									{#if visiblePhaseData.length === 0 && phaseTaskCount > 0}
+										<div class="section-empty-state">All tasks completed</div>
+									{/if}
+								</div>
+								<button class="add-button phase-add-task" onclick={() => projectFunctions.onPhaseDataAdd?.(phase.id)} title="Add task to phase">+ Task</button>
+							</div>
 						{/each}
 					</div>
 				{:else}
@@ -403,6 +357,7 @@
 							element={el}
 							index={i}
 							{color}
+							refCount={getRefCount(el.blockId)}
 							onUpdate={projectFunctions.onDataUpdate}
 							onToggle={projectFunctions.onDataToggle}
 							onCancel={projectFunctions.onDataCancel}
@@ -598,60 +553,93 @@
     gap: 6px;
   }
 
-  .phase-item {
-    border-bottom: 1px solid var(--background-modifier-border);
+  /* Phases horizontal scroll */
+  .phases-scroll-container {
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin: 0 -12px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
-  .phase-item:last-child {
-    border-bottom: none;
-  }
-
-  .phase-row {
+  .phases-scroll-track {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 0;
+    gap: 10px;
+    min-width: min-content;
   }
 
-  .phase-toggle {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 2px 4px;
-    font-size: 0.7em;
-    color: var(--text-muted);
+  .phase-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border-top: 3px solid;
+    padding: 10px;
+    width: 260px;
+    min-width: 260px;
     flex-shrink: 0;
-    line-height: 1;
+    display: flex;
+    flex-direction: column;
   }
 
-  .phase-toggle:hover {
-    color: var(--text-normal);
+  .phase-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 4px;
+    margin-bottom: 8px;
   }
 
-  :global(.phase-label) {
-    font-size: 0.9em;
-    font-weight: 600;
+  .phase-card-header-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
     flex: 1;
     min-width: 0;
   }
 
-  .phase-row-right {
+  .phase-card-title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .phase-card-dates {
+    display: flex;
+    align-items: center;
+  }
+
+  .phase-card-header-right {
     display: flex;
     align-items: center;
     gap: 4px;
     flex-shrink: 0;
   }
 
+  .phase-task-count {
+    font-size: 0.8em;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  :global(.phase-label) {
+    font-size: 0.9em;
+    font-weight: 600;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   :global(.phase-date-input) {
     width: auto;
-    max-width: 160px;
+    max-width: 140px;
     border: none;
     background: transparent;
     padding: 0;
-    text-align: right;
     cursor: pointer;
-    font-size: 0.78em;
-    color: var(--text-muted);
+    font-size: 0.75em;
+    color: var(--text-faint);
   }
 
   :global(.phase-date-input:hover) {
@@ -663,21 +651,30 @@
     border: none;
     color: var(--text-muted);
     cursor: pointer;
-    padding: 2px 4px;
+    padding: 2px;
     border-radius: 3px;
-    opacity: 0.6;
-    transition: opacity 0.15s, color 0.15s;
+    opacity: 0;
     display: flex;
     align-items: center;
+    box-shadow: none;
+  }
+
+  .phase-card:hover .phase-delete-btn {
+    opacity: 0.6;
   }
 
   .phase-delete-btn:hover {
-    opacity: 1;
+    opacity: 1 !important;
     color: var(--text-error);
   }
 
-  .phase-content {
-    padding: 2px 0 6px 22px;
+  .phase-card-tasks {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .phase-add-task {
@@ -726,18 +723,15 @@
     color: var(--text-normal);
   }
 
-  /* Drag and drop phase styles */
-  .phase-item {
-    transition: transform 0.1s ease;
-  }
-
   .drag-handle {
     cursor: grab;
     color: var(--text-faint);
     display: flex;
     align-items: center;
-    padding: 0 4px;
+    padding: 2px;
     opacity: 0.5;
+    flex-shrink: 0;
+    margin-top: 1px;
   }
 
   .drag-handle:active {

@@ -1,22 +1,17 @@
 <script lang="ts">
   import type { App } from "obsidian";
   import type { TrackNoteService } from "src/tracks/logic/trackNote";
-  import type { ProjectCardFunctions } from "src/tracks/ui/ProjectCard.svelte";
-  import type { HabitFunctions } from "src/tracks/ui/HabitElement.svelte";
-  import type { Track } from "src/plugin/types";
-  import { format, parseISO, addDays, differenceInDays } from "date-fns";
+  import type { Track, ISODate } from "src/plugin/types";
+  import { parseISO, addDays, differenceInDays } from "date-fns";
   import { getISODate } from "src/plugin/helpers";
   import {
     getRollingViewport,
-    getHeaderTicks,
     dateToX,
-    WINDOW_PRESETS,
+    packProjectsIntoRows,
+    calcTrackHeight,
   } from "../logic/ganttUtils";
-  import GanttHeader from "./GanttHeader.svelte";
-  import GanttTrackGroup from "./GanttTrackGroup.svelte";
-  import ViewSwitcher from "src/components/ViewSwitcher.svelte";
-  import Topbar from "src/components/Topbar.svelte";
-  import { GANTT_VIEW_TYPE } from "src/gantt/GanttView";
+  import GanttControls from "./components/GanttControls.svelte";
+  import GanttCanvas from "./components/GanttCanvas.svelte";
 
   interface Props {
     app: App;
@@ -55,19 +50,11 @@
   const pxPerDay = $derived(containerWidth > 0 ? containerWidth / windowDays : 0);
   const totalWidth = $derived(containerWidth);
 
-  const ticks = $derived(getHeaderTicks(viewportStart, viewportEnd, pxPerDay));
-
   // Today line position (null if today is outside the viewport)
   const todayX = $derived(
     today >= viewportStart && today <= viewportEnd
       ? dateToX(today, viewportStart, pxPerDay) + pxPerDay / 2
       : null
-  );
-
-  const title = $derived(
-    format(parseISO(viewportStart), "d MMM") +
-      " – " +
-      format(parseISO(viewportEnd), "d MMM yyyy")
   );
 
   const sortedTracks = $derived(
@@ -86,154 +73,129 @@
     windowDays = days;
   }
 
-  function createProjectFunctionsFactory(trackId: string) {
-    return (projectId: string): ProjectCardFunctions => ({
-      onLabelEdit: (label) =>
-        trackNoteService.updateProjectLabel(trackId, projectId, label),
-      onDescriptionEdit: (description) =>
-        trackNoteService.updateProjectDescription(trackId, projectId, description),
-      onOpenFile: () => trackNoteService.openProjectFile(trackId, projectId),
-      onStartDateEdit: (date) =>
-        trackNoteService.updateProjectStartDate(trackId, projectId, date),
-      onEndDateEdit: (date) =>
-        trackNoteService.updateProjectEndDate(trackId, projectId, date),
-      onDelete: () => trackNoteService.deleteProject(trackId, projectId),
-      onHabitAdd: () => trackNoteService.addProjectHabit(trackId, projectId),
-      onDataAdd: () => trackNoteService.addProjectData(trackId, projectId),
-      onDataUpdate: (index, updatedElement) =>
-        trackNoteService.updateProjectData(trackId, projectId, index, updatedElement),
-      onDataToggle: (index) => {
-        const track = trackNoteService.getTrack(trackId);
-        const element = track?.projects[projectId]?.data[index];
-        if (!element?.isTask) return;
-        const newStatus = element.taskStatus === "x" ? " " : "x";
-        trackNoteService.updateProjectData(trackId, projectId, index, {
-          taskStatus: newStatus,
-        });
-      },
-      onDataCancel: (index) => {
-        const track = trackNoteService.getTrack(trackId);
-        const element = track?.projects[projectId]?.data[index];
-        if (!element?.isTask) return;
-        trackNoteService.updateProjectData(trackId, projectId, index, {
-          taskStatus: "-",
-        });
-      },
-      onDataDelete: (index) =>
-        trackNoteService.deleteProjectData(trackId, projectId, index),
-
-      // Phase operations
-      onPhaseAdd: () => trackNoteService.addProjectPhase(trackId, projectId),
-      onPhaseLabelEdit: (phaseId, label) => trackNoteService.updateProjectPhaseLabel(trackId, projectId, phaseId, label),
-      onPhaseDelete: (phaseId) => trackNoteService.deleteProjectPhase(trackId, projectId, phaseId),
-      onPhaseReorder: (fromIndex, toIndex) => trackNoteService.reorderProjectPhase(trackId, projectId, fromIndex, toIndex),
-      onPhaseDataAdd: (phaseId) => trackNoteService.addPhaseData(trackId, projectId, phaseId),
-      onPhaseDataUpdate: (phaseId, index, el) => trackNoteService.updatePhaseData(trackId, projectId, phaseId, index, el),
-      onPhaseDataToggle: (phaseId, index) => trackNoteService.togglePhaseData(trackId, projectId, phaseId, index),
-      onPhaseDataCancel: (phaseId, index) => trackNoteService.cancelPhaseData(trackId, projectId, phaseId, index),
-      onPhaseDataDelete: (phaseId, index) => trackNoteService.deletePhaseData(trackId, projectId, phaseId, index),
-
-      // Enable phase mode (one-way)
-      onEnablePhases: () => trackNoteService.toggleProjectPhases(trackId, projectId, true),
-    });
+  function handleDateSelect(date: Date) {
+    panDays = differenceInDays(date, parseISO(today));
   }
 
-  function createHabitFunctionsFactory(trackId: string) {
-    return (projectId: string) =>
-      (habitId: string): HabitFunctions => ({
-        onEdit: (habit) =>
-          trackNoteService.updateProjectHabit(trackId, projectId, habitId, habit),
-        onDelete: () =>
-          trackNoteService.deleteProjectHabit(trackId, projectId, habitId),
-      });
+  /* === Filter to tracks active within the current viewport === */
+  const visibleTracks = $derived(
+    sortedTracks.filter(track =>
+      track.effective.some(interval => {
+        const iEnd = interval.end ?? '9999-12-31';
+        return interval.start <= viewportEnd && iEnd >= viewportStart;
+      })
+    )
+  );
+
+  /* === Track heights (computed here so sidebar + gantt stay in sync) === */
+  const trackHeights = $derived(
+    visibleTracks.map(track => {
+      const packedPhases = packProjectsIntoRows(track.projects, viewportStart, viewportEnd);
+      const numRows = packedPhases.length === 0 ? 0 : Math.max(...packedPhases.map(p => p.row)) + 1;
+      return calcTrackHeight(numRows);
+    })
+  );
+
+  /* === Synced vertical scroll === */
+  let sidebarEl = $state<HTMLDivElement | undefined>();
+  let ganttBodyEl = $state<HTMLDivElement | undefined>();
+  let scrolling = $state(false);
+
+  function syncScroll(source: 'sidebar' | 'gantt') {
+    if (scrolling) return;
+    scrolling = true;
+    if (source === 'gantt' && sidebarEl && ganttBodyEl) {
+      sidebarEl.scrollTop = ganttBodyEl.scrollTop;
+    } else if (source === 'sidebar' && sidebarEl && ganttBodyEl) {
+      ganttBodyEl.scrollTop = sidebarEl.scrollTop;
+    }
+    scrolling = false;
   }
 
-  function presetLabel(days: number): string {
-    if (days === 365) return "1y";
-    if (days >= 30 && days % 30 === 0) return `${days / 30}mo`;
-    return `${days}d`;
+  /* === Track helpers === */
+  function countActiveProjects(track: Track): number {
+    return Object.keys(track.projects).length;
   }
 
-  function handleDateChange(date: string) {
-    panDays = differenceInDays(parseISO(date), parseISO(today));
+  function formatTimePerWeek(minutes: number): string {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0 && mins > 0) return `${hours}h ${mins}m / week`;
+    if (hours > 0) return `${hours}h / week`;
+    return `${mins}m / week`;
   }
 </script>
 
 <div class="gantt-view">
-  <div class="view-switcher-row">
-    <ViewSwitcher {app} currentView={GANTT_VIEW_TYPE} />
+
+  <div class="gantt-header">
+    <h1>Gantt</h1>
+
+    <GanttControls
+      {viewportStart}
+      {viewportEnd}
+      {windowDays}
+      todayVisible={todayX !== null}
+      onPan={pan}
+      onGoToToday={goToToday}
+      onSetWindowDays={setWindowDays}
+      onDateSelect={handleDateSelect}
+    />
   </div>
-  <!-- Topbar -->
-  <div class="gantt-topbar-row">
-    <Topbar
-      onPrev={() => pan(-1)}
-      onNext={() => pan(1)}
-      onToday={goToToday}
-      showToday={todayX === null}
-      label={title}
-      anchor={centerDate}
-      onDateChange={handleDateChange}
-    >
-      {#snippet right()}
-        <div class="preset-group">
-          {#each WINDOW_PRESETS as preset}
-            <button
-              class="preset-btn"
-              class:active={windowDays === preset}
-              onclick={() => setWindowDays(preset)}
-            >
-              {presetLabel(preset)}
-            </button>
+
+  <!-- Main content: sidebar + gantt area side by side -->
+  <div class="gantt-content">
+    <!-- Left sidebar: track labels -->
+    <div class="gantt-sidebar">
+      <!-- Header spacer (matches GanttHeader height) -->
+      <div class="sidebar-header-spacer"></div>
+      <!-- Scrollable track labels, synced with gantt body -->
+      <div
+        class="sidebar-scroll"
+        bind:this={sidebarEl}
+        onscroll={() => syncScroll('sidebar')}
+      >
+        <div class="sidebar-body">
+          {#each visibleTracks as track, i (track.id)}
+            <div class="sidebar-track" style={`height: ${trackHeights[i]}px;`}>
+              <div class="track-accent" style={`background-color: ${track.color};`}></div>
+              <div class="track-name">{track.label}</div>
+              <div class="track-meta">
+                <span class="track-time">Σ {formatTimePerWeek(track.timeCommitment * 7)}</span>
+              </div>
+              <div class="track-projects">
+                <span class="track-projects-count">{countActiveProjects(track)}</span> Active Projects
+              </div>
+            </div>
           {/each}
         </div>
-      {/snippet}
-    </Topbar>
-  </div>
+      </div>
+    </div>
 
-  <!-- Gantt scroll container -->
-  <div class="gantt-scroll">
-    <!-- Width probe: fills the scroll container, reports its pixel width -->
-    <div class="gantt-width-probe" bind:clientWidth={containerWidth}>
-      {#if containerWidth > 0}
-        <div class="gantt-inner" style={`width: ${totalWidth}px;`}>
-          <!-- Time axis header -->
-          <GanttHeader
-            {viewportStart}
-            {viewportEnd}
-            {pxPerDay}
-            {totalWidth}
-          />
-
-          <!-- Body: grid lines + track groups -->
-          <div class="gantt-body-scroll">
-            <div class="gantt-body">
-              <!-- Grid lines -->
-              <div class="grid-lines" style={`width: ${totalWidth}px;`}>
-                {#each ticks as tick}
-                  <div class="grid-line" style={`left: ${tick.gridX}px;`}></div>
-                {/each}
-                {#if todayX !== null}
-                  <div class="today-line" style={`left: ${todayX}px;`}></div>
-                {/if}
-              </div>
-
-              <!-- Track groups -->
-              {#each sortedTracks as track (track.id)}
-                <GanttTrackGroup
-                  {track}
-                  {viewportStart}
-                  {viewportEnd}
-                  {pxPerDay}
-                  onEffectiveChange={(next) =>
-                    trackNoteService.updateTrackFrontmatter(track.id, { effective: next })}
-                  createProjectFunctions={createProjectFunctionsFactory(track.id)}
-                  createHabitFunctions={createHabitFunctionsFactory(track.id)}
-                />
-              {/each}
+    <!-- Right: Gantt chart area -->
+    <div class="gantt-scroll">
+      <!-- Width probe: fills the scroll container, reports its pixel width -->
+      <div class="gantt-width-probe" bind:clientWidth={containerWidth}>
+        {#if containerWidth > 0}
+          <div class="gantt-inner" style={`width: ${totalWidth}px;`}>
+            <div
+              class="gantt-body-scroll"
+              bind:this={ganttBodyEl}
+              onscroll={() => syncScroll('gantt')}
+            >
+              <GanttCanvas
+                tracks={visibleTracks}
+                {viewportStart}
+                {viewportEnd}
+                {pxPerDay}
+                {totalWidth}
+                onEffectiveChange={(trackId, next) =>
+                  trackNoteService.updateTrackFrontmatter(trackId, { effective: next })}
+              />
             </div>
           </div>
-        </div>
-      {/if}
+        {/if}
+      </div>
     </div>
   </div>
 </div>
@@ -246,55 +208,127 @@
     overflow: hidden;
   }
 
-  .view-switcher-row {
-    padding: 12px 12px 0;
-    flex-shrink: 0;
-  }
-
-  .gantt-topbar-row {
-    padding: 0 12px;
-    flex-shrink: 0;
-  }
-
-  .preset-group {
+  /* === Header === */
+  .gantt-header {
     display: flex;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    overflow: hidden;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px 8px;
+    flex-shrink: 0;
   }
 
-  .preset-btn {
-    font-size: 0.78em;
-    padding: 4px 8px;
-    border: none;
-    border-right: 1px solid var(--background-modifier-border);
-    background: var(--background-secondary);
-    color: var(--text-muted);
-    cursor: pointer;
-    white-space: nowrap;
+  .gantt-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #e6e6e6;
+    margin: 0;
+    flex-shrink: 0;
   }
 
-  .preset-btn:last-child {
-    border-right: none;
-  }
-
-  .preset-btn:hover {
-    background: var(--background-modifier-hover);
-    color: var(--text-normal);
-  }
-
-  .preset-btn.active {
-    background: var(--interactive-accent);
-    color: var(--text-on-accent);
-  }
-
-  /* Scroll area */
-  .gantt-scroll {
+  /* === Content: sidebar + gantt side by side === */
+  .gantt-content {
     display: flex;
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    padding: 12px;
+    padding: 0 0 12px 0;
+  }
+
+  /* === Sidebar === */
+  .gantt-sidebar {
+    width: 160px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    padding-left: 12px;
+  }
+
+  .sidebar-header-spacer {
+    height: 32px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .sidebar-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sidebar-body {
+    padding-top: 8px;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .sidebar-track {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px 0;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .track-accent {
+    height: 3px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    width: 40px;
+    margin-bottom: 4px;
+  }
+
+  .track-name {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: #e6e6e6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+
+  .track-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .track-time {
+    font-size: 12px;
+    color: #808080;
+    white-space: nowrap;
+  }
+
+  .track-projects {
+    font-size: 13px;
+    color: #808080;
+    margin-top: 4px;
+  }
+
+  .track-projects-count {
+    font-weight: 700;
+    color: #e6e6e6;
+  }
+
+  /* === Gantt scroll area === */
+  .gantt-scroll {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0 12px 0 0;
   }
 
   .gantt-width-probe {
@@ -316,40 +350,5 @@
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
-  }
-
-  /* Body */
-  .gantt-body {
-    position: relative;
-    padding-top: 8px;
-  }
-
-  /* Grid lines */
-  .grid-lines {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    pointer-events: none;
-    overflow: visible;
-  }
-
-  .grid-line {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    width: 1px;
-    border-left: 1px dashed var(--background-modifier-border);
-    opacity: 0.5;
-  }
-
-  .today-line {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    width: 1px;
-    border-left: 2px solid var(--color-accent, var(--interactive-accent));
-    opacity: 0.7;
-    transform: translateX(-50%);
   }
 </style>
