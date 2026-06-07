@@ -9,6 +9,7 @@
 	import EditableText from "src/components/EditableText.svelte";
 	import EditableMarkdownText from "src/components/EditableMarkdownText.svelte";
 	import Datepicker from "src/components/Datepicker.svelte";
+	import TrackDetailPanel from "./components/TrackDetailPanel.svelte";
 	import { getISODate, getISODates, isProjectActive, isPhaseActive, isTrackActiveByProjects } from "src/plugin/helpers";
 	import { isValid, parseISO } from "date-fns";
 	import { type App } from "obsidian";
@@ -37,7 +38,9 @@
 		})
 	);
 
-	// Selected project state
+	// Selection state: either a track or a project
+	type SelectionMode = 'track' | 'project';
+	let selectionMode = $state<SelectionMode>('project');
 	let selectedTrackId = $state<string | undefined>(undefined);
 	let selectedProjectId = $state<string | undefined>(undefined);
 
@@ -63,22 +66,36 @@
 				if (projects.length > 0) {
 					selectedTrackId = track.id;
 					selectedProjectId = projects[0].id;
+					selectionMode = 'project';
 					hasAutoSelected = true;
 					return;
 				}
 			}
+			// If no projects, select first track
+			if (tracks.length > 0) {
+				selectedTrackId = tracks[0].id;
+				selectionMode = 'track';
+				hasAutoSelected = true;
+			}
 		});
 	});
 
-	// Derived selected project
+	// Derived selected items
 	let selectedTrack = $derived(selectedTrackId ? parsedTracks[selectedTrackId] : undefined);
 	let selectedProject = $derived(
-		selectedTrack && selectedProjectId ? selectedTrack.projects[selectedProjectId] : undefined
+		selectedTrack && selectedProjectId && selectionMode === 'project' ? selectedTrack.projects[selectedProjectId] : undefined
 	);
 
 	function selectProject(trackId: string, projectId: string) {
 		selectedTrackId = trackId;
 		selectedProjectId = projectId;
+		selectionMode = 'project';
+	}
+
+	function selectTrack(trackId: string) {
+		selectedTrackId = trackId;
+		selectedProjectId = undefined;
+		selectionMode = 'track';
 	}
 
 	// Format date range for display
@@ -192,7 +209,7 @@
 <div class="project-view">
 	<div class="project-header">
 		<div style="display: flex; align-items: center; gap: 12px;">
-			<h1>Projects</h1>
+			<h1>Workbench</h1>
 			<button class="sidebar-toggle" onclick={() => sidebarCollapsed = !sidebarCollapsed} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
 				<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					{#if sidebarCollapsed}
@@ -219,26 +236,34 @@
 						return aActive - bActive;
 					})}
 					<div class="tree-track">
-						<button
-							class="tree-track-header"
-							onclick={() => toggleTrackCollapse(track.id)}
-						>
-							<span class="tree-toggle-icon">
-								{#if isCollapsed}
-									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-								{:else}
-									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
-								{/if}
-							</span>
-							<span class="tree-track-status" class:active={trackActive}>{trackActive ? '●' : '○'}</span>
-							<span class="tree-track-label" style={`color: ${track.color};`}>{track.label}</span>
-						</button>
+						<div class="tree-track-header-row">
+							<button
+								class="tree-track-collapse-btn"
+								onclick={() => toggleTrackCollapse(track.id)}
+							>
+								<span class="tree-toggle-icon">
+									{#if isCollapsed}
+										<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+									{:else}
+										<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+									{/if}
+								</span>
+							</button>
+							<button
+								class="tree-track-label-btn"
+								class:tree-track-label-active={selectionMode === 'track' && selectedTrackId === track.id}
+								onclick={() => selectTrack(track.id)}
+							>
+								<span class="tree-track-status" class:active={trackActive}>{trackActive ? '●' : '○'}</span>
+								<span class="tree-track-label" style={`color: ${track.color};`}>{track.label}</span>
+							</button>
+						</div>
 						{#if !isCollapsed}
 							<div class="tree-projects" style={`border-color: ${track.color}80;`}>
 								{#each projects as project}
 									<button
 										class="tree-project-item"
-										class:tree-project-active={selectedTrackId === track.id && selectedProjectId === project.id}
+										class:tree-project-active={selectionMode === 'project' && selectedTrackId === track.id && selectedProjectId === project.id}
 										onclick={() => selectProject(track.id, project.id)}
 									>
 										<span class="tree-project-status" class:active={isProjectActive(project)}>{isProjectActive(project) ? '●' : '○'}</span>
@@ -255,7 +280,14 @@
 
 	<!-- Detail Panel -->
 	<div class="detail-panel">
-		{#if selectedTrack && selectedProject && selectedTrackId && selectedProjectId}
+		{#if selectionMode === 'track' && selectedTrack && selectedTrackId}
+			<TrackDetailPanel
+				track={selectedTrack}
+				trackId={selectedTrackId}
+				{trackNoteService}
+				{app}
+			/>
+		{:else if selectionMode === 'project' && selectedTrack && selectedProject && selectedTrackId && selectedProjectId}
 			{@const color = selectedTrack.color}
 			{@const fns = createProjectFunctions(selectedTrackId, selectedProjectId)}
 			<div class="detail-content">
@@ -439,7 +471,7 @@
 			</div>
 		{:else}
 			<div class="detail-empty">
-				<p>Select a project from the sidebar</p>
+				<p>Select a track or project from the sidebar</p>
 			</div>
 		{/if}
 	</div>
@@ -523,22 +555,49 @@
 		margin-bottom: 2px;
 	}
 
-	.tree-track-header {
+	.tree-track-header-row {
+		display: flex;
+		align-items: center;
+		width: 100%;
+	}
+
+	.tree-track-collapse-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		padding: 4px 4px 4px 12px;
+		box-shadow: none;
+		flex-shrink: 0;
+	}
+
+	.tree-track-collapse-btn:hover {
+		background: rgba(255, 255, 255, 0.05);
+	}
+
+	.tree-track-label-btn {
 		display: flex;
 		align-items: center;
 		gap: 4px;
-		padding: 4px 12px;
-		width: 100%;
+		padding: 4px 12px 4px 4px;
+		flex: 1;
 		background: transparent;
 		border: none;
 		cursor: pointer;
 		text-align: left;
 		justify-content: start;
 		box-shadow: none;
+		border-radius: 4px;
 	}
 
-	.tree-track-header:hover {
+	.tree-track-label-btn:hover {
 		background: rgba(255, 255, 255, 0.05);
+	}
+
+	.tree-track-label-active {
+		background: rgba(255, 255, 255, 0.1);
 	}
 
 	.tree-toggle-icon {
