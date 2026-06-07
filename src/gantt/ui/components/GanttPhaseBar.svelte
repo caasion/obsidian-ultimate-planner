@@ -152,8 +152,16 @@
     border-color: color-mix(in srgb, var(--phase-color) 60%, transparent);
   }
 
+  .phase-bar:hover.open-ended::before {
+    border-left-color: color-mix(in srgb, var(--phase-color) 60%, transparent);
+  }
+
   .phase-bar.expanded {
     border-color: color-mix(in srgb, var(--phase-color) 70%, transparent);
+  }
+
+  .phase-bar.expanded.open-ended::before {
+    border-left-color: color-mix(in srgb, var(--phase-color) 70%, transparent);
   }
 
   .label {
@@ -194,7 +202,7 @@
     border-style: solid;
     border-top: 13px solid transparent;
     border-bottom: 13px solid transparent;
-    border-left: 9px solid color-mix(in srgb, var(--phase-color) 40%, transparent);
+    border-left: 9px solid var(--text-faint);
     border-right: none;
     transition: border-left-color 0.15s;
   }
@@ -202,7 +210,7 @@
   .phase-bar.open-ended::after {
     content: '';
     position: absolute;
-    z-index: 1;
+    z-index: 2;
     right: -8px;
     top: 0;
     width: 0;
@@ -210,7 +218,7 @@
     border-style: solid;
     border-top: 12px solid transparent;
     border-bottom: 12px solid transparent;
-    border-left: 8px solid color-mix(in srgb, var(--phase-color) 15%, var(--background-primary));
+    border-left: 8px solid var(--background-primary);
     border-right: none;
   }
 

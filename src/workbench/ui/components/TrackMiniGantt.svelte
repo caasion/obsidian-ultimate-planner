@@ -69,16 +69,18 @@
 </script>
 
 <div class="mini-gantt-wrapper">
-	<GanttControls
-		{viewportStart}
-		{viewportEnd}
-		{windowDays}
-		todayVisible={todayX !== null}
-		onPan={pan}
-		onGoToToday={goToToday}
-		onSetWindowDays={setWindowDays}
-		onDateSelect={handleDateSelect}
-	/>
+	<div class="gantt-controls-wrapper">
+		<GanttControls
+			{viewportStart}
+			{viewportEnd}
+			{windowDays}
+			todayVisible={todayX !== null}
+			onPan={pan}
+			onGoToToday={goToToday}
+			onSetWindowDays={setWindowDays}
+			onDateSelect={handleDateSelect}
+		/>
+	</div>
 
 	<div class="mini-gantt-chart">
 		{#if !hasPhases}
@@ -127,5 +129,11 @@
 		color: var(--text-faint);
 		font-style: italic;
 		font-size: 0.85em;
+	}
+
+	.gantt-controls-wrapper {
+		width: 100%;
+		display: flex;
+		justify-content: flex-end;
 	}
 </style>

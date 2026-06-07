@@ -108,8 +108,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 28px;
-    width: 28px;
     flex-shrink: 0;
   }
 
