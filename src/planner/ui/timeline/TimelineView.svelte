@@ -148,7 +148,7 @@
 					placeholder=""
 					inputClass="datepicker-hidden-input"
 					anchorElement={datepickerAnchor}
-					onselect={(date) => handleDatepickerSelect(date)}
+					onselect={(date: Date) => handleDatepickerSelect(date)}
 				/>
 				<button class="icon-btn" onclick={(e) => { e.stopPropagation(); datepickerRef?.open(); }} aria-label="Jump to date">
 					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-search-icon lucide-calendar-search"><path d="M16 2v4"/><path d="M21 11.75V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7.25"/><path d="m22 22-1.875-1.875"/><path d="M3 10h18"/><path d="M8 2v4"/><circle cx="18" cy="18" r="3"/></svg>

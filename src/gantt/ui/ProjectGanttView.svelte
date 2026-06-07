@@ -2,19 +2,16 @@
   import type { App } from "obsidian";
   import type { TrackNoteService } from "src/tracks/logic/trackNote";
   import type { Track, ISODate } from "src/plugin/types";
-  import { format, parseISO, addDays, differenceInDays } from "date-fns";
+  import { parseISO, addDays, differenceInDays } from "date-fns";
   import { getISODate } from "src/plugin/helpers";
   import {
     getRollingViewport,
-    getHeaderTicks,
     dateToX,
     packProjectsIntoRows,
     calcTrackHeight,
-    WINDOW_PRESETS,
   } from "../logic/ganttUtils";
-  import GanttHeader from "./components/GanttHeader.svelte";
-  import GanttTrackGroup from "./components/GanttTrackGroup.svelte";
-	import Datepicker from "src/components/Datepicker.svelte";
+  import GanttControls from "./components/GanttControls.svelte";
+  import GanttCanvas from "./components/GanttCanvas.svelte";
 
   interface Props {
     app: App;
@@ -40,10 +37,6 @@
 
   const today = $derived(getISODate(new Date()));
 
-  let datepickerValue = $state<Date | undefined>(undefined);
-  let datepickerRef: ReturnType<typeof Datepicker> | undefined;
-  let datepickerAnchor: HTMLDivElement;
-
   // Center date shifts when panning
   const centerDate = $derived(
     panDays === 0 ? today : getISODate(addDays(parseISO(today), panDays))
@@ -57,19 +50,11 @@
   const pxPerDay = $derived(containerWidth > 0 ? containerWidth / windowDays : 0);
   const totalWidth = $derived(containerWidth);
 
-  const ticks = $derived(getHeaderTicks(viewportStart, viewportEnd, pxPerDay));
-
   // Today line position (null if today is outside the viewport)
   const todayX = $derived(
     today >= viewportStart && today <= viewportEnd
       ? dateToX(today, viewportStart, pxPerDay) + pxPerDay / 2
       : null
-  );
-
-  const title = $derived(
-    format(parseISO(viewportStart), "d MMM") +
-      " – " +
-      format(parseISO(viewportEnd), "d MMM yyyy")
   );
 
   const sortedTracks = $derived(
@@ -86,6 +71,10 @@
 
   function setWindowDays(days: number) {
     windowDays = days;
+  }
+
+  function handleDateSelect(date: Date) {
+    panDays = differenceInDays(date, parseISO(today));
   }
 
   /* === Filter to tracks active within the current viewport === */
@@ -135,21 +124,6 @@
     if (hours > 0) return `${hours}h / week`;
     return `${mins}m / week`;
   }
-
-  /* === Date picker === */
-  let dateInput: HTMLInputElement;
-  let pickerValue = $state<ISODate>(centerDate);
-  $effect(() => { pickerValue = centerDate; });
-
-  function presetLabel(days: number): string {
-    if (days === 365) return "1y";
-    if (days >= 30 && days % 30 === 0) return `${days / 30}mo`;
-    return `${days}d`;
-  }
-
-  function handleDatepickerSelect(date: Date) {
-    panDays = differenceInDays(date, parseISO(today));
-  }
 </script>
 
 <div class="gantt-view">
@@ -157,44 +131,16 @@
   <div class="gantt-header">
     <h1>Gantt</h1>
 
-    <div class="header-controls">
-      <span class="date-label">{title}</span>
-
-      {#if todayX === null}
-        <button class="today-btn" onclick={goToToday}>Today</button>
-      {/if}
-      <button class="nav-btn" onclick={() => pan(-1)} aria-label="Previous">‹</button>
-      <button class="nav-btn" onclick={() => pan(1)} aria-label="Next">›</button>
-
-      <div class="datepicker-wrap" bind:this={datepickerAnchor}>
-				<Datepicker
-					bind:this={datepickerRef}
-					bind:value={datepickerValue}
-					inline={false}
-					autohide={true}
-					showToggleButton={false}
-					placeholder=""
-					inputClass="datepicker-hidden-input"
-					anchorElement={datepickerAnchor}
-					onselect={(date: Date) => handleDatepickerSelect(date)}
-				/>
-				<button class="icon-btn" onclick={(e) => { e.stopPropagation(); datepickerRef?.open(); }} aria-label="Jump to date">
-					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-search-icon lucide-calendar-search"><path d="M16 2v4"/><path d="M21 11.75V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7.25"/><path d="m22 22-1.875-1.875"/><path d="M3 10h18"/><path d="M8 2v4"/><circle cx="18" cy="18" r="3"/></svg>
-				</button>
-			</div>
-
-      <div class="preset-group">
-        {#each WINDOW_PRESETS as preset}
-          <button
-            class="preset-btn"
-            class:active={windowDays === preset}
-            onclick={() => setWindowDays(preset)}
-          >
-            {presetLabel(preset)}
-          </button>
-        {/each}
-      </div>
-    </div>
+    <GanttControls
+      {viewportStart}
+      {viewportEnd}
+      {windowDays}
+      todayVisible={todayX !== null}
+      onPan={pan}
+      onGoToToday={goToToday}
+      onSetWindowDays={setWindowDays}
+      onDateSelect={handleDateSelect}
+    />
   </div>
 
   <!-- Main content: sidebar + gantt area side by side -->
@@ -232,43 +178,20 @@
       <div class="gantt-width-probe" bind:clientWidth={containerWidth}>
         {#if containerWidth > 0}
           <div class="gantt-inner" style={`width: ${totalWidth}px;`}>
-            <!-- Time axis header -->
-            <GanttHeader
-              {viewportStart}
-              {viewportEnd}
-              {pxPerDay}
-              {totalWidth}
-            />
-
-            <!-- Body: grid lines + track groups -->
             <div
               class="gantt-body-scroll"
               bind:this={ganttBodyEl}
               onscroll={() => syncScroll('gantt')}
             >
-              <div class="gantt-body">
-                <!-- Grid lines -->
-                <div class="grid-lines" style={`width: ${totalWidth}px;`}>
-                  {#each ticks as tick}
-                    <div class="grid-line" style={`left: ${tick.gridX}px;`}></div>
-                  {/each}
-                  {#if todayX !== null}
-                    <div class="today-line" style={`left: ${todayX}px;`}></div>
-                  {/if}
-                </div>
-
-                <!-- Track groups -->
-                {#each visibleTracks as track (track.id)}
-                  <GanttTrackGroup
-                    {track}
-                    {viewportStart}
-                    {viewportEnd}
-                    {pxPerDay}
-                    onEffectiveChange={(next) =>
-                      trackNoteService.updateTrackFrontmatter(track.id, { effective: next })}
-                  />
-                {/each}
-              </div>
+              <GanttCanvas
+                tracks={visibleTracks}
+                {viewportStart}
+                {viewportEnd}
+                {pxPerDay}
+                {totalWidth}
+                onEffectiveChange={(trackId, next) =>
+                  trackNoteService.updateTrackFrontmatter(trackId, { effective: next })}
+              />
             </div>
           </div>
         {/if}
@@ -301,158 +224,6 @@
     color: #e6e6e6;
     margin: 0;
     flex-shrink: 0;
-  }
-
-  .header-controls {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .detail-toggle-btn {
-    background: transparent;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    width: 28px;
-    height: 28px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    color: var(--text-muted);
-    margin-right: 4px;
-  }
-
-  .detail-toggle-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .detail-toggle-btn.active svg {
-    stroke: var(--interactive-accent);
-  }
-
-  .date-label {
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--text-normal);
-    white-space: nowrap;
-    margin: 0 4px;
-  }
-
-  .nav-btn {
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    background: var(--background-primary-alt);
-    color: var(--text-normal);
-    cursor: pointer;
-    font-size: 1.1em;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 28px;
-    width: 28px;
-    flex-shrink: 0;
-  }
-
-  .nav-btn:hover {
-    background: var(--background-modifier-hover);
-  }
-
-  .today-btn {
-    font-size: 0.82em;
-    padding: 0 10px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    background: var(--background-primary-alt);
-    color: var(--text-normal);
-    cursor: pointer;
-    white-space: nowrap;
-    height: 28px;
-    flex-shrink: 0;
-  }
-
-  .today-btn:hover {
-    background: var(--background-modifier-hover);
-  }
-
-  .icon-btn {
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    background: var(--background-primary-alt);
-    color: var(--text-muted);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .icon-btn:hover {
-    background: var(--background-modifier-hover);
-    color: var(--text-normal);
-  }
-
-  /* === Datepicker === */
-  .datepicker-wrap {
-		position: relative;
-		display: flex;
-		align-items: center;
-	}
-
-	.datepicker-wrap :global(.datepicker-hidden-input) {
-		position: absolute;
-		width: 0;
-		height: 0;
-		padding: 0;
-		border: none;
-		opacity: 0;
-		pointer-events: none;
-	}
-  .hidden-date-input {
-    position: absolute;
-    width: 0;
-    height: 0;
-    padding: 0;
-    border: none;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  /* === Preset Group === */
-  .preset-group {
-    display: flex;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    overflow: hidden;
-    margin-left: 4px;
-  }
-
-  .preset-btn {
-    font-size: 0.82em;
-    padding: 4px 8px;
-    border: none;
-    border-right: 1px solid var(--background-modifier-border);
-    background: var(--background-primary-alt);
-    color: var(--text-muted);
-    cursor: pointer;
-    white-space: nowrap;
-    height: 28px;
-  }
-
-  .preset-btn:last-child {
-    border-right: none;
-  }
-
-  .preset-btn:hover {
-    background: var(--background-modifier-hover);
-    color: var(--text-normal);
-  }
-
-  .preset-btn.active {
-    background: var(--interactive-accent);
-    color: white;
   }
 
   /* === Content: sidebar + gantt side by side === */
@@ -579,40 +350,5 @@
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
-  }
-
-  /* Body */
-  .gantt-body {
-    position: relative;
-    padding-top: 8px;
-  }
-
-  /* Grid lines */
-  .grid-lines {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    pointer-events: none;
-    overflow: visible;
-  }
-
-  .grid-line {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    width: 1px;
-    border-left: 1px dashed var(--background-modifier-border);
-    opacity: 0.5;
-  }
-
-  .today-line {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    width: 1px;
-    border-left: 2px solid var(--color-accent, var(--interactive-accent));
-    opacity: 0.7;
-    transform: translateX(-50%);
   }
 </style>
