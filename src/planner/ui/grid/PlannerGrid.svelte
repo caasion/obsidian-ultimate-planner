@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Element, ISODate, RenderTrack, Track, TrackData } from "src/plugin/types";
-	import HeaderCell from "./HeaderCell.svelte";
+	import HeaderCell from "../components/HeaderCell.svelte";
 	import WrapperCell from "./WrapperCell.svelte";
 
     interface Props {

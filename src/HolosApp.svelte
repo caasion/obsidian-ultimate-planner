@@ -6,7 +6,7 @@
 	import ViewSwitcher from "src/components/ViewSwitcher.svelte";
 	import Planner from "src/planner/ui/Planner.svelte";
 	import Timeline from "src/planner/ui/timeline/TimelineView.svelte";
-	import ProjectView from "src/tracks/ui/ProjectView.svelte";
+	import ProjectView from "src/project/ui/ProjectView.svelte";
 	import TracksListView from "src/tracks/ui/TracksListView.svelte";
 	import ProjectGanttView from "src/gantt/ui/ProjectGanttView.svelte";
 	import TasksView from "src/tasks/ui/TasksView.svelte";

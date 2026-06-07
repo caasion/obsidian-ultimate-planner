@@ -6,7 +6,7 @@
 	import Datepicker from "src/components/Datepicker.svelte";
 	import { getISODate } from "src/plugin/helpers";
 	import { isValid, parseISO } from "date-fns";
-	import DataTaskElement from "./DataTaskElement.svelte";
+	import DataTaskElement from "src/components/DataTaskElement.svelte";
 	import type { App } from "obsidian";
 	import { ConfirmationModal } from "src/plugin/ConfirmationModal";
 	import { dropLineDnd } from "src/components/dropLineDnd";

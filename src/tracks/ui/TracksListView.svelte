@@ -4,7 +4,7 @@
 	import { isProjectActive, isTrackActiveByProjects } from "src/plugin/helpers";
 	import { isValid, parseISO } from "date-fns";
 	import { type App, Notice, Component, MarkdownRenderer } from "obsidian";
-	import { NewTrackModal } from "./NewTrackModal";
+	import { NewTrackModal } from "./components/NewTrackModal";
 	import { dropLineDnd } from "src/components/dropLineDnd";
 
 	interface TracksListViewProps {

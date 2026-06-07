@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Element, ISODate, RenderTrack, Track, TrackData } from "src/plugin/types";
     import { getISODate } from "src/plugin/helpers";
-    import HeaderCell from "../grid/HeaderCell.svelte";
+    import HeaderCell from "../components/HeaderCell.svelte";
     import TimelineItem from "./TimelineItem.svelte";
 
     interface Props {

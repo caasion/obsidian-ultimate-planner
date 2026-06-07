@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { Track, Project, Element, ISODate, Phase, TrackData } from "src/plugin/types";
-	import type { TrackNoteService } from "../logic/trackNote";
+	import type { TrackNoteService } from "src/tracks/logic/trackNote";
 	import type { DailyNoteService } from "src/planner/logic/dailyNote";
-	import type { ProjectCardFunctions } from "./ProjectCard.svelte";
-	import type { HabitFunctions } from "./HabitElement.svelte";
-	import ProjectHabitCard from "./ProjectHabitCard.svelte";
-	import DataTaskElement from "./DataTaskElement.svelte";
+	import type { ProjectCardFunctions } from "./components/ProjectCard.svelte";
+	import type { HabitFunctions } from "./components/HabitElement.svelte";
+	import ProjectHabitCard from "./components/ProjectHabitCard.svelte";
+	import DataTaskElement from "src/components/DataTaskElement.svelte";
 	import EditableText from "src/components/EditableText.svelte";
 	import EditableMarkdownText from "src/components/EditableMarkdownText.svelte";
 	import Datepicker from "src/components/Datepicker.svelte";

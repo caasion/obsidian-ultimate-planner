@@ -6,7 +6,7 @@
     dateToX,
     getViewportWidth,
     packProjectsIntoRows,
-  } from "../logic/ganttUtils";
+  } from "../../logic/ganttUtils";
   import GanttPhaseBar from "./GanttPhaseBar.svelte";
 
   interface Props {

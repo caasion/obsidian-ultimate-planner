@@ -12,8 +12,8 @@
     calcTrackHeight,
     WINDOW_PRESETS,
   } from "../logic/ganttUtils";
-  import GanttHeader from "./GanttHeader.svelte";
-  import GanttTrackGroup from "./GanttTrackGroup.svelte";
+  import GanttHeader from "./components/GanttHeader.svelte";
+  import GanttTrackGroup from "./components/GanttTrackGroup.svelte";
 
   interface Props {
     app: App;

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Habit } from "src/plugin/types";
 	import { formatTime } from "src/plugin/helpers";
-	import { RRuleService } from "../logic/rrule";
+	import { RRuleService } from "src/tracks/logic/rrule";
 	import type { HabitFunctions } from "./HabitElement.svelte";
 	import { getISODate, addDaysISO } from "src/plugin/helpers";
 

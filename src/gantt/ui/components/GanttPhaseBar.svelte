@@ -2,14 +2,14 @@
   import { onMount } from "svelte";
   import type { ISODate, Phase } from "src/plugin/types";
   import Portal from "src/components/Portal.svelte";
-  import DataTaskElement from "src/tracks/ui/DataTaskElement.svelte";
+  import DataTaskElement from "src/components/DataTaskElement.svelte";
   import { getISODate } from "src/plugin/helpers";
   import {
     dateToX,
     PHASE_BAR_HEIGHT,
     ROW_HEIGHT,
     TRACK_HEADER_HEIGHT,
-  } from "../logic/ganttUtils";
+  } from "../../logic/ganttUtils";
 
   interface Props {
     phase: Phase;
