@@ -465,7 +465,7 @@
 							</div>
 						</div>
 					{:else}
-						<div class="empty-state">No phases yet.</div>
+						<div class="phase-empty-state">No phases yet.</div>
 					{/if}
 				</div>
 			</div>
@@ -997,12 +997,5 @@
 	.phase-add-task-btn:hover {
 		background: rgba(255, 255, 255, 0.08);
 		color: var(--text-normal);
-	}
-
-	.empty-state {
-		color: var(--text-faint);
-		font-style: italic;
-		font-size: 0.85em;
-		padding: 12px;
 	}
 </style>
