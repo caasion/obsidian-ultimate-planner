@@ -5,6 +5,8 @@
 	import type { TrackNoteService } from "src/tracks/logic/trackNote";
 	import { getISODate, getISODates, calculateTotalTimeSpent, formatTimeArguments, reconstructRawText } from "src/plugin/helpers";
 	import TaskCheckbox from "src/components/TaskCheckbox.svelte";
+	import Datepicker from "src/components/Datepicker.svelte";
+	import Portal from "src/components/Portal.svelte";
 	import { format, parseISO } from "date-fns";
 	import { onMount } from "svelte";
 
@@ -26,7 +28,20 @@
 	let groupMode = $state<GroupMode>('date');
 	let sortField = $state<SortField>('text');
 	let sortDir = $state<SortDir>('asc');
-	let hideCompleted = $state(false);
+
+	// Filters
+	let isFilterOpen = $state(false);
+	let filterBtnEl = $state<HTMLButtonElement>();
+	
+	let filterStatuses = $state<Record<string, boolean>>({
+		' ': true,
+		'/': true,
+		'x': false,
+		'-': false
+	});
+
+	let filterDateRangeFrom = $state<Date | null>(null);
+	let filterDateRangeTo = $state<Date | null>(null);
 
 	function toggleSort(field: SortField) {
 		if (sortField === field) {
@@ -191,11 +206,56 @@
 		return rows;
 	});
 
+	let filterDateStartStr = $derived(filterDateRangeFrom ? getISODate(filterDateRangeFrom) : null);
+	let filterDateEndStr = $derived(filterDateRangeTo ? getISODate(filterDateRangeTo) : null);
+
 	let filteredTasks = $derived(
-		hideCompleted
-			? allTasks.filter(t => t.element.taskStatus !== 'x' && t.element.taskStatus !== '-')
-			: allTasks
+		allTasks.filter(t => {
+			const status = t.element.taskStatus || ' ';
+			if (filterStatuses[status] === false) return false;
+
+			if (filterDateStartStr || filterDateEndStr) {
+				const taskDate = t.element.scheduledDate ?? t.date;
+				if (!taskDate) return false;
+				
+				if (filterDateStartStr && taskDate.localeCompare(filterDateStartStr) < 0) return false;
+				if (filterDateEndStr && taskDate.localeCompare(filterDateEndStr) > 0) return false;
+			}
+			return true;
+		})
 	);
+
+	let portalStyle = $state("");
+
+	function openFilterPopup() {
+		isFilterOpen = !isFilterOpen;
+		if (isFilterOpen && filterBtnEl) {
+			const rect = filterBtnEl.getBoundingClientRect();
+			portalStyle = `position:fixed;top:${rect.bottom + 4}px;right:${window.innerWidth - rect.right}px;z-index:var(--layer-popover, 100);background:var(--background-primary);border:1px solid var(--background-modifier-border);border-radius:6px;box-shadow:var(--shadow-s);padding:16px;display:flex;flex-direction:column;gap:16px;width:300px;`;
+		}
+	}
+
+	function handleOutsideClick(e: MouseEvent) {
+		if (!isFilterOpen) return;
+		const target = e.target as HTMLElement;
+		if (target.closest?.('.holos-datepicker-panel')) return; // ignore clicks inside datepicker
+		
+		const popup = document.querySelector('.tasks-filter-popup');
+		if (filterBtnEl?.contains(target) || popup?.contains(target)) {
+			return;
+		}
+		isFilterOpen = false;
+	}
+
+	onMount(() => {
+		document.addEventListener('click', handleOutsideClick);
+		trackNoteService.loadAllTrackContent();
+		trackNoteService.setupFileWatchers();
+		return () => {
+			document.removeEventListener('click', handleOutsideClick);
+			trackNoteService.cleanupFileWatchers();
+		};
+	});
 
 	/* === Sorting === */
 	function compareTasks(a: TaskRow, b: TaskRow): number {
@@ -350,47 +410,48 @@
 
 		<div class="header-controls">
 			<button
+				bind:this={filterBtnEl}
 				class="detail-toggle-btn"
-				class:active={hideCompleted}
-				onclick={() => hideCompleted = !hideCompleted}
-				title={hideCompleted ? "Show all tasks" : "Hide completed"}
+				class:active={isFilterOpen || filterDateRangeFrom || filterDateRangeTo || !filterStatuses[' '] || !filterStatuses['/'] || filterStatuses['x'] || filterStatuses['-']}
+				onclick={openFilterPopup}
+				title="Filter tasks"
 			>
-				{#if !hideCompleted}
-					<!-- All tasks -->
-					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<rect width="18" height="18" x="3" y="3" rx="2"/>
-						<path d="M21 9H3"/>
-						<path d="M21 15H3"/>
-					</svg>
-				{:else if groupMode === 'track'}
-					<!-- Active tracks -->
-					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
-						<g stroke="currentColor" stroke-width="2">
-							<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
-							<path d="M8 10v4"/>
-							<path d="M12 10v2"/>
-							<path d="M16 10v6"/>
-						</g>
-						<circle cx="19.5" cy="19.5" r="4.5" fill="currentColor" stroke="none"/>
-						<g transform="translate(15.75, 15.75)" stroke="white" stroke-width="0.75" fill="none" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M7.33 4h-.83a.67.67 0 0 0-.64.49l-.78 2.79a.08.08 0 0 1-.16 0L3.08.73a.08.08 0 0 0-.16 0l-.78 2.79A.67.67 0 0 1 1.5 4H.67"/>
-						</g>
-					</svg>
-				{:else}
-					<!-- Active projects -->
-					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
-						<g stroke="currentColor" stroke-width="2">
-							<rect width="18" height="18" x="3" y="3" rx="2"/>
-							<path d="M21 9H3"/>
-							<path d="M21 15H3"/>
-						</g>
-						<circle cx="19.5" cy="19.5" r="4.5" fill="currentColor" stroke="none"/>
-						<g transform="translate(15.75, 15.75)" stroke="white" stroke-width="0.75" fill="none" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M7.33 4h-.83a.67.67 0 0 0-.64.49l-.78 2.79a.08.08 0 0 1-.16 0L3.08.73a.08.08 0 0 0-.16 0l-.78 2.79A.67.67 0 0 1 1.5 4H.67"/>
-						</g>
-					</svg>
-				{/if}
+				<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+				</svg>
 			</button>
+
+			{#if isFilterOpen}
+				<Portal>
+					<div class="tasks-filter-popup" style={portalStyle}>
+						<div class="filter-section">
+							<h4>Status</h4>
+							<div class="status-options">
+								<label><input type="checkbox" bind:checked={filterStatuses[' ']} /> Todo</label>
+								<label><input type="checkbox" bind:checked={filterStatuses['/']} /> In Progress</label>
+								<label><input type="checkbox" bind:checked={filterStatuses['x']} /> Done</label>
+								<label><input type="checkbox" bind:checked={filterStatuses['-']} /> Cancelled</label>
+							</div>
+						</div>
+						<div class="filter-section">
+							<div class="date-header">
+								<h4>Date Range</h4>
+								{#if filterDateRangeFrom || filterDateRangeTo}
+									<button class="clear-btn" onclick={() => { filterDateRangeFrom = null; filterDateRangeTo = null; }}>Clear</button>
+								{/if}
+							</div>
+							<div class="datepicker-wrapper">
+								<Datepicker 
+									inline 
+									range 
+									bind:rangeFrom={filterDateRangeFrom} 
+									bind:rangeTo={filterDateRangeTo} 
+								/>
+							</div>
+						</div>
+					</div>
+				</Portal>
+			{/if}
 
 			<div class="group-toggle">
 				<button
@@ -557,6 +618,61 @@
 
 	.detail-toggle-btn.active svg {
 		stroke: var(--interactive-accent);
+	}
+
+	/* === Filter Popup === */
+	.tasks-filter-popup {
+		color: var(--text-normal);
+		font-size: 0.9em;
+	}
+
+	.filter-section h4 {
+		margin: 0 0 8px 0;
+		font-size: 1em;
+		color: var(--text-muted);
+	}
+
+	.status-options {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.status-options label {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		cursor: pointer;
+	}
+
+	.date-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 8px;
+	}
+
+	.date-header h4 {
+		margin: 0;
+	}
+
+	.clear-btn {
+		background: none;
+		border: none;
+		color: var(--text-muted);
+		cursor: pointer;
+		font-size: 12px;
+		padding: 2px 6px;
+	}
+	
+	.clear-btn:hover {
+		color: var(--text-normal);
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 4px;
+	}
+
+	.datepicker-wrapper {
+		margin-top: 4px;
 	}
 
 	/* === Group Toggle === */
