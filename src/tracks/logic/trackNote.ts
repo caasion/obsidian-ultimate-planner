@@ -375,8 +375,6 @@ export class TrackNoteService {
         const trackFile = trackFiles.track ?? null;
         if (!trackFile) return null;
 
-        console.log(`Loading ${id}`)
-
         const cache = this.app.metadataCache.getFileCache(trackFile);
         let frontmatter = cache?.frontmatter;
         const trackContent = await this.app.vault.read(trackFile);
@@ -390,7 +388,6 @@ export class TrackNoteService {
             }
         } 
 
-        console.log(frontmatter)
         if (!trackContent || !frontmatter) return null;
         
         if (!("order" in frontmatter)) {
@@ -431,8 +428,6 @@ export class TrackNoteService {
     }
 
     private async loadProjectContent(id: string, projectFile: TFile, forceFrontmatterUpdate: boolean = false): Promise<Project | null> {
-        console.log(`Loading ${id}`)
-
         const cache = this.app.metadataCache.getFileCache(projectFile);
         let frontmatter = cache?.frontmatter;
         const projectContent = await this.app.vault.read(projectFile);
@@ -652,7 +647,6 @@ export class TrackNoteService {
 
             const trackId = this.findTrackIdByPath(file.path);
             if (trackId) {
-                console.log(`Track file modified externally: ${file.path}, refreshing track ${trackId}`);
                 await this.refreshTrack(trackId);
             }
         });
@@ -661,7 +655,6 @@ export class TrackNoteService {
         this.fileCreateRef = this.app.vault.on('create', async (file) => {
             if (!(file instanceof TFile) || !this.isInTrackFolder(file.path)) return;
 
-            console.log(`New file created in track folder: ${file.path}, invalidating cache`);
             await this.invalidateCache();
         });
 
@@ -669,7 +662,6 @@ export class TrackNoteService {
         this.fileDeleteRef = this.app.vault.on('delete', async (file) => {
             if (!(file instanceof TFile) || !this.isInTrackFolder(file.path)) return;
 
-            console.log(`File deleted from track folder: ${file.path}, invalidating cache`);
             await this.invalidateCache();
         });
 
@@ -682,7 +674,6 @@ export class TrackNoteService {
 
             // If moved into or out of track folder, or renamed within folder
             if (wasInTrackFolder || isInTrackFolder) {
-                console.log(`File renamed: ${oldPath} -> ${file.path}, invalidating cache`);
                 await this.invalidateCache();
             }
         });
@@ -718,12 +709,10 @@ export class TrackNoteService {
             const trackFolder = this.app.vault.getFolderByPath(trackFolderPath);
             
             if (!trackFolder) {
-                console.log(`Creating folder: ${trackFolderPath}`);
                 await this.app.vault.createFolder(trackFolderPath);
             }
 
             // Create the track file
-            console.log("Creating file")
             const trackFilePath = `${trackFolderPath}/${track.label}.md`;
             const trackContent = this.generateTrackContent(track);
             await this.app.vault.create(trackFilePath, trackContent);
