@@ -14,6 +14,7 @@
   } from "../logic/ganttUtils";
   import GanttHeader from "./components/GanttHeader.svelte";
   import GanttTrackGroup from "./components/GanttTrackGroup.svelte";
+	import Datepicker from "src/components/Datepicker.svelte";
 
   interface Props {
     app: App;
@@ -38,6 +39,10 @@
   let containerWidth = $state(0);
 
   const today = $derived(getISODate(new Date()));
+
+  let datepickerValue = $state<Date | undefined>(undefined);
+  let datepickerRef: ReturnType<typeof Datepicker> | undefined;
+  let datepickerAnchor: HTMLDivElement;
 
   // Center date shifts when panning
   const centerDate = $derived(
@@ -142,8 +147,8 @@
     return `${days}d`;
   }
 
-  function handleDateChange(date: string) {
-    panDays = differenceInDays(parseISO(date), parseISO(today));
+  function handleDatepickerSelect(date: Date) {
+    panDays = differenceInDays(date, parseISO(today));
   }
 </script>
 
@@ -161,18 +166,22 @@
       <button class="nav-btn" onclick={() => pan(-1)} aria-label="Previous">‹</button>
       <button class="nav-btn" onclick={() => pan(1)} aria-label="Next">›</button>
 
-      <div class="datepicker-wrap">
-        <button class="icon-btn" onclick={() => dateInput?.showPicker()} aria-label="Jump to date">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 2v4"/><path d="M21 11.75V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7.25"/><path d="m22 22-1.875-1.875"/><path d="M3 10h18"/><path d="M8 2v4"/><circle cx="18" cy="18" r="3"/></svg>
-        </button>
-        <input
-          type="date"
-          class="hidden-date-input"
-          bind:this={dateInput}
-          bind:value={pickerValue}
-          onchange={() => handleDateChange(pickerValue)}
-        />
-      </div>
+      <div class="datepicker-wrap" bind:this={datepickerAnchor}>
+				<Datepicker
+					bind:this={datepickerRef}
+					bind:value={datepickerValue}
+					inline={false}
+					autohide={true}
+					showToggleButton={false}
+					placeholder=""
+					inputClass="datepicker-hidden-input"
+					anchorElement={datepickerAnchor}
+					onselect={(date: Date) => handleDatepickerSelect(date)}
+				/>
+				<button class="icon-btn" onclick={(e) => { e.stopPropagation(); datepickerRef?.open(); }} aria-label="Jump to date">
+					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-search-icon lucide-calendar-search"><path d="M16 2v4"/><path d="M21 11.75V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7.25"/><path d="m22 22-1.875-1.875"/><path d="M3 10h18"/><path d="M8 2v4"/><circle cx="18" cy="18" r="3"/></svg>
+				</button>
+			</div>
 
       <div class="preset-group">
         {#each WINDOW_PRESETS as preset}
@@ -377,8 +386,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 28px;
-    width: 28px;
     flex-shrink: 0;
   }
 
@@ -389,11 +396,20 @@
 
   /* === Datepicker === */
   .datepicker-wrap {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
 
+	.datepicker-wrap :global(.datepicker-hidden-input) {
+		position: absolute;
+		width: 0;
+		height: 0;
+		padding: 0;
+		border: none;
+		opacity: 0;
+		pointer-events: none;
+	}
   .hidden-date-input {
     position: absolute;
     width: 0;
