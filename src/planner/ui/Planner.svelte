@@ -72,7 +72,6 @@
 	let parsedJournalContent = $derived<Record<ISODate, Record<string, string>>>($parsedJournalContentStore)
 
 	$effect(() => {
-		trackMetaRevision;
 		dailyNoteService.loadMultipleDates(dates);
 	});
 

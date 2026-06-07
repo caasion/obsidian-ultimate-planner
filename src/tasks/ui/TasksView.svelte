@@ -40,8 +40,8 @@
 		'-': false
 	});
 
-	let filterDateRangeFrom = $state<Date | null>(null);
-	let filterDateRangeTo = $state<Date | null>(null);
+	let filterDateRangeFrom = $state<Date | null>(new Date());
+	let filterDateRangeTo = $state<Date | null>(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
 
 	function toggleSort(field: SortField) {
 		if (sortField === field) {
@@ -69,7 +69,6 @@
 	const parsedTracks = $derived($trackStore);
 
 	$effect(() => {
-		trackMetaRevision;
 		dailyNoteService.loadMultipleDates(dates);
 	});
 

@@ -146,7 +146,7 @@
 		return isValid(parsed) ? parsed : undefined;
 	}
 
-	let hideCompletedPhase = $state(false);
+	let hideCompletedPhase = $state(true);
 
 	function isCompletedElement(el: Element): boolean {
 		return el.taskStatus === 'x' || el.taskStatus === '-';

@@ -68,7 +68,6 @@
 	let parsedContent = $derived<Record<ISODate, Record<string, TrackData>>>($parsedContentStore);
 
 	$effect(() => {
-		trackMetaRevision;
 		dailyNoteService.loadMultipleDates(dates);
 	});
 
