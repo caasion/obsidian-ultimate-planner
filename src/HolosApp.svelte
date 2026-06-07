@@ -6,12 +6,12 @@
 	import ViewSwitcher from "src/components/ViewSwitcher.svelte";
 	import Planner from "src/planner/ui/Planner.svelte";
 	import Timeline from "src/planner/ui/timeline/TimelineView.svelte";
-	import ProjectView from "src/project/ui/ProjectView.svelte";
+	import ProjectView from "src/workbench/ui/WorkbenchView.svelte";
 	import TracksListView from "src/tracks/ui/TracksListView.svelte";
 	import ProjectGanttView from "src/gantt/ui/ProjectGanttView.svelte";
 	import TasksView from "src/tasks/ui/TasksView.svelte";
 
-	type ViewId = 'planner' | 'timeline' | 'project' | 'tracks' | 'gantt';
+	type ViewId = 'planner' | 'timeline' | 'workbench' | 'tracks' | 'gantt';
 
 	interface Props {
 		app: App;
@@ -43,16 +43,15 @@
 		},
 		{ type: 'divider' as const },
 		{
-			id: 'project' as ViewId,
-			label: 'Project',
-			svg: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-kanban-icon lucide-folder-kanban"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><path d="M8 10v4"/><path d="M12 10v2"/><path d="M16 10v6"/></svg>',
+			id: 'workbench' as ViewId,
+			label: 'Workbench',
+			svg: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15h4"/><path d="m14.817 10.995-.971-1.45 1.034-1.232a2 2 0 0 0-2.025-3.238l-1.82.364L9.91 3.885a2 2 0 0 0-3.625.748L6.141 6.55l-1.725.426a2 2 0 0 0-.19 3.756l.657.27"/><path d="m18.822 10.995 2.26-5.38a1 1 0 0 0-.557-1.318L16.954 2.9a1 1 0 0 0-1.281.533l-.924 2.122"/><path d="M4 12.006A1 1 0 0 1 4.994 11H19a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>',
 		},
 		{
 			id: 'gantt' as ViewId,
 			label: 'Gantt',
 			svg: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-no-axes-gantt-icon lucide-chart-no-axes-gantt"><path d="M6 5h12"/><path d="M4 12h10"/><path d="M12 19h8"/></svg>',
 		},
-		{ type: 'divider' as const },
 		{
 			id: 'tracks' as ViewId,
 			label: 'Tracks',
@@ -70,7 +69,7 @@
 		<Timeline {app} {settings} {dailyNoteService} {trackNoteService} {saveSettings} />
 	{:else if currentView === 'tasks'}
 		<TasksView {app} {settings} {dailyNoteService} {trackNoteService} {saveSettings} />
-	{:else if currentView === 'project'}
+	{:else if currentView === 'workbench'}
 		<ProjectView {app} {trackNoteService} {dailyNoteService} />
 	{:else if currentView === 'gantt'}
 		<ProjectGanttView {app} {trackNoteService} />
