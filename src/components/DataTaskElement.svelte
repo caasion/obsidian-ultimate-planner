@@ -206,7 +206,7 @@
 				<span
 					class="element-text"
 					class:checked={element.taskStatus == "x"}
-					class:partial={element.taskStatus == :/}
+					class:partial={element.taskStatus == '/'}
 					class:cancelled={element.taskStatus == "-"}
 				>
 					{element.text}
