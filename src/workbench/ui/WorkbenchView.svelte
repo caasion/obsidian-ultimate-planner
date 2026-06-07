@@ -372,6 +372,19 @@
 					{#if selectedProject.phases.length === 1}
 						{@const phase = selectedProject.phases[0]}
 						{@const visiblePhaseData = hideCompletedPhase ? phase.data.map((el, i) => ({el, i})).filter(({el}) => !isCompletedElement(el)) : phase.data.map((el, i) => ({el, i}))}
+						<div class="single-phase-dates">
+							<Datepicker
+								range
+								rangeFrom={toDate(phase.startDate)}
+								rangeTo={toDate(phase.endDate)}
+								openEndedLabel="?"
+								rangeSeparator=" - "
+								onselect={(sel) => handlePhaseRangeSelect(phase.id, sel)}
+								showToggleButton={false}
+								inputProps={{ readonly: true }}
+								inputClass="single-phase-date-input"
+							/>
+						</div>
 						<div class="single-phase-tasks">
 							{#each visiblePhaseData as {el: element, i: idx} (idx)}
 								{@const refCount = getRefCount(element.blockId)}
@@ -830,6 +843,27 @@
 	.define-habit-btn:hover {
 		background: rgba(255, 255, 255, 0.06);
 		border-color: rgba(255, 255, 255, 0.25);
+	}
+
+	.single-phase-dates {
+		display: flex;
+		align-items: center;
+		margin-bottom: 10px;
+	}
+
+	:global(.single-phase-date-input) {
+		width: auto;
+		max-width: 180px;
+		border: none;
+		background: transparent;
+		padding: 2px 0;
+		cursor: pointer;
+		font-size: 0.85em;
+		color: var(--text-muted);
+	}
+
+	:global(.single-phase-date-input:hover) {
+		color: var(--text-normal);
 	}
 
 	.single-phase-tasks {
