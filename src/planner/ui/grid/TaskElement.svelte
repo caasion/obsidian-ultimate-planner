@@ -185,7 +185,7 @@
 				</div>
 				<span
 					class="element-text"
-					class:checked={element.taskStatus == "x" || (element.taskStatus !== " " && element.progress === undefined && element.duration) || (element.progress && element.duration && element.progress >= element.duration)}
+					class:checked={element.taskStatus == "x"}
 					class:cancelled={element.taskStatus == "-"}
 				>
 					{element.text.replace(/\s*\[\[[^\]]+\]\]\s*$/, '')}
