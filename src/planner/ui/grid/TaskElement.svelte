@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Element, Time } from "src/plugin/types";
 	import { formatTime } from "src/plugin/helpers";
-	import { longpress } from "src/plugin/actions"
+	import TaskCheckbox from "src/components/TaskCheckbox.svelte";
 
 	interface TaskElementProps {
 		element: Element;
@@ -27,16 +27,6 @@
 	let isEditing = $state<boolean>(false);
 	let editText = $state<string>("");
 	let skipBlur = $state<boolean>(false);
-	let checkboxRef = $state<HTMLInputElement>();
-
-	// Handle longpress event
-	$effect(() => {
-		if (checkboxRef) {
-			const handler = () => onCancel(index);
-			checkboxRef.addEventListener('longpress', handler);
-			return () => checkboxRef?.removeEventListener('longpress', handler);
-		}
-	});
 
 	function startEdit() {
 		isEditing = true;
@@ -128,12 +118,6 @@
 		}
 	}
 
-	function toggleTask() {
-		if (element.isTask) {
-			onToggle(index);
-		}
-	}
-
 	function deleteElement() {
 		onDelete(index);
 	}
@@ -171,14 +155,10 @@
 								</svg>
 							</button>
 						{:else}
-							<input
-								bind:this={checkboxRef}
-								type="checkbox"
-								checked={element.taskStatus == "x"}
-								onchange={toggleTask}
-								use:longpress={500}
-								class="task-checkbox"
-								title="Mark session done"
+							<TaskCheckbox
+								status={element.taskStatus}
+								onToggle={() => onToggle(index)}
+								onCancel={() => onCancel(index)}
 							/>
 						{/if}
 					{/if}

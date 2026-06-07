@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Element, ISODate, Time } from "src/plugin/types";
 	import { formatTime, reconstructRawText } from "src/plugin/helpers";
-	import { longpress } from "src/plugin/actions"
 	import Datepicker from "src/components/Datepicker.svelte";
+	import TaskCheckbox from "src/components/TaskCheckbox.svelte";
 	import Portal from "src/components/Portal.svelte";
 	import { onMount } from "svelte";
 
@@ -28,16 +28,6 @@
 	let isEditing = $state<boolean>(false);
 	let editText = $state<string>("");
 	let skipBlur = $state<boolean>(false);
-	let checkboxRef = $state<HTMLInputElement>();
-
-	// Handle longpress event
-	$effect(() => {
-		if (checkboxRef) {
-			const handler = () => onCancel(index);
-			checkboxRef.addEventListener('longpress', handler);
-			return () => checkboxRef?.removeEventListener('longpress', handler);
-		}
-	});
 
 	function startEdit() {
 		isEditing = true;
@@ -212,13 +202,10 @@
 			<div class="element-top-row">
 				<div class="element-checkbox-container">
 					{#if element.taskStatus}
-						<input
-							bind:this={checkboxRef}
-							type="checkbox"
-							checked={element.taskStatus == "x"}
-							onchange={toggleTask}
-							use:longpress={500}
-							class="task-checkbox"
+						<TaskCheckbox
+							status={element.taskStatus}
+							onToggle={() => onToggle(index)}
+							onCancel={() => onCancel(index)}
 						/>
 					{/if}
 				</div>

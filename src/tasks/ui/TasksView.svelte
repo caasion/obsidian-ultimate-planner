@@ -4,6 +4,7 @@
 	import type { DailyNoteService } from "src/planner/logic/dailyNote";
 	import type { TrackNoteService } from "src/tracks/logic/trackNote";
 	import { getISODate, getISODates, calculateTotalTimeSpent, formatTimeArguments, reconstructRawText } from "src/plugin/helpers";
+	import TaskCheckbox from "src/components/TaskCheckbox.svelte";
 	import { format, parseISO } from "date-fns";
 	import { onMount } from "svelte";
 
@@ -462,12 +463,13 @@
 					{@const isCancelled = task.element.taskStatus === '-'}
 					<div class="task-row" class:task-completed={isCompleted} class:task-cancelled={isCancelled}>
 						<div class="task-cell col-task">
-							<input
-								type="checkbox"
-								checked={isCompleted}
-								onchange={() => handleToggle(task)}
-								class="task-checkbox"
+							{#if task.element.taskStatus}
+								<TaskCheckbox
+									status={task.element.taskStatus}
+									onToggle={() => handleToggle(task)}
+									onCancel={() => {}}
 							/>
+							{/if}
 							<span class="task-color-indicator" style={`background: ${task.trackColor};`}></span>
 							<span class="task-text">{task.element.text}</span>
 						</div>
