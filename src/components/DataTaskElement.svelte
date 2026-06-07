@@ -47,7 +47,7 @@
 		}
 
 		let isTask = false;
-		let taskStatus: ' ' | 'x' | '-' | undefined;
+		let taskStatus: ' ' | '/' | 'x' | '-' | undefined;
 		let startTime: Time | undefined;
 		let progress: number | undefined;
 		let duration: number | undefined;
@@ -73,7 +73,7 @@
 			scheduledDate = date as ISODate;
 		}
 
-		const taskStatusRegex = /^\[([ x-])\]/;
+		const taskStatusRegex = /^\[([ x\/\-])\]/;
 		const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
 		const progressDurationRegex = /\[(?:(\d+)?(\/))?(\d+)\s*(hr|min)\]/;
 
@@ -130,12 +130,6 @@
 			e.preventDefault();
 			cancelEdit();
 			skipBlur = true;
-		}
-	}
-
-	function toggleTask() {
-		if (element.isTask) {
-			onToggle(index);
 		}
 	}
 
@@ -211,7 +205,8 @@
 				</div>
 				<span
 					class="element-text"
-					class:checked={element.taskStatus == "x" || (element.taskStatus !== " " && element.progress === undefined && element.duration) || (element.progress && element.duration && element.progress >= element.duration)}
+					class:checked={element.taskStatus == "x"}
+					class:partial={element.taskStatus == :/}
 					class:cancelled={element.taskStatus == "-"}
 				>
 					{element.text}
@@ -326,11 +321,6 @@
 		margin-top: 1px;
 	}
 
-	.task-checkbox {
-		cursor: pointer;
-		margin: 0;
-	}
-
 	.element-text {
 		flex: 1;
 		line-height: 1.4;
@@ -340,6 +330,10 @@
 	.checked {
 		text-decoration: line-through;
 		opacity: 0.5;
+	}
+
+	.partial {
+		opacity: 0.9;
 	}
 
 	.cancelled {

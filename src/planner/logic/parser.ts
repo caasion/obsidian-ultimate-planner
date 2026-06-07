@@ -345,7 +345,7 @@ export class PlannerParser {
 		let text = line.replace(/^\s*- /, '');
 
 	    let isTask = false;
-		let taskStatus: ' ' | 'x' | '-' | undefined;
+		let taskStatus: ' ' | '/' | 'x' | '-' | undefined;
 		let startTime: Time | undefined;
 		let progress: number | undefined;
 		let duration: number | undefined;
@@ -381,7 +381,7 @@ export class PlannerParser {
 			sourceRef = ref;
 		}
 
-		const taskStatusRegex = /^\[([ x-])\]/;
+		const taskStatusRegex = /^\[([ x\/\-])\]/;
 		const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
 		const progressDurationRegex = /\[(?:(\d+)?(\/))?(\d+)\s*(hr|min)\]/;
 

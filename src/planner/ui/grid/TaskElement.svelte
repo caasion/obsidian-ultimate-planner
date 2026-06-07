@@ -46,7 +46,7 @@
 		}
 
 		let isTask = false;
-		let taskStatus: ' ' | 'x' | '-' | undefined;
+		let taskStatus: ' ' | '/' | 'x' | '-' | undefined;
 		let startTime: Time | undefined;
 		let progress: number | undefined;
 		let duration: number | undefined;
@@ -62,7 +62,7 @@
 			sourceRef = ref;
 		}
 
-		const taskStatusRegex = /^\[([ x-])\]/;
+		const taskStatusRegex = /^\[([ x\/\-])\]/;
 		const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
 		const progressDurationRegex = /\[(?:(\d+)?(\/))?(\d+)\s*(hr|min)\]/;
 
@@ -166,6 +166,7 @@
 				<span
 					class="element-text"
 					class:checked={element.taskStatus == "x"}
+					class:partial={element.taskStatus == "/"}
 					class:cancelled={element.taskStatus == "-"}
 				>
 					{element.text.replace(/\s*\[\[[^\]]+\]\]\s*$/, '')}
@@ -243,11 +244,6 @@
 		margin-top: 1px;
 	}
 
-	.task-checkbox {
-		cursor: pointer;
-		margin: 0;
-	}
-
 	.project-checkbox {
 		cursor: pointer;
 		background: transparent;
@@ -279,6 +275,10 @@
 	.checked {
 		text-decoration: line-through;
 		opacity: 0.5;
+	}
+
+	.partial {
+		opacity: 0.9;
 	}
 
 	.cancelled {

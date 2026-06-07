@@ -220,12 +220,18 @@
         onUpdate(date, trackId, { ...trackData, items: updatedItems });
     }
 
+    function nextTaskStatus(current: ' ' | '/' | 'x' | '-' | undefined): ' ' | '/' | 'x' {
+        if (current === ' ') return '/';
+        if (current === '/') return 'x';
+        return ' ';
+    }
+
     function toggleTask(index: number) {
         if (!trackData) return;
         const updatedItems = [...trackData.items];
         const element = updatedItems[index];
         if (element.isTask) {
-            const newTaskStatus = element.taskStatus == ' ' ? 'x' : ' ';
+            const newTaskStatus = nextTaskStatus(element.taskStatus);
             const raw = reconstructRawText(
                 element.text, element.isTask, newTaskStatus,
                 element.startTime, element.progress, element.duration, element.timeUnit,

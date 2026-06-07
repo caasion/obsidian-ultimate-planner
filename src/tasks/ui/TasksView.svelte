@@ -309,7 +309,7 @@
 	/* === Task Actions === */
 	function handleToggle(task: TaskRow) {
 		if (!task.element.isTask) return;
-		const newStatus: ' ' | 'x' = task.element.taskStatus === 'x' ? ' ' : 'x';
+		const newStatus = task.element.taskStatus === ' ' ? '/' : task.element.taskStatus === '/' ? 'x' : ' ';
 
 		if (task.source === 'daily' && task.dailyDate !== undefined && task.dailyItemIndex !== undefined) {
 			const trackData = parsedContent[task.dailyDate]?.[task.trackId];
@@ -323,11 +323,11 @@
 			updatedItems[task.dailyItemIndex] = { ...task.element, taskStatus: newStatus, raw };
 			dailyNoteService.updateTrackCell(task.dailyDate, task.trackId, { ...trackData, items: updatedItems });
 
-			// Sync to project source if applicable
-			if (task.element.sourceRef) {
+			// Sync to project source if applicable (only for full complete/uncomplete, not partial)
+			if (task.element.sourceRef && newStatus !== '/') {
 				const match = task.element.sourceRef.match(/\[\[[^\]]+#\^([a-zA-Z0-9]+)\]\]/);
 				if (match) {
-					trackNoteService.closeProjectTaskByBlockId(task.trackId, match[1], newStatus);
+					trackNoteService.closeProjectTaskByBlockId(task.trackId, match[1], newStatus as ' ' | 'x');
 				}
 			}
 		} else if (task.source === 'project' && task.projectId && task.phaseId !== undefined && task.projectDataIndex !== undefined) {
@@ -460,15 +460,16 @@
 				{#each group.tasks as task}
 					{@const timeBadge = formatTimeBadge(task.timeSpent, task.timeCommitment)}
 					{@const isCompleted = task.element.taskStatus === 'x'}
+					{@const isPartial = task.element.taskStatus === '/'}
 					{@const isCancelled = task.element.taskStatus === '-'}
-					<div class="task-row" class:task-completed={isCompleted} class:task-cancelled={isCancelled}>
+					<div class="task-row" class:task-completed={isCompleted} class:task-partial={isPartial} class:task-cancelled={isCancelled}>
 						<div class="task-cell col-task">
 							{#if task.element.taskStatus}
 								<TaskCheckbox
 									status={task.element.taskStatus}
 									onToggle={() => handleToggle(task)}
 									onCancel={() => {}}
-							/>
+								/>
 							{/if}
 							<span class="task-color-indicator" style={`background: ${task.trackColor};`}></span>
 							<span class="task-text">{task.element.text}</span>
@@ -735,6 +736,10 @@
 	.task-cancelled .task-text {
 		text-decoration: line-through;
 		opacity: 0.5;
+	}
+
+	.task-partial .task-text {
+		opacity: 0.7;
 	}
 
 	.task-cell {

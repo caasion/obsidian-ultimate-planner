@@ -25,7 +25,7 @@ export interface Element {
 	text: string;
 	children: string[];
 	isTask: boolean;
-    taskStatus?: ' ' | 'x' | '-';
+    taskStatus?: ' ' | '/' | 'x' | '-';
 	startTime?: Time; // in ISO time
     progress?: number;
     duration?: number;

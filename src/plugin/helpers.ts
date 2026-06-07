@@ -132,7 +132,7 @@ export function formatProgressDuration(progress: number | undefined, duration: n
 export function reconstructRawText(
     text: string,
     isTask: boolean,
-    taskStatus: ' ' | 'x' | '-' | undefined,
+    taskStatus: ' ' | '/' | 'x' | '-' | undefined,
     startTime: Time | undefined,
     progress: number | undefined,
     duration: number | undefined,

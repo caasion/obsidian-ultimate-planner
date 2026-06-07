@@ -1432,7 +1432,7 @@ export class TrackNoteService {
         );
     }
 
-    /** Toggle a task's completion within a phase */
+    /** Toggle a task's completion within a phase: ' ' → '/' → 'x' → ' ' */
     async togglePhaseData(trackId: string, projectId: string, phaseId: string, elementIndex: number): Promise<void> {
         await this.mutatePhases(trackId, projectId, (phases) =>
             phases.map(p => {
@@ -1440,7 +1440,8 @@ export class TrackNoteService {
                 const newData = [...p.data];
                 if (elementIndex >= 0 && elementIndex < newData.length) {
                     const el = newData[elementIndex];
-                    newData[elementIndex] = { ...el, taskStatus: el.taskStatus === 'x' ? ' ' : 'x' };
+                    const next = el.taskStatus === ' ' ? '/' : el.taskStatus === '/' ? 'x' : ' ';
+                    newData[elementIndex] = { ...el, taskStatus: next as typeof el.taskStatus };
                 }
                 return { ...p, data: newData };
             })

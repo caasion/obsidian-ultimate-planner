@@ -103,7 +103,7 @@
 		const element = trackData.items[index];
 		if (!element?.isTask) return;
 
-		const newTaskStatus: ' ' | 'x' = element.taskStatus === 'x' ? ' ' : 'x';
+		const newTaskStatus = element.taskStatus === ' ' ? '/' : element.taskStatus === '/' ? 'x' : ' ';
 		const raw = reconstructRawText(
 			element.text, element.isTask, newTaskStatus,
 			element.startTime, element.progress, element.duration, element.timeUnit,
@@ -114,10 +114,10 @@
 		dailyNoteService.updateTrackCell(date, trackId, { ...trackData, items: updatedItems });
 
 		// If it's a project task, also sync to the source file
-		if (element.sourceRef) {
+		if (element.sourceRef && newTaskStatus !== '/') {
 			const match = element.sourceRef.match(/\[\[[^\]]+#\^([a-zA-Z0-9]+)\]\]/);
 			if (match) {
-				trackNoteService.closeProjectTaskByBlockId(trackId, match[1], newTaskStatus);
+				trackNoteService.closeProjectTaskByBlockId(trackId, match[1], newTaskStatus as ' ' | 'x');
 			}
 		}
 	}
