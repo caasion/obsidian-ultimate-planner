@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Track, Project } from "src/plugin/types";
 	import type { TrackNoteService } from "../logic/trackNote";
-	import { isProjectActive, isTrackActiveByProjects } from "src/plugin/helpers";
+	import { isProjectActive, isTrackActiveByProjects, getISODate } from "src/plugin/helpers";
 	import { isValid, parseISO } from "date-fns";
 	import { type App, Notice, Component, MarkdownRenderer } from "obsidian";
 	import { NewTrackModal } from "./components/NewTrackModal";
