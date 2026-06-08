@@ -474,7 +474,7 @@
 
 	<div class="tasks-body">
 		{#if groupedTasks.length === 0}
-			<div class="empty-state">No tasks found</div>
+			<div class="empty-tasks-state">No tasks found</div>
 		{/if}
 
 		{#each groupedTasks as group (group.key)}
@@ -720,7 +720,7 @@
 		padding: 0 16px 16px;
 	}
 
-	.empty-state {
+	.empty-tasks-state {
 		color: var(--text-faint);
 		font-style: italic;
 		font-size: 0.85em;
