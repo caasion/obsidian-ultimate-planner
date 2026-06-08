@@ -5,7 +5,7 @@
 	import EditableMarkdownText from "src/components/EditableMarkdownText.svelte";
 	import TrackMiniGantt from "./TrackMiniGantt.svelte";
 	import { isTrackActiveByProjects } from "src/plugin/helpers";
-	import { type App } from "obsidian";
+	import { type App, Notice } from "obsidian";
 
 	interface Props {
 		track: Track;
@@ -18,6 +18,20 @@
 
 	const isActive = $derived(isTrackActiveByProjects(track));
 	const projectCount = $derived(Object.keys(track.projects).length);
+
+	let colorInputRef = $state<HTMLInputElement | undefined>(undefined);
+
+	function handleColorChange(e: Event) {
+		const input = e.target as HTMLInputElement;
+		trackNoteService.updateTrackColor(trackId, input.value);
+	}
+
+	async function handleAddProject() {
+		const project = trackNoteService.newProjectFactory(trackId);
+		const success = await trackNoteService.createProject(trackId, project);
+		if (success) new Notice(`Project "${project.label}" created`);
+		else new Notice('Failed to create project');
+	}
 </script>
 
 <div class="track-detail-content">
@@ -30,15 +44,35 @@
 			</div>
 			<div class="track-meta">
 				<span class="track-meta-item">{projectCount} project{projectCount !== 1 ? 's' : ''}</span>
+				<button class="track-add-project-btn" onclick={handleAddProject} title="Add new project">
+					+ New Project
+				</button>
 			</div>
 		</div>
 
-		<EditableText
-			value={track.label}
-			onSave={(label) => trackNoteService.updateTrackLabel(trackId, label)}
-			placeholder="Track name..."
-			class="track-detail-title"
-		/>
+		<div class="track-title-row">
+			<EditableText
+				value={track.label}
+				onSave={(label) => trackNoteService.updateTrackLabel(trackId, label)}
+				placeholder="Track name..."
+				class="track-detail-title"
+			/>
+			<button
+				class="track-color-btn"
+				style={`background: ${track.color};`}
+				title="Change track color"
+				onclick={() => colorInputRef?.click()}
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2Z"/></svg>
+			</button>
+			<input
+				bind:this={colorInputRef}
+				type="color"
+				value={track.color}
+				onchange={handleColorChange}
+				class="track-color-input-hidden"
+			/>
+		</div>
 
 		<EditableMarkdownText
 			value={track.description}
@@ -106,10 +140,64 @@
 		color: var(--text-faint);
 	}
 
+	.track-title-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
 	:global(.track-detail-title) {
 		font-size: 1.8em;
 		font-weight: 700;
-		width: 100%;
+		flex: 1;
+	}
+
+	.track-color-btn {
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		border: 2px solid rgba(255, 255, 255, 0.2);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		padding: 0;
+		box-shadow: none;
+		transition: border-color 150ms ease;
+	}
+
+	.track-color-btn svg {
+		color: rgba(255, 255, 255, 0.8);
+		mix-blend-mode: difference;
+	}
+
+	.track-color-btn:hover {
+		border-color: rgba(255, 255, 255, 0.5);
+	}
+
+	.track-color-input-hidden {
+		position: absolute;
+		width: 0;
+		height: 0;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.track-add-project-btn {
+		background: transparent;
+		border: none;
+		color: var(--text-muted);
+		cursor: pointer;
+		font-size: 0.8em;
+		padding: 2px 8px;
+		border-radius: 4px;
+		box-shadow: none;
+	}
+
+	.track-add-project-btn:hover {
+		background: rgba(255, 255, 255, 0.1);
+		color: var(--text-normal);
 	}
 
 	:global(.track-detail-description) {
