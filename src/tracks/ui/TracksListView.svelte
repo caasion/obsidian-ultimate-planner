@@ -73,13 +73,15 @@
 		if (tags.length === 0) return;
 
 		// Temporarily show all tags for measurement
-		const prevDisplay: string[] = [];
-		tags.forEach((tag, i) => {
-			prevDisplay[i] = tag.style.display;
-			tag.style.display = '';
+		const hiddenTags: HTMLElement[] = [];
+		tags.forEach((tag) => {
+			if (tag.classList.contains('dnd-measure-hidden')) {
+				tag.classList.remove('dnd-measure-hidden');
+				hiddenTags.push(tag);
+			}
 		});
-		const prevOverflowDisplay = overflowTag?.style.display ?? '';
-		if (overflowTag) overflowTag.style.display = '';
+		const overflowWasHidden = overflowTag?.classList.contains('dnd-measure-hidden') ?? false;
+		if (overflowTag) overflowTag.classList.remove('dnd-measure-hidden');
 
 		const containerWidth = container.clientWidth;
 		const gap = 6;
@@ -118,10 +120,10 @@
 		}
 
 		// Restore previous display values
-		tags.forEach((tag, i) => {
-			tag.style.display = prevDisplay[i];
+		hiddenTags.forEach((tag) => {
+			tag.classList.add('dnd-measure-hidden');
 		});
-		if (overflowTag) overflowTag.style.display = prevOverflowDisplay;
+		if (overflowTag && overflowWasHidden) overflowTag.classList.add('dnd-measure-hidden');
 
 		visibleCounts.set(trackId, fitCount);
 		visibleCounts = new Map(visibleCounts);
@@ -313,17 +315,17 @@
 							{#each projects as project, i}
 								<span
 									class="project-tag"
+									class:dnd-measure-hidden={i >= vCount}
 									style:border-color={track.color}
 									style:color={track.color}
-									style:display={i >= vCount ? 'none' : null}
 								>{project.label}</span>
 							{/each}
 							{#if projects.length > 1}
 								<span
 									class="project-tag overflow-tag"
+									class:dnd-measure-hidden={hiddenCount <= 0}
 									style:border-color={track.color}
 									style:color={track.color}
-									style:display={hiddenCount > 0 ? null : 'none'}
 									title={projects.slice(vCount).map(p => p.label).join('\n')}
 								>+{hiddenCount}</span>
 							{/if}
@@ -533,6 +535,10 @@
 
 	.overflow-tag {
 		opacity: 0.7;
+	}
+
+	:global(.dnd-measure-hidden) {
+		display: none;
 	}
 
 	.track-row-dates {

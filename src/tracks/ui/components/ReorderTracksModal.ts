@@ -49,7 +49,7 @@ export class ReorderTracksModal extends Modal {
 
             // Color swatch
             const swatch = item.createDiv({ cls: "holos-reorder-swatch" });
-            swatch.style.backgroundColor = track.color;
+            swatch.setCssProps({ "--swatch-color": track.color });
 
             // Drag handle icon
             item.createDiv({ cls: "holos-reorder-handle", text: "⠿" });
