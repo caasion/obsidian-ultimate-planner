@@ -18,7 +18,7 @@ export class HolosSettingsTab extends PluginSettingTab {
 
         new Setting(containerEl).setName('Refresh view after changing settings.')
 
-        new Setting(containerEl).setName('Table Settings').setHeading();
+        new Setting(containerEl).setName('Table').setHeading();
         
         new Setting(containerEl)
             .setName('Week Format')
@@ -107,7 +107,7 @@ export class HolosSettingsTab extends PluginSettingTab {
                     })
             )
 
-        new Setting(containerEl).setName('Track Settings').setHeading();
+        new Setting(containerEl).setName('Tracks').setHeading();
 
         new Setting(containerEl)
             .setName('Create projects as folder notes')
