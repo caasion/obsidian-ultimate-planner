@@ -29,13 +29,11 @@ export class NewTrackModal extends Modal {
             .addText((t) => t.onChange((v) => (track.label = v)));
 
         // Create error label (hidden by default)
-        const errorLabel = document.createElement("label");
-            errorLabel.textContent = "Track name cannot be empty";
-            errorLabel.style.color = "var(--text-error)";
-            errorLabel.style.display = "none";
-            errorLabel.style.marginBottom = "1em";
-        
-        contentEl.appendChild(errorLabel);
+        const errorLabel = contentEl.createEl("label", {
+            text: "Track name cannot be empty",
+            cls: "holos-modal-error-label",
+        });
+        errorLabel.hide();
 
         new Setting(contentEl)
             .setName("ID")
@@ -79,7 +77,7 @@ export class NewTrackModal extends Modal {
         new Setting(contentEl)
             .addButton((b) => b.setButtonText("Add").setCta().onClick(() => {
                 if (track.label == "") {
-                    errorLabel.style.display = "block";
+                    errorLabel.show();
                     return;
                 }
                 onSubmit(track);

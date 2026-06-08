@@ -1,51 +1,6 @@
 import { Modal, App } from "obsidian";
 import type { Track } from "src/plugin/types";
 
-const MODAL_STYLE_ID = "holos-reorder-modal-styles";
-const MODAL_STYLES = `
-.holos-reorder-modal { max-width: 420px; }
-.holos-reorder-hint { color: var(--text-muted); margin-bottom: 12px; }
-.holos-reorder-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: 16px;
-}
-.holos-reorder-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    background: var(--background-secondary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    cursor: grab;
-    user-select: none;
-}
-.holos-reorder-item.is-dragging { opacity: 0.4; }
-.holos-reorder-item.drag-over {
-    border-color: var(--interactive-accent);
-    background: var(--background-modifier-hover);
-}
-.holos-reorder-swatch {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-.holos-reorder-handle {
-    color: var(--text-muted);
-    font-size: 16px;
-    line-height: 1;
-    cursor: grab;
-}
-.holos-reorder-label { flex: 1; font-weight: 500; }
-.holos-reorder-buttons { display: flex; gap: 8px; justify-content: flex-end; }
-`;
-
 export class ReorderTracksModal extends Modal {
     private orderedTracks: Track[];
     private onSubmit: (orderedIds: string[]) => void;
@@ -57,13 +12,6 @@ export class ReorderTracksModal extends Modal {
     }
 
     onOpen() {
-        if (!document.getElementById(MODAL_STYLE_ID)) {
-            const styleEl = document.createElement("style");
-            styleEl.id = MODAL_STYLE_ID;
-            styleEl.textContent = MODAL_STYLES;
-            document.head.appendChild(styleEl);
-        }
-
         const { contentEl } = this;
         contentEl.empty();
         contentEl.addClass("holos-reorder-modal");
