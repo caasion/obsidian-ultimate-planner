@@ -1,8 +1,6 @@
-<img width="1100" height="500" alt="holos_logo3_right" src="https://github.com/user-attachments/assets/8ad471bf-724b-468e-a143-23017f3940c7" />
+An integrated productivity system for Obsidian that bridges the gap between big-picture life planning and daily execution.
 
-**An integrated productivity system for Obsidian that bridges the gap between big-picture life planning and daily execution.**
-
-Most productivity setups are fragmented — Google Calendar for scheduling, Obsidian for planning, a separate app for tasks. None of them connect "what am I focusing on this season of my life?" to "what am I actually doing today?"
+Most productivity setups are fragmented: Google Calendar for scheduling, Obsidian for planning, a separate app for tasks. None of them connect "what am I focusing on this season of my life?" to "what am I actually doing today?"
 
 Holos fixes that with a three-tier system built entirely inside Obsidian, with everything stored in plain markdown files you can read and edit directly.
 
@@ -10,23 +8,34 @@ Holos fixes that with a three-tier system built entirely inside Obsidian, with e
 
 ## Demo
 
-https://github.com/user-attachments/assets/0adbb3cd-8ad8-48ba-8204-7a00708c6e39
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=WMvmQQU-uZw">
+    <img src="https://www.youtube.com/watch?v=WMvmQQU-uZw" alt="Watch the video" width="70%">
+  </a>
+</p>
 
 ---
 
 ## How It Works
 
+![Tracks flow to Projects, which flow to tasks](docs/how_it_works.png)
+
 ### Tracks and Projects
-Tracks define what you're focusing on in a current phase of life. Think of them as the high-level areas that matter to you right now — work, health, a side project, a relationship. Each track has its own color, journal header, and time commitment target. Projects live inside tracks and drill into specific areas you're actively working on. Each project has a start and end date, a description, recurring habits, and tasks to complete.
+Tracks define what you're focusing on in a current phase of life. They are high-level areas that matter to you right now: work, health, school, a relationship.
 
-<img width="1669" height="961" alt="image" src="https://github.com/user-attachments/assets/e4a5f169-e8ed-42dc-aca7-e2b72a338572" />
+Projects live inside tracks and drill into specific areas you're actively working on.Each project has phases, which contain tasks to complete, and recurring habits that you can define.
 
-### The Planning Grid
-The grid is where everything comes together. Each column is a day, each row is a track. This is your daily view — what you're doing today across every area of your life, all in one place.
+![Tracks View](docs/tracks_view.png)
+![Gantt View](docs/gantt_view.png)
+![Workbench View Track](docs/workbench_track.png)
+![Workbench View Project](docs/workbench_project.png)
 
-<img width="1919" height="1002" alt="image" src="https://github.com/user-attachments/assets/c37ff102-c4b9-4d9e-964b-8750d9a2cc1c" />
+### Tasks
+Tasks come together in 3 views, each with their own focus.
 
-Within each grid cell you can:
+The Planner view is a grid where each column is a day, and each row is a track. This allows you to see what you've doing today across every area of your life, all in one place.
+
+The Planner grid is the most powerful, within each cell grid, you can:
 - Add tasks using plain text formatting (inspired by markdown — type it, it renders when you click away)
 - Set time labels and durations on individual tasks
 - Track time commitment per cell, automatically tallied in the corner
@@ -36,44 +45,42 @@ Within each grid cell you can:
 
 Every cell links back to a markdown file. Everything you see in the grid is real, editable plain text in your vault.
 
+![Planner view](docs/planner_view.png)
+
+The Timeline view helps you visualize how tasks fit together within your day.
+![Timeline view](docs/timeline_view.png)
+
+The Tasks view is a list that acts as your todo-list. 
+![Tasks view](docs/tasks_view.png)
+
 ---
 ### Task Syntax
 
-<img width="392" height="211" alt="image" src="https://github.com/user-attachments/assets/cf1431c3-6437-4e06-b39c-2adcdabb89c1" />
+I'm currently still working on a simpler task editor. In the meantime, tasks use these syntax (so we can store it in markdown).
 
 ```
 - An event
 - [ ] A task
-- [-] Cancelled task
-- [x] Completed task
+- [/] A partially completed task
+- [-] A cancelled task
+- [x] A completed task
 - Event/task @ 10:00 [1 hr]
 - Event/task @ 23:00 [100 min]
-- [x] Half-completed [1/2 hr]
+- [ ] A task with some progress [1/2 hr]
 ```
 
 ---
 
 ## Installation
 
-Holos is not yet in the Obsidian community plugin registry. You can install it manually using [BRAT](https://github.com/TfTHacker/obsidian42-brat).
+Holos has not been officially reviewed by Obsidian devs, but is available through the Obsidian plugin marketplace. I use it everyday!
 
-1. Install the BRAT plugin from the Obsidian community plugins
-2. Open BRAT settings and click **Add Beta Plugin**
-3. Enter the repository URL: `https://github.com/caasion/holos`
-4. Enable Holos in your Obsidian plugin settings
+https://community.obsidian.md/plugins/holos
 
 ---
 
-## Status
+## Exigence
 
-Holos is actively in development (v3.0.0, 500+ commits). It is stable and usable as a daily driver — I use it every day myself. Some features are still being built out, including deeper Google Calendar integration and project-to-grid linking.
-
-Issues, feedback, and contributions are welcome.
-
----
-
-## Background
-
-Holos started as a personal tool built around my own frustrations. The design went through three complete iterations before landing on what exists today — not just because the architecture evolved, but because understanding how I wanted to organize my life and building the tool to do it had to happen together.
+Holos started as a personal tool built around my own frustrations. The design went through four complete iterations before landing on what exists today, not just because the architecture evolved, but because understanding how I wanted to organize my life and building the tool to do it had to happen together.
 
 The full story is in the commit history.
