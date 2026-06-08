@@ -12,7 +12,7 @@
 	import TrackDetailPanel from "./components/TrackDetailPanel.svelte";
 	import { getISODate, getISODates, isProjectActive, isPhaseActive, isTrackActiveByProjects } from "src/plugin/helpers";
 	import { isValid, parseISO } from "date-fns";
-	import { type App } from "obsidian";
+	import { type App, Notice } from "obsidian";
 	import { onMount, untrack } from "svelte";
 
 	interface ProjectViewProps {
@@ -90,6 +90,17 @@
 		selectedTrackId = trackId;
 		selectedProjectId = projectId;
 		selectionMode = 'project';
+	}
+
+	async function addProjectToTrack(trackId: string) {
+		const project = trackNoteService.newProjectFactory(trackId);
+		const success = await trackNoteService.createProject(trackId, project);
+		if (success) {
+			new Notice(`Project "${project.label}" created`);
+			selectProject(trackId, project.id);
+		} else {
+			new Notice('Failed to create project');
+		}
 	}
 
 	function selectTrack(trackId: string) {
@@ -257,6 +268,11 @@
 								<span class="tree-track-status" class:active={trackActive}>{trackActive ? '●' : '○'}</span>
 								<span class="tree-track-label" style={`color: ${track.color};`}>{track.label}</span>
 							</button>
+							<button
+								class="tree-track-add-btn"
+								onclick={(e) => { e.stopPropagation(); addProjectToTrack(track.id); }}
+								title="Add new project"
+							>+</button>
 						</div>
 						{#if !isCollapsed}
 							<div class="tree-projects" style={`border-color: ${track.color}80;`}>
@@ -611,6 +627,29 @@
 
 	.tree-track-label-active {
 		background: rgba(255, 255, 255, 0.1);
+	}
+
+	.tree-track-add-btn {
+		background: transparent;
+		border: none;
+		color: var(--text-muted);
+		cursor: pointer;
+		font-size: 1.1em;
+		padding: 2px 6px;
+		border-radius: 4px;
+		box-shadow: none;
+		flex-shrink: 0;
+		opacity: 0;
+		transition: opacity 150ms ease;
+	}
+
+	.tree-track-header-row:hover .tree-track-add-btn {
+		opacity: 1;
+	}
+
+	.tree-track-add-btn:hover {
+		background: rgba(255, 255, 255, 0.1);
+		color: var(--text-normal);
 	}
 
 	.tree-toggle-icon {
