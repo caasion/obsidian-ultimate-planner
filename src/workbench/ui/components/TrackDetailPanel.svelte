@@ -4,7 +4,7 @@
 	import EditableText from "src/components/EditableText.svelte";
 	import EditableMarkdownText from "src/components/EditableMarkdownText.svelte";
 	import TrackMiniGantt from "./TrackMiniGantt.svelte";
-	import { isTrackActiveByProjects } from "src/plugin/helpers";
+	import { isTrackActive } from "src/plugin/helpers";
 	import { type App, Notice } from "obsidian";
 
 	interface Props {
@@ -16,7 +16,7 @@
 
 	let { track, trackId, trackNoteService, app }: Props = $props();
 
-	const isActive = $derived(isTrackActiveByProjects(track));
+	const isActive = $derived(isTrackActive(track));
 	const projectCount = $derived(Object.keys(track.projects).length);
 
 	let colorInputRef = $state<HTMLInputElement | undefined>(undefined);

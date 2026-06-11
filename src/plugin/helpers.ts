@@ -191,9 +191,13 @@ export function isProjectActive(project: Project): boolean {
     return project.phases.some(isPhaseActive);
 }
 
-/** Returns true if a track is currently active (any project is active). */
-export function isTrackActiveByProjects(track: Track): boolean {
-    return Object.values(track.projects).some(isProjectActive);
+/** Returns true if a track is currently active (any effective interval covers today). */
+export function isTrackActive(track: Track): boolean {
+    const today = getISODate(new Date());
+    return track.effective.some(interval => {
+        const end = interval.end ?? '9999-12-31';
+        return interval.start <= today && end >= today;
+    });
 }
 
 /** Returns the earliest phase start date across all phases, or undefined if none have dates. */

@@ -10,7 +10,7 @@
 	import EditableMarkdownText from "src/components/EditableMarkdownText.svelte";
 	import Datepicker from "src/components/Datepicker.svelte";
 	import TrackDetailPanel from "./components/TrackDetailPanel.svelte";
-	import { getISODate, getISODates, isProjectActive, isPhaseActive, isTrackActiveByProjects } from "src/plugin/helpers";
+	import { getISODate, getISODates, isProjectActive, isPhaseActive, isTrackActive } from "src/plugin/helpers";
 	import { isValid, parseISO } from "date-fns";
 	import { type App, Notice } from "obsidian";
 	import { onMount, untrack } from "svelte";
@@ -28,8 +28,8 @@
 	const sortedTracks = $derived(
 		Object.values(parsedTracks).sort((a, b) => {
 			// Active tracks first
-			const aActive = isTrackActiveByProjects(a) ? 0 : 1;
-			const bActive = isTrackActiveByProjects(b) ? 0 : 1;
+			const aActive = isTrackActive(a) ? 0 : 1;
+			const bActive = isTrackActive(b) ? 0 : 1;
 			if (aActive !== bActive) return aActive - bActive;
 			const orderA = Number.isFinite(a.order) ? a.order : Number.MAX_SAFE_INTEGER;
 			const orderB = Number.isFinite(b.order) ? b.order : Number.MAX_SAFE_INTEGER;
@@ -240,7 +240,7 @@
 			<div class="sidebar-tree">
 				{#each sortedTracks as track}
 					{@const isCollapsed = collapsedTracks.has(track.id)}
-					{@const trackActive = isTrackActiveByProjects(track)}
+					{@const trackActive = isTrackActive(track)}
 					{@const projects = Object.values(track.projects).sort((a, b) => {
 						const aActive = isProjectActive(a) ? 0 : 1;
 						const bActive = isProjectActive(b) ? 0 : 1;

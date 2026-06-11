@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Track, Project } from "src/plugin/types";
 	import type { TrackNoteService } from "../logic/trackNote";
-	import { isProjectActive, isTrackActiveByProjects, getISODate } from "src/plugin/helpers";
+	import { isProjectActive, isTrackActive, getISODate } from "src/plugin/helpers";
 	import { isValid, parseISO } from "date-fns";
 	import { type App, Notice, Component, MarkdownRenderer } from "obsidian";
 	import { NewTrackModal } from "./components/NewTrackModal";
@@ -28,12 +28,8 @@
 	// Filter state: 'all' | 'active' | 'retired'
 	let filterMode = $state<'all' | 'active' | 'retired'>('all');
 
-	function isTrackActive(track: Track): boolean {
-		return isTrackActiveByProjects(track);
-	}
-
 	function isTrackRetired(track: Track): boolean {
-		return !isTrackActiveByProjects(track);
+		return !isTrackActive(track);
 	}
 
 	const filteredTracks = $derived.by(() => {
