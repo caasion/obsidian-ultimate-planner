@@ -21,8 +21,8 @@
 	let weekFormat = $derived(settings.weekFormat);
 	let weekStartOn = $derived(settings.weekStartOn);
 
-	let localColumns = $state<number>(0);
-	let localBlocks = $state<number>(0);
+	let localColumns = $state<number>(settings.columns);
+	let localBlocks = $state<number>(settings.blocks);
 	$effect(() => { localColumns = settings.columns; });
 	$effect(() => { localBlocks = settings.blocks; });
 
