@@ -535,6 +535,14 @@
 		display: none;
 	}
 
+	:global(.dnd-container-relative) {
+		position: relative;
+	}
+
+	:global(.dnd-dragged-item) {
+		opacity: 0.3;
+	}
+
 	.track-row-dates {
 		font-size: 0.78em;
 		color: var(--text-faint);
