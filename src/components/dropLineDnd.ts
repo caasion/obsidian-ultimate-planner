@@ -233,15 +233,17 @@ export function dropLineDnd<T>(node: HTMLElement, initialOptions: DropLineDndOpt
 
 	function startDrag(itemEl: HTMLElement, index: number, e: PointerEvent) {
 		state.dragging = true;
-		state.containerRect = node.getBoundingClientRect();
-		state.itemRects = getItemRects();
 
 		// Ensure container is positioned for absolute drop-line
 		const containerPosition = getComputedStyle(node).position;
 		state.savedPosition = containerPosition;
 		if (containerPosition === 'static') {
-			node.classList.add('dnd-container-relative');
+			node.style.position = 'relative';
 		}
+
+		// Capture rects after positioning is set so layout is stable
+		state.containerRect = node.getBoundingClientRect();
+		state.itemRects = getItemRects();
 
 		// Create floating clone
 		const clone = itemEl.cloneNode(true) as HTMLElement;
@@ -264,7 +266,7 @@ export function dropLineDnd<T>(node: HTMLElement, initialOptions: DropLineDndOpt
 		state.clone = clone;
 
 		// Dim original item (keep in layout)
-		itemEl.classList.add('dnd-dragged-item');
+		itemEl.style.opacity = '0.3';
 
 		// Create drop line
 		const line = document.createElement('div');
@@ -315,7 +317,7 @@ export function dropLineDnd<T>(node: HTMLElement, initialOptions: DropLineDndOpt
 
 	function cleanup() {
 		if (state.draggedEl) {
-			state.draggedEl.classList.remove('dnd-dragged-item');
+			state.draggedEl.style.opacity = '';
 		}
 		if (state.clone) {
 			state.clone.remove();
@@ -324,7 +326,7 @@ export function dropLineDnd<T>(node: HTMLElement, initialOptions: DropLineDndOpt
 			state.dropLine.remove();
 		}
 		if (state.savedPosition === 'static') {
-			node.classList.remove('dnd-container-relative');
+			node.style.position = '';
 		}
 		removeDocListeners();
 		state = createInitialState();
