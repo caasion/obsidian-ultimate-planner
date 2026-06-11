@@ -13,7 +13,7 @@ export class EditJournalHeaderModal extends Modal {
         
         new Setting(contentEl).setName("Edit Journal Header").setHeading();
 
-        const descFragment = document.createDocumentFragment();
+        const descFragment = activeDocument.createDocumentFragment();
         descFragment.appendText("The header text which the plugin should search for journal information.");
         descFragment.createEl("br");
         descFragment.appendText("Include exact markdown syntax. Leave blank if unknown.");
@@ -25,7 +25,7 @@ export class EditJournalHeaderModal extends Modal {
                 t.setValue(currentHeader)
                 t.onChange(v => header = v)
                 // Focus the input
-                setTimeout(() => {
+                window.setTimeout(() => {
                     t.inputEl.focus();
                 }, 10);
             })

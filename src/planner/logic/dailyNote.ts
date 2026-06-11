@@ -1,7 +1,7 @@
 import type { App, EventRef, TFile } from "obsidian";
 import type { Element, ISODate, PluginSettings, Track, TrackData } from "src/plugin/types";
 import { getAllDailyNotes, getDailyNote, createDailyNote } from "obsidian-daily-notes-interface";
-import moment from "moment";
+import { moment } from "obsidian";
 import { Notice } from "obsidian";
 import { PlannerParser } from "./parser";
 import { get, writable, type Writable } from "svelte/store";
@@ -18,7 +18,7 @@ export class DailyNoteService {
     private getTrackMetaSnapshot: () => Record<string, Track>;
     
     private isWriting: boolean = false;
-    private writeTimers: Map<ISODate, NodeJS.Timeout> = new Map();
+    private writeTimers: Map<ISODate, number> = new Map();
     
     public parsedContent: Writable<Record<ISODate, Record<string, TrackData>>> = writable({});
     public parsedJournalContent: Writable<Record<ISODate, Record<string, string>>> = writable({});
@@ -117,7 +117,7 @@ export class DailyNoteService {
             console.error(`Error writing to daily note for ${date}:`, error);
         } finally {
             // Add a small delay before allowing reads again
-            setTimeout(() => {
+            window.setTimeout(() => {
                 this.isWriting = false;
             }, 100);
         }
@@ -127,15 +127,15 @@ export class DailyNoteService {
     debouncedWrite(date: ISODate): void {
         const existingTimer = this.writeTimers.get(date);
         if (existingTimer) {
-            clearTimeout(existingTimer);
+            window.clearTimeout(existingTimer);
         }
 
-        const timer = setTimeout(() => {
+        const timer = window.setTimeout(() => {
             this.writeTimers.delete(date);
             const latestByDate = get(this.parsedContent)[date];
 
             if (!latestByDate) return;
-            this.writeDailyNote(date, latestByDate);
+            void this.writeDailyNote(date, latestByDate);
         }, this.settings.autosaveDebounceMs ?? 500);
 
         this.writeTimers.set(date, timer);
@@ -296,7 +296,7 @@ export class DailyNoteService {
         this.cleanupFileWatcher();
 
         for (const timer of this.writeTimers.values()) {
-            clearTimeout(timer);
+            window.clearTimeout(timer);
         }
         this.writeTimers.clear();
     }

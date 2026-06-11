@@ -40,10 +40,10 @@ export default class HolosPlugin extends Plugin {
 		this.registerView(HOLOS_VIEW_TYPE, (leaf) => new HolosView(leaf, this));
 
 		this.addCommand({
-			id: 'open-holos-view',
-			name: 'Open Holos',
+			id: 'open-view',
+			name: 'Open view',
 			callback: () => {
-				this.activateView(HOLOS_VIEW_TYPE);
+				void this.activateView(HOLOS_VIEW_TYPE);
 			}
 		});
 
@@ -60,7 +60,7 @@ export default class HolosPlugin extends Plugin {
 
 	async onunload() {
 		// Unsubscribe to stores
-		await this.storeSubscriptions.forEach(unsub => unsub());
+		this.storeSubscriptions.forEach(unsub => unsub());
 
 		// Clean up track note service if it was initialized
 		if (this.trackNoteService) {

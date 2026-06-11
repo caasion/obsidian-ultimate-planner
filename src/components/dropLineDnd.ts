@@ -56,7 +56,7 @@ export function dropLineDnd<T>(node: HTMLElement, initialOptions: DropLineDndOpt
 	function getChildren(): HTMLElement[] {
 		return Array.from(node.children).filter(
 			(el): el is HTMLElement =>
-				el instanceof HTMLElement &&
+				el.instanceOf(HTMLElement) &&
 				!el.classList.contains('dnd-drop-line') &&
 				!el.classList.contains('dnd-drag-clone')
 		);
@@ -220,13 +220,13 @@ export function dropLineDnd<T>(node: HTMLElement, initialOptions: DropLineDndOpt
 			}
 		};
 
-		document.addEventListener('pointermove', boundMove);
-		document.addEventListener('pointerup', boundUp);
+		activeDocument.addEventListener('pointermove', boundMove);
+		activeDocument.addEventListener('pointerup', boundUp);
 	}
 
 	function removeDocListeners() {
-		if (boundMove) document.removeEventListener('pointermove', boundMove);
-		if (boundUp) document.removeEventListener('pointerup', boundUp);
+		if (boundMove) activeDocument.removeEventListener('pointermove', boundMove);
+		if (boundUp) activeDocument.removeEventListener('pointerup', boundUp);
 		boundMove = null;
 		boundUp = null;
 	}
@@ -262,14 +262,14 @@ export function dropLineDnd<T>(node: HTMLElement, initialOptions: DropLineDndOpt
 			border-radius: 8px;
 			background: var(--background-primary);
 		`;
-		document.body.appendChild(clone);
+		activeDocument.body.appendChild(clone);
 		state.clone = clone;
 
 		// Dim original item (keep in layout)
 		itemEl.classList.add('dnd-dragged-item');
 
 		// Create drop line
-		const line = document.createElement('div');
+		const line = activeDocument.createElement('div');
 		line.className = 'dnd-drop-line';
 		node.appendChild(line);
 		state.dropLine = line;

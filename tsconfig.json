@@ -17,7 +17,7 @@
     "noEmitOnError": false,
     // "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    // "skipLibCheck": true,
+    "skipLibCheck": true,
     "lib": [
       "DOM",
       "ES5",

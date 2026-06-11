@@ -369,7 +369,7 @@ export class PlannerParser {
 		if (scheduledDateMatch) {
 			const [fullMatch, date] = scheduledDateMatch;
 			text = text.replace(fullMatch, '').trim();
-			scheduledDate = date as ISODate;
+			scheduledDate = date;
 		}
 
 		// Extract source reference: [[File#^blockId]]
@@ -381,7 +381,7 @@ export class PlannerParser {
 			sourceRef = ref;
 		}
 
-		const taskStatusRegex = /^\[([ x\/\-])\]/;
+		const taskStatusRegex = /^\[([ x/-])\]/;
 		const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
 		const progressDurationRegex = /\[(?:(\d+)?(\/))?(\d+)\s*(hr|min)\]/;
 

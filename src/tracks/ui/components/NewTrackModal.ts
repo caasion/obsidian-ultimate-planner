@@ -61,7 +61,7 @@ export class NewTrackModal extends Modal {
                 s.onChange(v => track.timeCommitment = v * 60)
             })
 
-        const descFragment = document.createDocumentFragment();
+        const descFragment = activeDocument.createDocumentFragment();
         descFragment.appendText("The header text which the plugin should search for journal information.");
         descFragment.createEl("br");
         descFragment.appendText("Include exact markdown syntax. Leave blank if unknown.");

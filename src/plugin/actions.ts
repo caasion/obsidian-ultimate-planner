@@ -4,19 +4,19 @@
  * @param duration - Duration in milliseconds to wait before firing longpress event (default: 500ms)
  */
 export function longpress(node: HTMLElement, duration: number = 500) {
-    let timer: NodeJS.Timeout;
+    let timer: number;
     let longpressFired = false;
 
     const handleMouseDown = (e: MouseEvent | TouchEvent) => {
         longpressFired = false;
-        timer = setTimeout(() => {
+        timer = window.setTimeout(() => {
             longpressFired = true;
             node.dispatchEvent(new CustomEvent('longpress'));
         }, duration);
     };
 
     const handleMouseUp = () => {
-        clearTimeout(timer);
+        window.clearTimeout(timer);
     };
 
     const handleClick = (e: MouseEvent) => {
@@ -40,7 +40,7 @@ export function longpress(node: HTMLElement, duration: number = 500) {
             duration = newDuration;
         },
         destroy() {
-            clearTimeout(timer);
+            window.clearTimeout(timer);
             node.removeEventListener('mousedown', handleMouseDown);
             node.removeEventListener('mouseup', handleMouseUp);
             node.removeEventListener('mouseleave', handleMouseUp);

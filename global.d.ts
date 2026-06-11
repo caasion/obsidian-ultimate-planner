@@ -1,4 +1,1 @@
-declare module '*.svelte' {
-  const component: any;
-  export default component;
-}
+// Svelte module declaration is provided by svelte/types/index.d.ts

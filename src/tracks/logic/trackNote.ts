@@ -42,7 +42,7 @@ export class TrackNoteService {
         this.internalUpdateCount++;
     }
     private endInternalUpdate(): void {
-        setTimeout(() => { this.internalUpdateCount = Math.max(0, this.internalUpdateCount - 1); }, 100);
+        window.setTimeout(() => { this.internalUpdateCount = Math.max(0, this.internalUpdateCount - 1); }, 100);
     }
     
     // File watcher references
@@ -340,7 +340,7 @@ export class TrackNoteService {
                         }
                     });
 
-                    setTimeout(() => {
+                    window.setTimeout(() => {
                         this.app.metadataCache.offref(ref);
                         resolve();
                     }, 1000);
