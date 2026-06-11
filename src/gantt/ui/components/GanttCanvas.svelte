@@ -12,7 +12,7 @@
     pxPerDay: number;
     totalWidth: number;
     /** If provided, effective interval changes are propagated */
-    onEffectiveChange?: (trackId: string, next: import("src/plugin/types").DateInterval[]) => void;
+    onEffectiveChange?: (trackId: string, next: import("src/plugin/types").DateInterval) => void;
   }
 
   let {

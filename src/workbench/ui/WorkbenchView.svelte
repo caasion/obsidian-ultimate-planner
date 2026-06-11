@@ -111,16 +111,15 @@
 
 	// Format date range for display
 	function formatDateRange(track: Track): string {
-		if (!track.effective || track.effective.length === 0) return '';
-		const first = track.effective[0];
-		const start = first.start;
-		const end = first.end;
+		if (!track.effective) return '';
 		const formatDate = (d: string) => {
 			const parsed = parseISO(d);
 			if (!isValid(parsed)) return d;
 			return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 		};
-		return end ? `${formatDate(start)} - ${formatDate(end)}` : `${formatDate(start)} - Present`;
+		const start = formatDate(track.effective.start);
+		const end = track.effective.end ? formatDate(track.effective.end) : 'Present';
+		return `${start} - ${end}`;
 	}
 
 	// Create project functions

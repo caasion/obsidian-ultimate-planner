@@ -74,12 +74,12 @@ export interface Track {
     id: string;
     order: number;
     color: string;
-    effective: DateInterval[];
-    timeCommitment: number; 
+    effective: DateInterval;
+    timeCommitment: number;
 	journalHeader: string;
 
     file?: TFile;
-    
+
     label: string;
     description: string;
     projects: Record<string, Project>;
@@ -95,7 +95,7 @@ export interface TrackFileFrontmatter {
     id: string;
     order: number;
     color: string;
-    effective: DateInterval[];
+    effective: DateInterval;
     timeCommitment: number;
     journalHeader: string;
 }

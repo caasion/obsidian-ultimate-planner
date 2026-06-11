@@ -158,16 +158,13 @@ export class TrackNoteService {
     }
 
     private isTrackActiveOnDate(track: Track, date: ISODate, today: ISODate): boolean {
-        for (const interval of track.effective) {
-            const resolvedEnd = this.resolveIntervalEnd(interval.start, interval.end, today);
-            if (date >= interval.start && date <= resolvedEnd) return true;
-        }
-
-        return false;
+        const { start, end } = track.effective;
+        const resolvedEnd = this.resolveIntervalEnd(start, end, today);
+        return date >= start && date <= resolvedEnd;
     }
 
     private isTrackStartingOnDate(track: Track, date: ISODate): boolean {
-        return track.effective.some((interval) => interval.start === date);
+        return track.effective.start === date;
     }
 
     private stripFileReferences(tracks: Record<string, Track>): Record<string, Track> {
@@ -241,24 +238,29 @@ export class TrackNoteService {
         return null;
     }
 
-    private parseEffective(frontmatter?: FrontMatterCache['frontmatter']): DateInterval[] {
+    private parseEffective(frontmatter?: FrontMatterCache['frontmatter']): DateInterval {
         const rawEffective = frontmatter?.effective;
-        if (!Array.isArray(rawEffective)) return [];
 
-        const effective: DateInterval[] = [];
-
-        for (const interval of rawEffective) {
-            if (!interval || typeof interval !== 'object') continue;
-
-            const record = interval as Record<string, unknown>;
-            const start = this.normalizeISODate(record.start);
-            const end = this.normalizeISODate(record.end);
-
-            if (!start) continue;
-            effective.push(end ? { start, end } : { start });
+        // Support legacy array format: take the first interval
+        if (Array.isArray(rawEffective) && rawEffective.length > 0) {
+            const first = rawEffective[0];
+            if (first && typeof first === 'object') {
+                const record = first as Record<string, unknown>;
+                const start = this.normalizeISODate(record.start);
+                const end = this.normalizeISODate(record.end);
+                if (start) return end ? { start, end } : { start };
+            }
         }
 
-        return effective;
+        // Single object format
+        if (rawEffective && typeof rawEffective === 'object' && !Array.isArray(rawEffective)) {
+            const record = rawEffective as Record<string, unknown>;
+            const start = this.normalizeISODate(record.start);
+            const end = this.normalizeISODate(record.end);
+            if (start) return end ? { start, end } : { start };
+        }
+
+        return { start: getISODate(new Date()) };
     }
     
     async initializeTracksByDate(): Promise<void> {
@@ -736,11 +738,9 @@ export class TrackNoteService {
         lines.push(`order: ${track.order}`);
         lines.push(`color: "${track.color}"`);
         lines.push('effective:');
-        for (const interval of track.effective) {
-            lines.push(`  - start: ${interval.start}`);
-            if (interval.end) {
-                lines.push(`    end: ${interval.end}`);
-            }
+        lines.push(`  start: ${track.effective.start}`);
+        if (track.effective.end) {
+            lines.push(`  end: ${track.effective.end}`);
         }
         lines.push(`timeCommitment: ${track.timeCommitment}`);
         lines.push(`journalHeader: ${track.journalHeader}`);

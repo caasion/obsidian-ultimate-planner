@@ -14,7 +14,7 @@
     viewportStart: ISODate;
     viewportEnd: ISODate;
     pxPerDay: number;
-    onEffectiveChange: (next: DateInterval[]) => void;
+    onEffectiveChange: (next: DateInterval) => void;
   }
 
   let {
@@ -39,10 +39,10 @@
 </script>
 
 <div class="track-group" style={`height: ${trackHeight}px; width: ${totalWidth}px;`}>
-  <!-- Effective interval backgrounds -->
-  {#each track.effective as interval}
-    {@const iStart = interval.start}
-    {@const iEnd = interval.end ?? today}
+  <!-- Effective interval background -->
+  {#if true}
+    {@const iStart = track.effective.start}
+    {@const iEnd = track.effective.end ?? today}
     {@const rawLeft = dateToX(iStart, viewportStart, pxPerDay)}
     {@const rawRight = dateToX(iEnd, viewportStart, pxPerDay) + pxPerDay}
     {@const clampedLeft = Math.max(0, rawLeft)}
@@ -54,7 +54,7 @@
         style={`left: ${clampedLeft}px; width: ${bgWidth}px; height: ${trackHeight}px; background-color: ${track.color}10; border: 1px solid ${track.color}40; border-radius: 12px;`}
       ></div>
     {/if}
-  {/each}
+  {/if}
 
   <!-- Phase bars -->
   {#each packedPhases as { phase, projectLabel, row }}

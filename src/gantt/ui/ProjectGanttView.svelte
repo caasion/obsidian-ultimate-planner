@@ -79,12 +79,10 @@
 
   /* === Filter to tracks active within the current viewport === */
   const visibleTracks = $derived(
-    sortedTracks.filter(track =>
-      track.effective.some(interval => {
-        const iEnd = interval.end ?? '9999-12-31';
-        return interval.start <= viewportEnd && iEnd >= viewportStart;
-      })
-    )
+    sortedTracks.filter(track => {
+      const iEnd = track.effective.end ?? '9999-12-31';
+      return track.effective.start <= viewportEnd && iEnd >= viewportStart;
+    })
   );
 
   /* === Track heights (computed here so sidebar + gantt stay in sync) === */

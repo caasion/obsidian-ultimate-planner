@@ -39,16 +39,14 @@
 	});
 
 	function formatDateRange(track: Track): string {
-		if (!track.effective || track.effective.length === 0) return '';
-		const first = track.effective[0];
-		const last = track.effective[track.effective.length - 1];
+		if (!track.effective) return '';
 		const formatDate = (d: string) => {
 			const parsed = parseISO(d);
 			if (!isValid(parsed)) return d;
 			return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 		};
-		const start = formatDate(first.start);
-		const end = last.end ? formatDate(last.end) : 'Present';
+		const start = formatDate(track.effective.start);
+		const end = track.effective.end ? formatDate(track.effective.end) : 'Present';
 		return `${start} - ${end}`;
 	}
 
