@@ -872,12 +872,6 @@
 		gap: 6px;
 	}
 
-	.task-checkbox {
-		cursor: pointer;
-		margin: 0;
-		flex-shrink: 0;
-	}
-
 	.task-color-indicator {
 		width: 3px;
 		height: 16px;

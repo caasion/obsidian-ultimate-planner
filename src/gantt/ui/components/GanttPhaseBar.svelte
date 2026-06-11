@@ -31,7 +31,7 @@
 
   let expanded = $state(false);
   let barEl: HTMLDivElement | undefined;
-  let popupEl: HTMLDivElement | undefined;
+  let popupEl = $state<HTMLDivElement | undefined>();
   let popupStyle = $state("");
 
   const today = $derived(getISODate(new Date()));

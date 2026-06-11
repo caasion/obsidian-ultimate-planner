@@ -34,7 +34,7 @@
 
   let datepickerValue = $state<Date | undefined>(undefined);
   let datepickerRef: ReturnType<typeof Datepicker> | undefined;
-  let datepickerAnchor: HTMLDivElement;
+  let datepickerAnchor = $state<HTMLDivElement>();
 
   function presetLabel(days: number): string {
     if (days === 365) return "1y";

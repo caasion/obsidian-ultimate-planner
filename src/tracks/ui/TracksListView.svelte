@@ -14,7 +14,7 @@
 
 	let { app, trackNoteService }: TracksListViewProps = $props();
 
-	const trackStore = trackNoteService.parsedTracksContent;
+	const trackStore = $derived(trackNoteService.parsedTracksContent);
 	const parsedTracks = $derived($trackStore);
 	const sortedTracks = $derived(
 		Object.values(parsedTracks).sort((a, b) => {

@@ -266,31 +266,6 @@
 		line-height: 1.4;
 	}
 
-	.habit-squares-row {
-		display: flex;
-		gap: 3px;
-		padding-left: 20px;
-		margin-top: 2px;
-	}
-
-	.habit-square {
-		width: 12px;
-		height: 12px;
-		border-radius: 2px;
-		background: transparent;
-		border: 1px solid rgba(255, 255, 255, 0.15);
-	}
-
-	.habit-square-done {
-		background: #4caf50;
-		border-color: #4caf50;
-	}
-
-	.habit-square-not-scheduled {
-		background: rgba(255, 255, 255, 0.08);
-		border-color: rgba(255, 255, 255, 0.08);
-	}
-
 	.habit-edit-input {
 		width: 100%;
 		padding: 4px 8px;

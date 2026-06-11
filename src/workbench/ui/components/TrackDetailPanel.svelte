@@ -259,22 +259,6 @@
 		margin: 0;
 	}
 
-	.track-section-action-btn {
-		background: transparent;
-		border: none;
-		color: var(--text-muted);
-		cursor: pointer;
-		font-size: 0.8em;
-		padding: 2px 8px;
-		border-radius: 4px;
-		box-shadow: none;
-	}
-
-	.track-section-action-btn:hover {
-		background: rgba(255, 255, 255, 0.1);
-		color: var(--text-normal);
-	}
-
 	.effective-date-picker {
 		max-width: 320px;
 	}

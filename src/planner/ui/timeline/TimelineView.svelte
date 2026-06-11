@@ -37,7 +37,7 @@
 
 	let datepickerValue = $state<Date | undefined>(undefined);
 	let datepickerRef: ReturnType<typeof Datepicker> | undefined;
-	let datepickerAnchor: HTMLDivElement;
+	let datepickerAnchor = $state<HTMLDivElement>();
 
 	function goTo(newDate: ISODate) {
 		anchor = newDate;

@@ -21,8 +21,8 @@
 	let weekFormat = $derived(settings.weekFormat);
 	let weekStartOn = $derived(settings.weekStartOn);
 
-	let localColumns = $state<number>(settings.columns);
-	let localBlocks = $state<number>(settings.blocks);
+	let localColumns = $state<number>(0);
+	let localBlocks = $state<number>(0);
 	$effect(() => { localColumns = settings.columns; });
 	$effect(() => { localBlocks = settings.blocks; });
 
@@ -39,7 +39,7 @@
 
 	let datepickerValue = $state<Date | undefined>(undefined);
 	let datepickerRef: ReturnType<typeof Datepicker> | undefined;
-	let datepickerAnchor: HTMLDivElement;
+	let datepickerAnchor = $state<HTMLDivElement>();
 
 	function goTo(newDate: ISODate) {
 		anchor = newDate;

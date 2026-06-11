@@ -74,10 +74,10 @@
         <span class="timeline-item-meta-dot" style={`background-color: ${track.color};`}></span>
         {track.label}
         {#if projectLabel}
-            <a href="#" class="project-label" title={projectLabel} onclick={handleProjectClick}>
+            <button class="project-label" title={projectLabel} onclick={handleProjectClick}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-symlink-icon lucide-folder-symlink"><path d="M2 9.35V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h7"/><path d="m8 16 3-3-3-3"/></svg>
                 {projectLabel}
-            </a>
+            </button>
         {/if}
     </span>
 </div>
@@ -169,6 +169,11 @@
 		text-overflow: ellipsis;
 		min-width: 0;
 		text-decoration: none;
+		background: none;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+		font-family: inherit;
 		cursor: pointer;
 		transition: color 150ms ease, text-decoration 150ms ease, filter 150ms ease;
 	}
