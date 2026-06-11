@@ -4,7 +4,9 @@
 	import EditableText from "src/components/EditableText.svelte";
 	import EditableMarkdownText from "src/components/EditableMarkdownText.svelte";
 	import TrackMiniGantt from "./TrackMiniGantt.svelte";
-	import { isTrackActive } from "src/plugin/helpers";
+	import Datepicker from "src/components/Datepicker.svelte";
+	import { isTrackActive, getISODate } from "src/plugin/helpers";
+	import { parseISO, isValid } from "date-fns";
 	import { type App, Notice } from "obsidian";
 
 	interface Props {
@@ -31,6 +33,22 @@
 		const success = await trackNoteService.createProject(trackId, project);
 		if (success) new Notice(`Project "${project.label}" created`);
 		else new Notice('Failed to create project');
+	}
+
+	function toDate(iso?: string): Date | undefined {
+		if (!iso) return undefined;
+		const parsed = parseISO(iso);
+		return isValid(parsed) ? parsed : undefined;
+	}
+
+	function handleEffectiveDateSelect(selection: unknown) {
+		const range = selection as { from?: Date; to?: Date } | undefined;
+		const from = range?.from;
+		if (!from) return;
+		const effective = range?.to
+			? { start: getISODate(from), end: getISODate(range.to) }
+			: { start: getISODate(from) };
+		trackNoteService.updateTrackFrontmatter(trackId, { effective });
 	}
 </script>
 
@@ -82,6 +100,23 @@
 			sourcePath={track.file?.path ?? ""}
 			class="track-detail-description"
 		/>
+	</div>
+
+	<!-- Effective Dates -->
+	<div class="track-detail-section">
+		<div class="track-detail-section-header">
+			<h3 class="track-detail-section-title">Effective Dates</h3>
+		</div>
+		<div class="effective-date-picker">
+			<Datepicker
+				range
+				rangeFrom={toDate(track.effective.start)}
+				rangeTo={toDate(track.effective.end)}
+				placeholder="Select start - end"
+				openEndedLabel="Present"
+				onselect={handleEffectiveDateSelect}
+			/>
+		</div>
 	</div>
 
 	<!-- Mini Gantt Chart -->
@@ -222,5 +257,25 @@
 		font-weight: 600;
 		color: var(--text-normal);
 		margin: 0;
+	}
+
+	.track-section-action-btn {
+		background: transparent;
+		border: none;
+		color: var(--text-muted);
+		cursor: pointer;
+		font-size: 0.8em;
+		padding: 2px 8px;
+		border-radius: 4px;
+		box-shadow: none;
+	}
+
+	.track-section-action-btn:hover {
+		background: rgba(255, 255, 255, 0.1);
+		color: var(--text-normal);
+	}
+
+	.effective-date-picker {
+		max-width: 320px;
 	}
 </style>
