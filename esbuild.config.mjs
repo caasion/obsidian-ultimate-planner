@@ -1,6 +1,6 @@
 import esbuild from "esbuild";
 import process from "process";
-import builtins from "builtin-modules";
+import { builtinModules } from "module";
 import sveltePlugin from "esbuild-svelte";
 import { sveltePreprocess } from 'svelte-preprocess';
 import fs from "fs"; // Added fs import
@@ -68,7 +68,7 @@ const context = await esbuild.context({
 		"@lezer/common",
 		"@lezer/highlight",
 		"@lezer/lr",
-		...builtins],
+		...builtinModules],
 	format: "cjs",
 	plugins: [
 		sveltePlugin({
