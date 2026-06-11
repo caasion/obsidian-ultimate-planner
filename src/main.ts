@@ -58,7 +58,7 @@ export default class HolosPlugin extends Plugin {
 		}
 	} 
 
-	async onunload() {
+	onunload() {
 		// Unsubscribe to stores
 		this.storeSubscriptions.forEach(unsub => unsub());
 
@@ -67,7 +67,7 @@ export default class HolosPlugin extends Plugin {
 			this.trackNoteService.destroy();
 		}
 
-		await this.flushSave(); // Save immediately
+		void this.flushSave(); // Save immediately
 	}
 
 	async initializeTrackNoteService(bootstrapSnapshot?: TrackSnapshot) {
@@ -95,11 +95,11 @@ export default class HolosPlugin extends Plugin {
 			});
 		}
 		const leaf = this.app.workspace.getLeavesOfType(view)[0];
-		if (leaf) this.app.workspace.revealLeaf(leaf);
+		if (leaf) await this.app.workspace.revealLeaf(leaf);
 	}
 
 	async loadPersisted() {
-		const data: PluginData = await this.loadData() ?? {};
+		const data = (await this.loadData() ?? {}) as PluginData;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings) // Populate Settings
 		this.trackSnapshot = normalizeTrackSnapshot(data.trackSnapshot);
 	}
@@ -129,13 +129,11 @@ export default class HolosPlugin extends Plugin {
 
 	public queueSave() {
 		if (this.saveTimer) window.clearTimeout(this.saveTimer);
-		this.saveTimer = window.setTimeout(async () => {
+		this.saveTimer = window.setTimeout(() => {
 			this.saveTimer = null;
-			try {
-				await this.saveData(this.snapshot()); 
-			} catch (e) {
+			this.saveData(this.snapshot()).catch((e) => {
 				console.error("[Holos] save FAILED", e);
-			}
+			});
 		}, 400);
 	}
 

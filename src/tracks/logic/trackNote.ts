@@ -238,12 +238,12 @@ export class TrackNoteService {
         return null;
     }
 
-    private parseEffective(frontmatter?: FrontMatterCache['frontmatter']): DateInterval {
-        const rawEffective = frontmatter?.effective;
+    private parseEffective(frontmatter?: Record<string, unknown>): DateInterval {
+        const rawEffective: unknown = frontmatter?.effective;
 
         // Support legacy array format: take the first interval
         if (Array.isArray(rawEffective) && rawEffective.length > 0) {
-            const first = rawEffective[0];
+            const first: unknown = rawEffective[0];
             if (first && typeof first === 'object') {
                 const record = first as Record<string, unknown>;
                 const start = this.normalizeISODate(record.start);
@@ -349,16 +349,17 @@ export class TrackNoteService {
                 cache = this.app.metadataCache.getFileCache(file);
             }
 
-            const frontmatter = cache?.frontmatter;
-            const id = frontmatter?.id ?? null;
+            const frontmatter = cache?.frontmatter as Record<string, unknown> | undefined;
+            const id = (frontmatter?.id as string | undefined) ?? null;
             if (!id) continue;
 
             const tags = cache ? getAllTags(cache) || [] : [];
+            const fmTags = Array.isArray(frontmatter?.tags) ? frontmatter.tags as string[] : [];
 
-            const isTrack = tags.includes('#holos/track') || frontmatter?.tags?.includes('holos/track');
-            const isProject = tags.includes('#holos/project') || frontmatter?.tags?.includes('holos/project');
-            
-            const isActiveProject = frontmatter?.activeProject ?? false;
+            const isTrack = tags.includes('#holos/track') || fmTags.includes('holos/track');
+            const isProject = tags.includes('#holos/project') || fmTags.includes('holos/project');
+
+            const isActiveProject = (frontmatter?.activeProject as boolean | undefined) ?? false;
 
             if (isTrack) {
                 files.id = id;
@@ -378,29 +379,31 @@ export class TrackNoteService {
         if (!trackFile) return null;
 
         const cache = this.app.metadataCache.getFileCache(trackFile);
-        let frontmatter = cache?.frontmatter;
+        let frontmatter = cache?.frontmatter as Record<string, unknown> | undefined;
         const trackContent = await this.app.vault.read(trackFile);
 
         if (forceFrontmatterUpdate) {
             const frontmatterInfo = getFrontMatterInfo(trackContent)
             if (frontmatterInfo.exists) {
-                frontmatter = parseYaml(frontmatterInfo.frontmatter);
+                frontmatter = parseYaml(frontmatterInfo.frontmatter) as Record<string, unknown>;
             } else {
                 console.warn("Manual frontmatter read and processing failed")
             }
-        } 
+        }
 
         if (!trackContent || !frontmatter) return null;
-        
+
         if (!("order" in frontmatter)) {
             console.warn(`${trackFile.name} is missing order. Aborting.`);
             return null;
         }
 
-        const { order, timeCommitment, journalHeader } = frontmatter;
+        const order = frontmatter.order as number;
+        const timeCommitment = (frontmatter.timeCommitment as number | undefined) ?? 0;
+        const journalHeader = (frontmatter.journalHeader as string | undefined) ?? '';
         const effective = this.parseEffective(frontmatter);
 
-        const color = frontmatter.color ?? "#cccccc";
+        const color = (frontmatter.color as string | undefined) ?? "#cccccc";
 
         const description = PlannerParser.extractFirstSection(trackContent);
 
@@ -431,13 +434,13 @@ export class TrackNoteService {
 
     private async loadProjectContent(id: string, projectFile: TFile, forceFrontmatterUpdate: boolean = false): Promise<Project | null> {
         const cache = this.app.metadataCache.getFileCache(projectFile);
-        let frontmatter = cache?.frontmatter;
+        let frontmatter = cache?.frontmatter as Record<string, unknown> | undefined;
         const projectContent = await this.app.vault.read(projectFile);
 
         if (forceFrontmatterUpdate) {
             const frontmatterInfo = getFrontMatterInfo(projectContent)
             if (frontmatterInfo.exists) {
-                frontmatter = parseYaml(frontmatterInfo.frontmatter);
+                frontmatter = parseYaml(frontmatterInfo.frontmatter) as Record<string, unknown>;
             } else {
                 console.warn("Manual frontmatter read and processing failed")
             }
@@ -515,12 +518,12 @@ export class TrackNoteService {
     /** Migrate a single project file from task-based to phase-based. Returns true if migration was performed. */
     private async migrateProjectFile(projectFile: TFile): Promise<boolean> {
         const cache = this.app.metadataCache.getFileCache(projectFile);
-        const frontmatter = cache?.frontmatter;
+        const frontmatter = cache?.frontmatter as Record<string, unknown> | undefined;
         const projectContent = await this.app.vault.read(projectFile);
 
         if (!projectContent || !frontmatter) return false;
 
-        const hasPhases = frontmatter?.phases === true;
+        const hasPhases = frontmatter.phases === true;
         if (hasPhases) return false; // Already migrated
 
         // Parse old task data
@@ -529,8 +532,8 @@ export class TrackNoteService {
         const phases: Phase[] = [{
             id: 'phase-0',
             label: 'Phase 1',
-            startDate: frontmatter.startDate,
-            endDate: frontmatter.endDate,
+            startDate: frontmatter.startDate as string | undefined,
+            endDate: frontmatter.endDate as string | undefined,
             data,
         }];
 
@@ -816,7 +819,7 @@ export class TrackNoteService {
 
         this.beginInternalUpdate();
         try {
-            await this.app.fileManager.processFrontMatter(trackFile, (oldFrontmatter) => {
+            await this.app.fileManager.processFrontMatter(trackFile, (oldFrontmatter: Record<string, unknown>) => {
                 for (const [key, value] of Object.entries(frontmatter)) {
                     oldFrontmatter[key] = value;
                 }
@@ -1012,7 +1015,7 @@ export class TrackNoteService {
             if (!trackFolder) return false;
 
             // Delete the entire track folder (including all projects)
-            await this.app.vault.delete(trackFolder, true);
+            await this.app.fileManager.trashFile(trackFolder);
 
             new Notice('Track deleted successfully');
 
@@ -1135,9 +1138,9 @@ export class TrackNoteService {
         const isFolderNote = !!trackFolder && !!projectParent && projectParent.path !== trackFolder.path;
 
         if (isFolderNote && projectParent) {
-            await this.app.vault.delete(projectParent, true);
+            await this.app.fileManager.trashFile(projectParent);
         } else {
-            await this.app.vault.delete(projectFile);
+            await this.app.fileManager.trashFile(projectFile);
         }
 
         await this.refreshTrack(trackId);
@@ -1510,7 +1513,7 @@ export class TrackNoteService {
 
             this.beginInternalUpdate();
             try {
-                await this.app.fileManager.processFrontMatter(trackFile, (fm) => {
+                await this.app.fileManager.processFrontMatter(trackFile, (fm: Record<string, unknown>) => {
                     fm.order = i;
                 });
             } finally {
