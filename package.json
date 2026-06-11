@@ -30,5 +30,10 @@
 	"dependencies": {
 		"date-fns": "^4.1.0",
 		"obsidian-daily-notes-interface": "^0.9.4"
+	},
+	"overrides": {
+		"obsidian-daily-notes-interface": {
+			"obsidian": "$obsidian"
+		}
 	}
 }

@@ -27,9 +27,9 @@ export class HolosSettingsTab extends PluginSettingTab {
                 text
                     .setPlaceholder('Holos')
                     .setValue(this.plugin.settings.sectionHeading)
-                    .onChange(async (value) => {
+                    .onChange((value) => {
                         this.plugin.settings.sectionHeading = value || 'Holos';
-                        await this.plugin.queueSave();
+                        this.plugin.queueSave();
                     });
             });
 
@@ -37,12 +37,11 @@ export class HolosSettingsTab extends PluginSettingTab {
             .setName('Autosave debounce (ms)')
             .addSlider(slider => 
                 slider
-                    .setDynamicTooltip()
                     .setLimits(100, 2000, 50)
                     .setValue(this.plugin.settings.autosaveDebounceMs)
-                    .onChange(async (value) => {
+                    .onChange((value) => {
                         this.plugin.settings.autosaveDebounceMs = value;
-                        await this.plugin.queueSave();
+                        this.plugin.queueSave();
                     })
             )
 
@@ -54,9 +53,9 @@ export class HolosSettingsTab extends PluginSettingTab {
             .addToggle((toggle) => {
                 toggle
                     .setValue(this.plugin.settings.projectNotesAsFolders)
-                    .onChange(async (value) => {
+                    .onChange((value) => {
                         this.plugin.settings.projectNotesAsFolders = value;
-                        await this.plugin.queueSave();
+                        this.plugin.queueSave();
                     });
             });
         

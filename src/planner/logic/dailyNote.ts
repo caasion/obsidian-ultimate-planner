@@ -267,12 +267,12 @@ export class DailyNoteService {
 
     /** Open a daily note for a specific date */
     async openDailyNote(date: ISODate): Promise<void> {
-        let dailyNoteFile = getDailyNote(moment(date), getAllDailyNotes());
-        
+        let dailyNoteFile: TFile | undefined = getDailyNote(moment(date), getAllDailyNotes());
+
         if (!dailyNoteFile) {
             // Create daily note
             new Notice("Daily note doesn't exist. Creating it now...");
-            
+
             try {
                 dailyNoteFile = await createDailyNote(moment(date));
                 new Notice("Daily note created!");
