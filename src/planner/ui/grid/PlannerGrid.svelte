@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Element, ISODate, RenderTrack, Track, TrackData } from "src/plugin/types";
 	import HeaderCell from "../components/HeaderCell.svelte";
+	import IntentionCell from "../components/IntentionCell.svelte";
 	import WrapperCell from "./WrapperCell.svelte";
 
     interface Props {
@@ -9,18 +10,20 @@
         parsedTracks: Record<string, Track>;
         parsedContent: Record<ISODate, Record<string, TrackData>>;
         parsedJournalContent: Record<ISODate, Record<string, string>>;
+        intentions: Record<ISODate, string>;
         blocks: number;
         columns: number;
         showProjectLabel?: boolean;
         onUpdate: (date: ISODate, trackId: string, updatedData: TrackData) => void;
         onAdd: (date: ISODate, trackId: string, trackMeta: Track, items?: Element[]) => void;
+        onIntentionSave: (date: ISODate, intention: string) => void;
         openDailyNote: (date: ISODate) => void;
         onTrackOpen?: (trackId: string) => void;
         onTrackFileOpen?: (trackId: string) => void;
         onCloseProjectTask?: (trackId: string, sourceRef: string, taskStatus: ' ' | 'x') => void;
     }
 
-    let { dates, tracksByDate, parsedTracks, parsedContent, parsedJournalContent, columns, blocks, showProjectLabel = true, onUpdate, onAdd, openDailyNote, onTrackOpen, onTrackFileOpen, onCloseProjectTask }: Props = $props();
+    let { dates, tracksByDate, parsedTracks, parsedContent, parsedJournalContent, intentions, columns, blocks, showProjectLabel = true, onUpdate, onAdd, onIntentionSave, openDailyNote, onTrackOpen, onTrackFileOpen, onCloseProjectTask }: Props = $props();
 
     function getRows(blockDates: ISODate[]): number {
         const maxTracks = Math.max(...blockDates.map((date) => tracksByDate[date]?.length ?? 0), 0);
@@ -63,6 +66,20 @@
             <div class="header-corner" style="border-right: 1px solid rgba(255, 255, 255, 0.1);"></div>
             {#each blockDates as date (date)}
             <HeaderCell {date} {openDailyNote} />
+            {/each}
+        </div>
+
+        <!-- Intention Row -->
+        <div class="planner-intention-row" style={`grid-template-columns: 160px repeat(${columns}, minmax(0, 1fr));`}>
+            <div class="intention-label-cell">
+                <span class="intention-label">Intention</span>
+            </div>
+            {#each blockDates as date (date)}
+                <IntentionCell
+                    {date}
+                    value={intentions[date] ?? ""}
+                    onSave={onIntentionSave}
+                />
             {/each}
         </div>
 
@@ -222,5 +239,27 @@
 
     .cell-empty:last-child {
         border-right: none;
+    }
+
+    .planner-intention-row {
+        display: grid;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.015);
+    }
+
+    .intention-label-cell {
+        padding: 4px 12px;
+        display: flex;
+        align-items: center;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .intention-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #808080;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 </style>
