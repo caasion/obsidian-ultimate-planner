@@ -110,6 +110,38 @@ export class TrackNoteService {
         }
     }
 
+    /**
+     * Patch a single project inside the store, immutably. Accepts either a
+     * partial to merge or an updater that receives the current project and
+     * returns the next one. No-ops if the track/project is missing.
+     */
+    private updateProjectInStore(
+        trackId: string,
+        projectId: string,
+        patch: Partial<Project> | ((project: Project) => Project),
+    ): void {
+        this.parsedTracksContent.update(tracks => {
+            const track = tracks[trackId];
+            const project = track?.projects[projectId];
+            if (!project) return tracks;
+
+            const nextProject = typeof patch === 'function'
+                ? patch(project)
+                : { ...project, ...patch };
+
+            return {
+                ...tracks,
+                [trackId]: {
+                    ...track,
+                    projects: {
+                        ...track.projects,
+                        [projectId]: nextProject,
+                    },
+                },
+            };
+        });
+    }
+
     private hydrateFromSnapshot(tracks: Record<string, Track>): void {
         const normalized: Record<string, Track> = {};
         for (const [trackId, track] of Object.entries(tracks)) {
@@ -873,25 +905,7 @@ export class TrackNoteService {
             this.endInternalUpdate();
         }
 
-        // Direct update - change project label in memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            label
-                        }
-                    }
-                }
-            };
-        });
+        this.updateProjectInStore(trackId, projectId, { label });
     }
 
     /** Update project description (first section) */
@@ -912,25 +926,7 @@ export class TrackNoteService {
             this.endInternalUpdate();
         }
 
-        // Direct update - change project description in memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            description
-                        }
-                    }
-                }
-            };
-        });
+        this.updateProjectInStore(trackId, projectId, { description });
     }
 
     /** Delete a project file or folder-note directory */
@@ -958,12 +954,6 @@ export class TrackNoteService {
 
     /** Add a new habit to a project */
     async addProjectHabit(trackId: string, projectId: string): Promise<void> {
-        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
-        if (!projectFile) {
-            console.warn(`Project ${projectId} not found in track ${trackId}`);
-            return;
-        }
-
         const newHabitId = `habit-${Date.now()}`;
         const newHabit: Habit = {
             id: newHabitId,
@@ -972,139 +962,26 @@ export class TrackNoteService {
             rrule: ""
         };
 
-        const content = await this.app.vault.read(projectFile);
-        const habitSection = PlannerParser.extractSection(content, "Habits");
-        const habits = PlannerParser.parseHabitSection(habitSection);
-        
-        habits[newHabitId] = newHabit;
-        
-        const newHabitsSection = PlannerParser.serializeHabits(habits);
-        const updated = PlannerParser.replaceSection(content, 'Habits', newHabitsSection);
-        
-        this.beginInternalUpdate();
-        try {
-            await this.app.vault.modify(projectFile, updated);
-        } finally {
-            this.endInternalUpdate();
-        }
-
-        // Direct update - add habit to memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            habits: {
-                                ...track.projects[projectId].habits,
-                                [newHabitId]: newHabit
-                            }
-                        }
-                    }
-                }
-            };
-        });
+        await this.mutateHabits(trackId, projectId, (habits) => ({
+            ...habits,
+            [newHabitId]: newHabit,
+        }));
     }
 
     /** Update a specific habit in a project */
     async updateProjectHabit(trackId: string, projectId: string, habitId: string, habit: Habit): Promise<void> {
-        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
-        if (!projectFile) {
-            console.warn(`Project ${projectId} not found in track ${trackId}`);
-            return;
-        }
-
-        const content = await this.app.vault.read(projectFile);
-        const habitSection = PlannerParser.extractSection(content, "Habits");
-        const habits = PlannerParser.parseHabitSection(habitSection);
-        
-        habits[habitId] = habit;
-        
-        const newHabitsSection = PlannerParser.serializeHabits(habits);
-        const updated = PlannerParser.replaceSection(content, 'Habits', newHabitsSection);
-        
-        this.beginInternalUpdate();
-        try {
-            await this.app.vault.modify(projectFile, updated);
-        } finally {
-            this.endInternalUpdate();
-        }
-
-        // Direct update - update habit in memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            habits: {
-                                ...track.projects[projectId].habits,
-                                [habitId]: habit
-                            }
-                        }
-                    }
-                }
-            };
-        });
+        await this.mutateHabits(trackId, projectId, (habits) => ({
+            ...habits,
+            [habitId]: habit,
+        }));
     }
 
     /** Delete a habit from a project */
     async deleteProjectHabit(trackId: string, projectId: string, habitId: string): Promise<void> {
-        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
-        if (!projectFile) {
-            console.warn(`Project ${projectId} not found in track ${trackId}`);
-            return;
-        }
-
-        const content = await this.app.vault.read(projectFile);
-        const habitSection = PlannerParser.extractSection(content, "Habits");
-        const habits = PlannerParser.parseHabitSection(habitSection);
-        
-        delete habits[habitId];
-        
-        const newHabitsSection = PlannerParser.serializeHabits(habits);
-        const updated = PlannerParser.replaceSection(content, 'Habits', newHabitsSection);
-        
-        this.beginInternalUpdate();
-        try {
-            await this.app.vault.modify(projectFile, updated);
-        } finally {
-            this.endInternalUpdate();
-        }
-
-        // Direct update - remove habit from memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            const newHabits = { ...track.projects[projectId].habits };
-            delete newHabits[habitId];
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            habits: newHabits
-                        }
-                    }
-                }
-            };
+        await this.mutateHabits(trackId, projectId, (habits) => {
+            const next = { ...habits };
+            delete next[habitId];
+            return next;
         });
     }
 
@@ -1112,11 +989,20 @@ export class TrackNoteService {
 
     // ===== Project Phase operations ===== //
 
-    /** Helper: read phases from file, apply mutation, write back, update store */
-    private async mutatePhases(
+    /**
+     * Read a named markdown section from a project file, apply a mutation,
+     * write it back, and reflect the result into the store. Parsing,
+     * serializing, and the store field are supplied by the caller so this one
+     * helper serves both Habits and Phases (and any future section).
+     */
+    private async mutateSection<T>(
         trackId: string,
         projectId: string,
-        mutate: (phases: Phase[]) => Phase[]
+        section: string,
+        parse: (raw: string) => T,
+        serialize: (value: T) => string,
+        mutate: (value: T) => T,
+        toProjectField: (value: T) => Partial<Project>,
     ): Promise<void> {
         const projectFile = this.trackFileCache[trackId]?.projects[projectId];
         if (!projectFile) {
@@ -1125,11 +1011,9 @@ export class TrackNoteService {
         }
 
         const content = await this.app.vault.read(projectFile);
-        const phasesSection = PlannerParser.extractSection(content, "Phases");
-        const phases = PlannerParser.parsePhasesSection(phasesSection);
-        const newPhases = mutate(phases);
-        const serialized = PlannerParser.serializePhasesSection(newPhases);
-        const updated = PlannerParser.replaceSection(content, 'Phases', serialized);
+        const parsed = parse(PlannerParser.extractSection(content, section));
+        const next = mutate(parsed);
+        const updated = PlannerParser.replaceSection(content, section, serialize(next));
 
         this.beginInternalUpdate();
         try {
@@ -1138,23 +1022,41 @@ export class TrackNoteService {
             this.endInternalUpdate();
         }
 
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            phases: newPhases
-                        }
-                    }
-                }
-            };
-        });
+        this.updateProjectInStore(trackId, projectId, toProjectField(next));
+    }
+
+    /** Read phases from file, apply a mutation, write back, and update the store */
+    private async mutatePhases(
+        trackId: string,
+        projectId: string,
+        mutate: (phases: Phase[]) => Phase[]
+    ): Promise<void> {
+        await this.mutateSection(
+            trackId,
+            projectId,
+            "Phases",
+            (raw) => PlannerParser.parsePhasesSection(raw),
+            (phases) => PlannerParser.serializePhasesSection(phases),
+            mutate,
+            (phases) => ({ phases }),
+        );
+    }
+
+    /** Read habits from file, apply a mutation, write back, and update the store */
+    private async mutateHabits(
+        trackId: string,
+        projectId: string,
+        mutate: (habits: Record<string, Habit>) => Record<string, Habit>
+    ): Promise<void> {
+        await this.mutateSection(
+            trackId,
+            projectId,
+            "Habits",
+            (raw) => PlannerParser.parseHabitSection(raw),
+            (habits) => PlannerParser.serializeHabits(habits),
+            mutate,
+            (habits) => ({ habits }),
+        );
     }
 
     /** Add a new phase to a project */
