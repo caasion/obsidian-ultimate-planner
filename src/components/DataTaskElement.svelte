@@ -10,14 +10,13 @@
 		element: Element;
 		index: number;
 		color: string;
-		refCount?: number;
 		onUpdate: (index: number, updatedElement: Element) => void;
 		onDelete: (index: number) => void;
 		onToggle: (index: number) => void;
 		onCancel: (index: number) => void;
 	}
 
-	let { element, index, color, refCount = 0, onUpdate, onDelete, onToggle, onCancel }: TaskElementProps = $props();
+	let { element, index, color, onUpdate, onDelete, onToggle, onCancel }: TaskElementProps = $props();
 
 	let progressPercent = $derived(
 		element.progress !== undefined && element.duration
@@ -255,11 +254,6 @@
 						{element.scheduledDate}
 					</span>
 				{/if}
-				{#if refCount > 0}
-					<span class="meta-tag ref-count-tag" style={`--meta-tag-bg: ${color}5F;`} title="{refCount} daily note {refCount === 1 ? 'reference' : 'references'}">
-						{refCount} {refCount === 1 ? 'session' : 'sessions'}
-					</span>
-				{/if}
 			</div>
 		</div>
 	{/if}
@@ -469,12 +463,6 @@
 
 	.child-item {
 		padding: 2px 0;
-	}
-
-
-	.ref-count-tag {
-		font-size: 0.75em;
-		opacity: 0.8;
 	}
 
 	.datepicker-popup {
