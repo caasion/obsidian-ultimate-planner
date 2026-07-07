@@ -4,6 +4,7 @@ import { generateBlockId, getISODate } from "src/plugin/helpers";
 import type { DateInterval, Element, Habit, ISODate, Phase, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
 import { type Writable, get, writable } from "svelte/store";
 import { hashTrackFileCacheEntries } from "./trackSnapshotHash";
+import { getTracksForDates as computeTracksForDates } from "./trackLayout";
 
 interface TrackFiles {
     id: string | null;
@@ -66,105 +67,7 @@ export class TrackNoteService {
 
     /** Compute tracksByDate index on-demand for only the requested dates */
     getTracksForDates(dates: ISODate[], columns: number = dates.length): Record<ISODate, RenderTrack[]> {
-        const tracks = get(this.parsedTracksContent);
-        const today = getISODate(new Date());
-        const index: Record<ISODate, RenderTrack[]> = {};
-
-        for (const date of dates) {
-            index[date] = [];
-        }
-
-        const sortedTrackIds = Object.entries(tracks)
-            .sort(([, a], [, b]) => {
-                const orderA = Number.isFinite(a.order) ? a.order : Number.MAX_SAFE_INTEGER;
-                const orderB = Number.isFinite(b.order) ? b.order : Number.MAX_SAFE_INTEGER;
-
-                if (orderA !== orderB) return orderA - orderB;
-                return a.label.localeCompare(b.label);
-            })
-            .map(([trackId]) => trackId);
-
-        const safeColumns = Math.max(1, columns);
-
-        for (let blockStart = 0; blockStart < dates.length; blockStart += safeColumns) {
-            const blockDates = dates.slice(blockStart, blockStart + safeColumns);
-            const rowAssignments: Array<string | null> = [];
-            const assignedTrackIds = new Set<string>();
-
-            for (let dayIndex = 0; dayIndex < blockDates.length; dayIndex++) {
-                const date = blockDates[dayIndex];
-                const activeTrackIds = sortedTrackIds.filter((trackId) => {
-                    const track = tracks[trackId];
-                    return track ? this.isTrackActiveOnDate(track, date, today) : false;
-                });
-                const activeTrackSet = new Set(activeTrackIds);
-
-                for (let row = 0; row < rowAssignments.length; row++) {
-                    const trackId = rowAssignments[row];
-                    if (!trackId) continue;
-
-                    if (!activeTrackSet.has(trackId)) {
-                        rowAssignments[row] = null;
-                        assignedTrackIds.delete(trackId);
-                    }
-                }
-
-                const unassignedActiveTrackIds = activeTrackIds.filter((trackId) => !assignedTrackIds.has(trackId));
-                const startingTrackIds = unassignedActiveTrackIds.filter((trackId) => {
-                    const track = tracks[trackId];
-                    return track ? this.isTrackStartingOnDate(track, date) : false;
-                });
-                const carryOverTrackIds = unassignedActiveTrackIds.filter((trackId) => !startingTrackIds.includes(trackId));
-
-                const placementQueue = dayIndex === 0
-                    ? unassignedActiveTrackIds
-                    : [...startingTrackIds, ...carryOverTrackIds];
-
-                for (const trackId of placementQueue) {
-                    let row = rowAssignments.findIndex((value) => value === null);
-
-                    if (row === -1) {
-                        row = rowAssignments.length;
-                        rowAssignments.push(trackId);
-                    } else {
-                        rowAssignments[row] = trackId;
-                    }
-
-                    assignedTrackIds.add(trackId);
-                }
-
-                const rowsForDate: RenderTrack[] = [];
-                for (let row = 0; row < rowAssignments.length; row++) {
-                    const trackId = rowAssignments[row];
-                    if (!trackId || !activeTrackSet.has(trackId)) continue;
-
-                    const track = tracks[trackId];
-                    rowsForDate[row] = {
-                        id: trackId,
-                        isStartOfInterval: track ? this.isTrackStartingOnDate(track, date) : false,
-                    };
-                }
-
-                index[date] = rowsForDate;
-            }
-        }
-
-        return index;
-    }
-
-    private resolveIntervalEnd(intervalStart: ISODate, intervalEnd: ISODate | undefined, today: ISODate): ISODate {
-        if (intervalEnd) return intervalEnd;
-        return intervalStart > today ? intervalStart : today;
-    }
-
-    private isTrackActiveOnDate(track: Track, date: ISODate, today: ISODate): boolean {
-        const { start, end } = track.effective;
-        const resolvedEnd = this.resolveIntervalEnd(start, end, today);
-        return date >= start && date <= resolvedEnd;
-    }
-
-    private isTrackStartingOnDate(track: Track, date: ISODate): boolean {
-        return track.effective.start === date;
+        return computeTracksForDates(get(this.parsedTracksContent), dates, columns);
     }
 
     private stripFileReferences(tracks: Record<string, Track>): Record<string, Track> {
