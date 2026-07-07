@@ -1,10 +1,11 @@
 import { TFolder, type App, TFile, getAllTags, type FrontMatterCache, type EventRef, Menu, Notice, getFrontMatterInfo, parseYaml } from "obsidian";
 import { PlannerParser } from "src/planner/logic/parser";
 import { generateBlockId, getISODate } from "src/plugin/helpers";
-import type { DateInterval, Element, Habit, ISODate, Phase, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
+import type { Element, Habit, ISODate, Phase, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
 import { type Writable, get, writable } from "svelte/store";
 import { hashTrackFileCacheEntries } from "./trackSnapshotHash";
 import { getTracksForDates as computeTracksForDates } from "./trackLayout";
+import { generateProjectContent, generateTrackContent, parseEffective } from "./trackSerializer";
 
 interface TrackFiles {
     id: string | null;
@@ -128,44 +129,6 @@ export class TrackNoteService {
         this.publishTrackState(normalized, false);
     }
 
-    private normalizeISODate(value: unknown): string | null {
-        if (typeof value === 'string') {
-            const trimmed = value.trim();
-            return trimmed ? trimmed : null;
-        }
-
-        if (typeof value === 'number') {
-            return String(value);
-        }
-
-        return null;
-    }
-
-    private parseEffective(frontmatter?: Record<string, unknown>): DateInterval {
-        const rawEffective: unknown = frontmatter?.effective;
-
-        // Support legacy array format: take the first interval
-        if (Array.isArray(rawEffective) && rawEffective.length > 0) {
-            const first: unknown = rawEffective[0];
-            if (first && typeof first === 'object') {
-                const record = first as Record<string, unknown>;
-                const start = this.normalizeISODate(record.start);
-                const end = this.normalizeISODate(record.end);
-                if (start) return end ? { start, end } : { start };
-            }
-        }
-
-        // Single object format
-        if (rawEffective && typeof rawEffective === 'object' && !Array.isArray(rawEffective)) {
-            const record = rawEffective as Record<string, unknown>;
-            const start = this.normalizeISODate(record.start);
-            const end = this.normalizeISODate(record.end);
-            if (start) return end ? { start, end } : { start };
-        }
-
-        return { start: getISODate(new Date()) };
-    }
-    
     async initializeTracksByDate(): Promise<void> {
         await this.loadAllTrackContent();
     }
@@ -304,7 +267,7 @@ export class TrackNoteService {
         const order = frontmatter.order as number;
         const timeCommitment = (frontmatter.timeCommitment as number | undefined) ?? 0;
         const journalHeader = (frontmatter.journalHeader as string | undefined) ?? '';
-        const effective = this.parseEffective(frontmatter);
+        const effective = parseEffective(frontmatter);
 
         const color = (frontmatter.color as string | undefined) ?? "#cccccc";
 
@@ -622,7 +585,7 @@ export class TrackNoteService {
 
             // Create the track file
             const trackFilePath = `${trackFolderPath}/${track.label}.md`;
-            const trackContent = this.generateTrackContent(track);
+            const trackContent = generateTrackContent(track);
             await this.app.vault.create(trackFilePath, trackContent);
 
             return true;
@@ -632,35 +595,6 @@ export class TrackNoteService {
         }
     }
 
-    /** Generate track file content from Track object */
-    private generateTrackContent(track: Track): string {
-        const lines: string[] = [];
-
-        // Frontmatter
-        lines.push('---');
-        lines.push('tags:');
-        lines.push('  - holos/track');
-        lines.push(`id: ${track.id}`);
-        lines.push(`order: ${track.order}`);
-        lines.push(`color: "${track.color}"`);
-        lines.push('effective:');
-        lines.push(`  start: ${track.effective.start}`);
-        if (track.effective.end) {
-            lines.push(`  end: ${track.effective.end}`);
-        }
-        lines.push(`timeCommitment: ${track.timeCommitment}`);
-        lines.push(`journalHeader: ${track.journalHeader}`);
-        lines.push('---');
-        lines.push('');
-
-        // Description
-        if (track.description) {
-            lines.push(track.description);
-            lines.push('');
-        }
-
-        return lines.join('\n');
-    }
 
     /** Update track label, which updates the name of the track folder and the file. */
     async updateTrackLabel(trackId: string, label: string) {
@@ -806,7 +740,7 @@ export class TrackNoteService {
             const trackFolder = trackFiles.track.parent;
             if (!trackFolder) return false;
 
-            const projectContent = this.generateProjectContent(project);
+            const projectContent = generateProjectContent(project);
 
             if (this.settings.projectNotesAsFolders) {
                 const projectFolderPath = `${trackFolder.path}/${project.label}`;
@@ -875,35 +809,6 @@ export class TrackNoteService {
         }
     }
 
-    /** Generate project file content from Project object */
-    private generateProjectContent(project: Project): string {
-        const lines: string[] = [];
-
-        // Frontmatter
-        lines.push('---');
-        lines.push('tags:');
-        lines.push('  - holos/project');
-        lines.push(`id: ${project.id}`);
-        lines.push('phases: true');
-        lines.push('---');
-        lines.push('');
-
-        // Habits section
-        lines.push('## Habits');
-        lines.push('');
-        for (const habit of Object.values(project.habits)) {
-            const rruleStr = habit.rrule ? ` (${habit.rrule})` : '';
-            lines.push(`- ${habit.label}${rruleStr}`);
-        }
-        lines.push('');
-
-        // Phases section
-        lines.push('## Phases');
-        lines.push('');
-        lines.push(PlannerParser.serializePhasesSection(project.phases));
-
-        return lines.join('\n');
-    }
 
     /** Delete a track and its folder */
     async deleteTrack(trackId: string): Promise<boolean> {
