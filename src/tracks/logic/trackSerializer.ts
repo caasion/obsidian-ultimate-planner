@@ -86,7 +86,6 @@ export function generateProjectContent(project: Project): string {
     lines.push('tags:');
     lines.push('  - holos/project');
     lines.push(`id: ${project.id}`);
-    lines.push('phases: true');
     lines.push('---');
     lines.push('');
 

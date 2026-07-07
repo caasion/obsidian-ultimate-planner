@@ -231,39 +231,6 @@ export class PlannerParser {
         return result;
     }
 
-    static parseTaskSection(section: string): Element[] {
-        const lines = section.split('\n');
-        const tasks: Element[] = [];
-        let currentElement: Element | null = null;
-
-        for (const line of lines) {
-            // Skip empty lines
-            if (!line.trim()) continue;
-
-            // Top-level element (no tabs or single-level tabs)
-            if (line.match(/^- /)) {
-                // Push previous element if exists
-                if (currentElement) {
-                    tasks.push(currentElement);
-                }
-                
-                // Parse new element
-                currentElement = PlannerParser.parseElementLine(line);
-            } else if (line.match(/^\t- /) && currentElement) {
-                // Child item
-                const text = line.replace(/^\t- /, '').trim();
-                currentElement.children.push(text);
-            }
-        }
-
-        // Push last element
-        if (currentElement) {
-            tasks.push(currentElement);
-        }
-
-        return tasks;
-    }
-
     private static resolveTrackId(label: string, tracks: Record<string, Track>): string {
         const normalizedLabel = label.trim().toLocaleLowerCase();
 
