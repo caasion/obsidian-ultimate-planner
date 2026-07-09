@@ -39,7 +39,7 @@
         if (!tracks) return events;
 
         for (const renderTrack of tracks) {
-            if (!renderTrack.id) continue;
+            if (!renderTrack?.id) continue;
             const track = parsedTracks[renderTrack.id];
             if (!track) continue;
 
