@@ -11,7 +11,7 @@
 	import ProjectGanttView from "src/gantt/ui/ProjectGanttView.svelte";
 	import TasksView from "src/tasks/ui/TasksView.svelte";
 
-	type ViewId = 'planner' | 'timeline' | 'workbench' | 'tracks' | 'gantt';
+	type ViewId = 'planner' | 'timeline' | 'tasks' | 'workbench' | 'tracks' | 'gantt';
 
 	interface Props {
 		app: App;
