@@ -118,13 +118,17 @@
     function insertItems() {
         const habitItems: Element[] = visibleHabits.map(({ habit, projectLabel }) => {
             const text = `↻ ${habit.label} [[${projectLabel}]]`;
-            const raw = reconstructRawText(text, true, ' ', undefined, undefined, undefined, undefined);
+            const raw = reconstructRawText(text, true, ' ', habit.startTime, habit.progress, habit.duration, habit.timeUnit);
             return {
                 raw,
                 text,
                 children: [],
                 isTask: true,
                 taskStatus: ' ' as const,
+                startTime: habit.startTime,
+                progress: habit.progress,
+                duration: habit.duration,
+                timeUnit: habit.timeUnit,
             };
         });
 

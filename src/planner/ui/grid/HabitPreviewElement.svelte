@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Habit } from "src/plugin/types";
+    import { formatTime } from "src/plugin/helpers";
 
     interface HabitPreviewProps {
         habit: Habit;
@@ -29,6 +30,16 @@
             <span class="habit-symbol">↻</span>
             <span class="habit-text">{habit.label.replace("[ ] ", "")}</span>
             <div class="habit-badge-container">
+                {#if habit.startTime}
+                    <span class="time-badge" style={`background-color: ${color}80;`}>
+                        {formatTime(habit.startTime)}
+                    </span>
+                {/if}
+                {#if habit.duration && habit.timeUnit}
+                    <span class="time-badge" style={`background-color: ${color}80;`}>
+                        {habit.duration} {habit.timeUnit}
+                    </span>
+                {/if}
                 {#if showProjectLabel}
                     <span class="project-badge" style={`background-color: ${color}80;`}>
                         {shortenedProject}
@@ -94,6 +105,17 @@
     .habit-badge-container {
         margin-left: auto;
         flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .time-badge {
+        font-size: 0.7em;
+        color: white;
+        padding: 1px 4px;
+        border-radius: 3px;
+        white-space: nowrap;
     }
 
     .project-badge {
