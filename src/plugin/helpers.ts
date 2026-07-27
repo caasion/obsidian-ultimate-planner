@@ -179,6 +179,11 @@ export function generateBlockId(): string {
     return Math.random().toString(36).substring(2, 7);
 }
 
+/** Extracts the block ID from a source reference wikilink: "[[File#^aj23k]]" → "aj23k". */
+export function extractSourceRefBlockId(sourceRef?: string): string | undefined {
+    return sourceRef?.match(/\[\[[^\]]+#\^([a-zA-Z0-9]+)\]\]/)?.[1];
+}
+
 /** Returns true if a phase is currently active (its date range includes today). */
 export function isPhaseActive(phase: Phase): boolean {
     if (!phase.startDate) return false;
