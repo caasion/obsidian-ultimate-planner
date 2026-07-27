@@ -124,6 +124,10 @@ export default class HolosPlugin extends Plugin {
 		void loadTracks();
 		this.app.workspace.onLayoutReady(() => {
 			void loadTracks();
+			// The daily-notes cache is only reliably populated once the layout is
+			// ready. Notify the planner so it reloads and populates itself instead
+			// of relying on the user to navigate to trigger a fresh read.
+			this.dailyNoteService.notifyReady();
 		});
 	}
 

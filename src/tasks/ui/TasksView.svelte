@@ -62,6 +62,8 @@
 	let trackMetaRevisionStore = $derived(trackNoteService.trackMetaRevision);
 	const trackMetaRevision = $derived($trackMetaRevisionStore);
 
+	let readyRevisionStore = $derived(dailyNoteService.revision);
+	const readyRevision = $derived($readyRevisionStore);
 	let parsedContentStore = $derived(dailyNoteService.parsedContent);
 	let parsedContent = $derived<Record<ISODate, Record<string, TrackData>>>($parsedContentStore);
 
@@ -69,6 +71,7 @@
 	const parsedTracks = $derived($trackStore);
 
 	$effect(() => {
+		readyRevision; // re-run once the daily-notes cache becomes ready
 		dailyNoteService.loadMultipleDates(dates);
 	});
 

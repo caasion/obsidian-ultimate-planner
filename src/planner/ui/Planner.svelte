@@ -65,6 +65,8 @@
 		trackMetaRevision;
 		return trackNoteService.getTracksForDates(dates, localColumns);
 	});
+	let readyRevisionStore = $derived(dailyNoteService.revision);
+	const readyRevision = $derived($readyRevisionStore);
 	let parsedContentStore = $derived(dailyNoteService.parsedContent);
 	let parsedJournalContentStore = $derived(dailyNoteService.parsedJournalContent);
 
@@ -75,6 +77,7 @@
 	let intentions = $derived<Record<ISODate, string>>($intentionsStore);
 
 	$effect(() => {
+		readyRevision; // re-run once the daily-notes cache becomes ready
 		dailyNoteService.loadMultipleDates(dates);
 	});
 

@@ -24,6 +24,11 @@ export class DailyNoteService {
     public parsedJournalContent: Writable<Record<ISODate, Record<string, string>>> = writable({});
     public intentions: Writable<Record<ISODate, string>> = writable({});
 
+    // Bumped when the daily-notes cache becomes available (e.g. once the workspace
+    // layout is ready). Consumers can depend on this store to re-trigger a load so
+    // the view populates itself instead of waiting for the user to navigate.
+    public revision: Writable<number> = writable(0);
+
     private fileModifyRef: EventRef | null = null;
     private watchedDates: ISODate[] = [];
 
@@ -141,6 +146,15 @@ export class DailyNoteService {
         this.parsedContent.set(result);
         this.parsedJournalContent.set(journalResult);
         this.intentions.set(intentionResult);
+    }
+
+    /**
+     * Signal that the environment (workspace layout / daily-notes cache) has
+     * become ready. Bumps `revision` so subscribed views reload their content,
+     * fixing the initial-render case where the cache was empty on first paint.
+     */
+    notifyReady(): void {
+        this.revision.update((n) => n + 1);
     }
 
     // ===== Write operations ===== //
