@@ -1,8 +1,7 @@
 <script lang="ts">
-	import type { Track, Project, Element, ISODate, Phase, TrackData } from "src/plugin/types";
+	import type { Track, Element, ISODate } from "src/plugin/types";
 	import type { TrackNoteService } from "src/tracks/logic/trackNote";
 	import type { DailyNoteService } from "src/planner/logic/dailyNote";
-	import type { ProjectCardFunctions } from "./components/ProjectCard.svelte";
 	import type { HabitFunctions } from "./components/HabitElement.svelte";
 	import ProjectHabitCard from "./components/ProjectHabitCard.svelte";
 	import DataTaskElement from "src/components/DataTaskElement.svelte";
@@ -10,7 +9,7 @@
 	import EditableMarkdownText from "src/components/EditableMarkdownText.svelte";
 	import Datepicker from "src/components/Datepicker.svelte";
 	import TrackDetailPanel from "./components/TrackDetailPanel.svelte";
-	import { getISODate, getISODates, isProjectActive, isPhaseActive, isTrackActive } from "src/plugin/helpers";
+	import { getISODate, isProjectActive, isPhaseActive, isTrackActive } from "src/plugin/helpers";
 	import { isValid, parseISO } from "date-fns";
 	import { type App, Notice } from "obsidian";
 	import { onMount, untrack } from "svelte";
@@ -19,6 +18,27 @@
 		app: App;
 		trackNoteService: TrackNoteService;
 		dailyNoteService: DailyNoteService;
+	}
+
+	// Callbacks wiring a project's UI to the track service. Projects are always
+	// phase-based, so every task operation is scoped to a phase.
+	interface ProjectCardFunctions {
+		onLabelEdit: (label: string) => void;
+		onDescriptionEdit: (description: string) => void;
+		onOpenFile: () => void;
+		onDelete: () => void;
+
+		onHabitAdd: () => void;
+
+		onPhaseAdd: () => void;
+		onPhaseLabelEdit: (phaseId: string, label: string) => void;
+		onPhaseDateEdit: (phaseId: string, startDate?: ISODate, endDate?: ISODate) => void;
+		onPhaseDelete: (phaseId: string) => void;
+		onPhaseDataAdd: (phaseId: string) => void;
+		onPhaseDataUpdate: (phaseId: string, index: number, updatedElement: Element) => void;
+		onPhaseDataToggle: (phaseId: string, index: number) => void;
+		onPhaseDataCancel: (phaseId: string, index: number) => void;
+		onPhaseDataDelete: (phaseId: string, index: number) => void;
 	}
 
 	let { app, trackNoteService, dailyNoteService }: ProjectViewProps = $props();
@@ -172,37 +192,6 @@
 			getISODate(range.from),
 			range.to ? getISODate(range.to) : undefined
 		);
-	}
-
-	// Daily note data for reference counting
-	const today = getISODate(new Date());
-	let dailyDates = $derived<ISODate[]>(getISODates(today, 12, 1)); // ~12 weeks of data for reference lookups
-
-	let parsedContentStore = $derived(dailyNoteService.parsedContent);
-	let parsedContent = $derived<Record<ISODate, Record<string, TrackData>>>($parsedContentStore);
-
-	$effect(() => {
-		dailyNoteService.loadMultipleDates(dailyDates);
-	});
-
-	// Build a map of blockId -> count of daily note appearances
-	let refCountMap = $derived.by((): Map<string, number> => {
-		const map = new Map<string, number>();
-		for (const dateData of Object.values(parsedContent)) {
-			for (const trackData of Object.values(dateData)) {
-				for (const element of trackData.items) {
-					if (element.blockId) {
-						map.set(element.blockId, (map.get(element.blockId) ?? 0) + 1);
-					}
-				}
-			}
-		}
-		return map;
-	});
-
-	function getRefCount(blockId?: string): number {
-		if (!blockId) return 0;
-		return refCountMap.get(blockId) ?? 0;
 	}
 
 	// Load track content and setup file watchers once on mount
@@ -402,12 +391,10 @@
 						</div>
 						<div class="single-phase-tasks">
 							{#each visiblePhaseData as {el: element, i: idx} (idx)}
-								{@const refCount = getRefCount(element.blockId)}
 								<DataTaskElement
 									{element}
 									index={idx}
 									{color}
-									{refCount}
 									onUpdate={(i, el) => fns.onPhaseDataUpdate(phase.id, i, el)}
 									onToggle={(i) => fns.onPhaseDataToggle(phase.id, i)}
 									onCancel={(i) => fns.onPhaseDataCancel(phase.id, i)}
@@ -471,12 +458,10 @@
 										</div>
 										<div class="phase-card-tasks">
 											{#each visiblePhaseData as {el: element, i: idx} (idx)}
-												{@const refCount = getRefCount(element.blockId)}
 												<DataTaskElement
 													{element}
 													index={idx}
 													{color}
-													{refCount}
 													onUpdate={(i, el) => fns.onPhaseDataUpdate(phase.id, i, el)}
 													onToggle={(i) => fns.onPhaseDataToggle(phase.id, i)}
 													onCancel={(i) => fns.onPhaseDataCancel(phase.id, i)}

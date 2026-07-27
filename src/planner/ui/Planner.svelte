@@ -68,8 +68,11 @@
 	let parsedContentStore = $derived(dailyNoteService.parsedContent);
 	let parsedJournalContentStore = $derived(dailyNoteService.parsedJournalContent);
 
+	let intentionsStore = $derived(dailyNoteService.intentions);
+
 	let parsedContent = $derived<Record<ISODate, Record<string, TrackData>>>($parsedContentStore);
-	let parsedJournalContent = $derived<Record<ISODate, Record<string, string>>>($parsedJournalContentStore)
+	let parsedJournalContent = $derived<Record<ISODate, Record<string, string>>>($parsedJournalContentStore);
+	let intentions = $derived<Record<ISODate, string>>($intentionsStore);
 
 	$effect(() => {
 		dailyNoteService.loadMultipleDates(dates);
@@ -106,6 +109,10 @@
 
 	async function openDailyNote(date: ISODate) {
 		await dailyNoteService.openDailyNote(date);
+	}
+
+	async function handleIntentionSave(date: ISODate, intention: string) {
+		await dailyNoteService.saveIntention(date, intention);
 	}
 
 	async function handleTrackFileOpen(trackId: string) {
@@ -186,9 +193,11 @@
 			blocks={localBlocks}
 			{parsedContent}
 			{parsedJournalContent}
+			{intentions}
 			{showProjectLabel}
 			onUpdate={handleCellUpdate}
 			onAdd={addNewTrackToCell}
+			onIntentionSave={handleIntentionSave}
 			{openDailyNote}
 			onTrackFileOpen={handleTrackFileOpen}
 			onCloseProjectTask={handleCloseProjectTask}

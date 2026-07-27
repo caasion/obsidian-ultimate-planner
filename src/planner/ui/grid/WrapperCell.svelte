@@ -5,7 +5,7 @@
     import HabitPreviewElement from './HabitPreviewElement.svelte';
     import ScheduledTaskPreviewElement from './ScheduledTaskPreviewElement.svelte';
     import UnscheduledTasksPopup from './UnscheduledTasksPopup.svelte';
-    import { calculateTotalTimeSpent, formatTimeArguments, reconstructRawText, getProjectStartDate } from 'src/plugin/helpers';
+    import { calculateTotalTimeSpent, formatTimeArguments, reconstructRawText, getProjectStartDate, extractSourceRefBlockId } from 'src/plugin/helpers';
     import { RRuleService } from 'src/tracks/logic/rrule';
     import { dndzone } from 'svelte-dnd-action';
     import { flip } from 'svelte/animate';
@@ -81,10 +81,8 @@
         const insertedBlockIds = new Set<string>();
         if (trackData) {
             for (const item of trackData.items) {
-                if (item.sourceRef) {
-                    const match = item.sourceRef.match(/\[\[[^\]]+#\^([a-zA-Z0-9]+)\]\]/);
-                    if (match) insertedBlockIds.add(match[1]);
-                }
+                const refBlockId = extractSourceRefBlockId(item.sourceRef);
+                if (refBlockId) insertedBlockIds.add(refBlockId);
             }
         }
 
@@ -118,13 +116,17 @@
     function insertItems() {
         const habitItems: Element[] = visibleHabits.map(({ habit, projectLabel }) => {
             const text = `↻ ${habit.label} [[${projectLabel}]]`;
-            const raw = reconstructRawText(text, true, ' ', undefined, undefined, undefined, undefined);
+            const raw = reconstructRawText(text, true, ' ', habit.startTime, habit.progress, habit.duration, habit.timeUnit);
             return {
                 raw,
                 text,
                 children: [],
                 isTask: true,
                 taskStatus: ' ' as const,
+                startTime: habit.startTime,
+                progress: habit.progress,
+                duration: habit.duration,
+                timeUnit: habit.timeUnit,
             };
         });
 
@@ -284,7 +286,8 @@
     }
 
     function addNewElement(isTask: boolean) {
-        const newElement: Element = { raw: '', text: '', children: [], isTask };
+        // Tasks start with an unchecked checkbox by default.
+        const newElement: Element = { raw: '', text: '', children: [], isTask, taskStatus: isTask ? ' ' : undefined };
         if (trackData) {
             onUpdate(date, trackId, { ...trackData, items: [...trackData.items, newElement] });
         } else {
@@ -298,12 +301,10 @@
             const match = element.sourceRef.match(/\[\[([^\]#]+)(?:#[^\]]+)?\]\]/);
             return match?.[1];
         }
-        if (element.text.startsWith('↻ ')) {
-            // Habit: "↻ Label [[ProjectLabel]]"
-            const match = element.text.match(/\[\[([^\]]+)\]\]\s*$/);
-            return match?.[1];
-        }
-        return undefined;
+        // Trailing "[[ProjectLabel]]" association: habits ("↻ Label [[Project]]")
+        // and user-linked tasks both store the association at the end of the text.
+        const match = element.text.match(/\[\[([^\]#]+)\]\]\s*$/);
+        return match?.[1]?.trim();
     }
 
     /* Drag and Drop */
@@ -385,6 +386,7 @@
                         color={trackMeta.color}
                         projectLabel={getProjectLabel(element)}
                         {showProjectLabel}
+                        projects={Object.values(trackMeta.projects)}
                         onUpdate={updateElement}
                         onDelete={deleteElement}
                         onToggle={toggleTask}

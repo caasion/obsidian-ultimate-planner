@@ -1,9 +1,11 @@
 import { TFolder, type App, TFile, getAllTags, type FrontMatterCache, type EventRef, Menu, Notice, getFrontMatterInfo, parseYaml } from "obsidian";
 import { PlannerParser } from "src/planner/logic/parser";
 import { generateBlockId, getISODate } from "src/plugin/helpers";
-import type { DateInterval, Element, Habit, ISODate, Phase, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
+import type { Element, Habit, ISODate, Phase, PluginSettings, Project, RenderTrack, Track, TrackFileFrontmatter, TrackSnapshot } from "src/plugin/types";
 import { type Writable, get, writable } from "svelte/store";
 import { hashTrackFileCacheEntries } from "./trackSnapshotHash";
+import { getTracksForDates as computeTracksForDates } from "./trackLayout";
+import { generateProjectContent, generateTrackContent, parseEffective } from "./trackSerializer";
 
 interface TrackFiles {
     id: string | null;
@@ -66,105 +68,7 @@ export class TrackNoteService {
 
     /** Compute tracksByDate index on-demand for only the requested dates */
     getTracksForDates(dates: ISODate[], columns: number = dates.length): Record<ISODate, RenderTrack[]> {
-        const tracks = get(this.parsedTracksContent);
-        const today = getISODate(new Date());
-        const index: Record<ISODate, RenderTrack[]> = {};
-
-        for (const date of dates) {
-            index[date] = [];
-        }
-
-        const sortedTrackIds = Object.entries(tracks)
-            .sort(([, a], [, b]) => {
-                const orderA = Number.isFinite(a.order) ? a.order : Number.MAX_SAFE_INTEGER;
-                const orderB = Number.isFinite(b.order) ? b.order : Number.MAX_SAFE_INTEGER;
-
-                if (orderA !== orderB) return orderA - orderB;
-                return a.label.localeCompare(b.label);
-            })
-            .map(([trackId]) => trackId);
-
-        const safeColumns = Math.max(1, columns);
-
-        for (let blockStart = 0; blockStart < dates.length; blockStart += safeColumns) {
-            const blockDates = dates.slice(blockStart, blockStart + safeColumns);
-            const rowAssignments: Array<string | null> = [];
-            const assignedTrackIds = new Set<string>();
-
-            for (let dayIndex = 0; dayIndex < blockDates.length; dayIndex++) {
-                const date = blockDates[dayIndex];
-                const activeTrackIds = sortedTrackIds.filter((trackId) => {
-                    const track = tracks[trackId];
-                    return track ? this.isTrackActiveOnDate(track, date, today) : false;
-                });
-                const activeTrackSet = new Set(activeTrackIds);
-
-                for (let row = 0; row < rowAssignments.length; row++) {
-                    const trackId = rowAssignments[row];
-                    if (!trackId) continue;
-
-                    if (!activeTrackSet.has(trackId)) {
-                        rowAssignments[row] = null;
-                        assignedTrackIds.delete(trackId);
-                    }
-                }
-
-                const unassignedActiveTrackIds = activeTrackIds.filter((trackId) => !assignedTrackIds.has(trackId));
-                const startingTrackIds = unassignedActiveTrackIds.filter((trackId) => {
-                    const track = tracks[trackId];
-                    return track ? this.isTrackStartingOnDate(track, date) : false;
-                });
-                const carryOverTrackIds = unassignedActiveTrackIds.filter((trackId) => !startingTrackIds.includes(trackId));
-
-                const placementQueue = dayIndex === 0
-                    ? unassignedActiveTrackIds
-                    : [...startingTrackIds, ...carryOverTrackIds];
-
-                for (const trackId of placementQueue) {
-                    let row = rowAssignments.findIndex((value) => value === null);
-
-                    if (row === -1) {
-                        row = rowAssignments.length;
-                        rowAssignments.push(trackId);
-                    } else {
-                        rowAssignments[row] = trackId;
-                    }
-
-                    assignedTrackIds.add(trackId);
-                }
-
-                const rowsForDate: RenderTrack[] = [];
-                for (let row = 0; row < rowAssignments.length; row++) {
-                    const trackId = rowAssignments[row];
-                    if (!trackId || !activeTrackSet.has(trackId)) continue;
-
-                    const track = tracks[trackId];
-                    rowsForDate[row] = {
-                        id: trackId,
-                        isStartOfInterval: track ? this.isTrackStartingOnDate(track, date) : false,
-                    };
-                }
-
-                index[date] = rowsForDate;
-            }
-        }
-
-        return index;
-    }
-
-    private resolveIntervalEnd(intervalStart: ISODate, intervalEnd: ISODate | undefined, today: ISODate): ISODate {
-        if (intervalEnd) return intervalEnd;
-        return intervalStart > today ? intervalStart : today;
-    }
-
-    private isTrackActiveOnDate(track: Track, date: ISODate, today: ISODate): boolean {
-        const { start, end } = track.effective;
-        const resolvedEnd = this.resolveIntervalEnd(start, end, today);
-        return date >= start && date <= resolvedEnd;
-    }
-
-    private isTrackStartingOnDate(track: Track, date: ISODate): boolean {
-        return track.effective.start === date;
+        return computeTracksForDates(get(this.parsedTracksContent), dates, columns);
     }
 
     private stripFileReferences(tracks: Record<string, Track>): Record<string, Track> {
@@ -206,6 +110,38 @@ export class TrackNoteService {
         }
     }
 
+    /**
+     * Patch a single project inside the store, immutably. Accepts either a
+     * partial to merge or an updater that receives the current project and
+     * returns the next one. No-ops if the track/project is missing.
+     */
+    private updateProjectInStore(
+        trackId: string,
+        projectId: string,
+        patch: Partial<Project> | ((project: Project) => Project),
+    ): void {
+        this.parsedTracksContent.update(tracks => {
+            const track = tracks[trackId];
+            const project = track?.projects[projectId];
+            if (!project) return tracks;
+
+            const nextProject = typeof patch === 'function'
+                ? patch(project)
+                : { ...project, ...patch };
+
+            return {
+                ...tracks,
+                [trackId]: {
+                    ...track,
+                    projects: {
+                        ...track.projects,
+                        [projectId]: nextProject,
+                    },
+                },
+            };
+        });
+    }
+
     private hydrateFromSnapshot(tracks: Record<string, Track>): void {
         const normalized: Record<string, Track> = {};
         for (const [trackId, track] of Object.entries(tracks)) {
@@ -225,44 +161,6 @@ export class TrackNoteService {
         this.publishTrackState(normalized, false);
     }
 
-    private normalizeISODate(value: unknown): string | null {
-        if (typeof value === 'string') {
-            const trimmed = value.trim();
-            return trimmed ? trimmed : null;
-        }
-
-        if (typeof value === 'number') {
-            return String(value);
-        }
-
-        return null;
-    }
-
-    private parseEffective(frontmatter?: Record<string, unknown>): DateInterval {
-        const rawEffective: unknown = frontmatter?.effective;
-
-        // Support legacy array format: take the first interval
-        if (Array.isArray(rawEffective) && rawEffective.length > 0) {
-            const first: unknown = rawEffective[0];
-            if (first && typeof first === 'object') {
-                const record = first as Record<string, unknown>;
-                const start = this.normalizeISODate(record.start);
-                const end = this.normalizeISODate(record.end);
-                if (start) return end ? { start, end } : { start };
-            }
-        }
-
-        // Single object format
-        if (rawEffective && typeof rawEffective === 'object' && !Array.isArray(rawEffective)) {
-            const record = rawEffective as Record<string, unknown>;
-            const start = this.normalizeISODate(record.start);
-            const end = this.normalizeISODate(record.end);
-            if (start) return end ? { start, end } : { start };
-        }
-
-        return { start: getISODate(new Date()) };
-    }
-    
     async initializeTracksByDate(): Promise<void> {
         await this.loadAllTrackContent();
     }
@@ -401,7 +299,7 @@ export class TrackNoteService {
         const order = frontmatter.order as number;
         const timeCommitment = (frontmatter.timeCommitment as number | undefined) ?? 0;
         const journalHeader = (frontmatter.journalHeader as string | undefined) ?? '';
-        const effective = this.parseEffective(frontmatter);
+        const effective = parseEffective(frontmatter);
 
         const color = (frontmatter.color as string | undefined) ?? "#cccccc";
 
@@ -489,82 +387,6 @@ export class TrackNoteService {
             habits,
             phases,
         };
-    }
-
-    // ===== Migration ===== //
-
-    /** Migrate all task-based projects to phase-based format. Returns the number of projects migrated. */
-    async migrateProjectsToPhases(): Promise<number> {
-        if (!this.trackFileCache || Object.keys(this.trackFileCache).length === 0) {
-            await this.populateFileCache();
-        }
-
-        let migrated = 0;
-
-        for (const trackFiles of Object.values(this.trackFileCache)) {
-            for (const [id, projectFile] of Object.entries(trackFiles.projects)) {
-                const didMigrate = await this.migrateProjectFile(projectFile);
-                if (didMigrate) migrated++;
-            }
-        }
-
-        if (migrated > 0) {
-            await this.loadAllTrackContent();
-        }
-
-        return migrated;
-    }
-
-    /** Migrate a single project file from task-based to phase-based. Returns true if migration was performed. */
-    private async migrateProjectFile(projectFile: TFile): Promise<boolean> {
-        const cache = this.app.metadataCache.getFileCache(projectFile);
-        const frontmatter = cache?.frontmatter as Record<string, unknown> | undefined;
-        const projectContent = await this.app.vault.read(projectFile);
-
-        if (!projectContent || !frontmatter) return false;
-
-        const hasPhases = frontmatter.phases === true;
-        if (hasPhases) return false; // Already migrated
-
-        // Parse old task data
-        const dataSection = PlannerParser.extractSection(projectContent, "Data") || PlannerParser.extractSection(projectContent, "Tasks");
-        const data = PlannerParser.parseTaskSection(dataSection);
-        const phases: Phase[] = [{
-            id: 'phase-0',
-            label: 'Phase 1',
-            startDate: frontmatter.startDate as string | undefined,
-            endDate: frontmatter.endDate as string | undefined,
-            data,
-        }];
-
-        // Update frontmatter: add phases: true, remove startDate/endDate
-        let updatedContent = projectContent.replace(
-            /^(---[\s\S]*?)(?=\n---)/m,
-            (match) => {
-                let result = match;
-                if (!result.includes('phases:')) {
-                    result += '\nphases: true';
-                } else {
-                    result = result.replace(/phases:\s*false/, 'phases: true');
-                }
-                result = result.replace(/\nstartDate:.*$/m, '');
-                result = result.replace(/\nendDate:.*$/m, '');
-                return result;
-            }
-        );
-
-        // Remove Data/Tasks section and add Phases section
-        updatedContent = PlannerParser.replaceSection(updatedContent, 'Data', '');
-        updatedContent = PlannerParser.replaceSection(updatedContent, 'Tasks', '');
-        const phasesContent = PlannerParser.serializePhasesSection(phases);
-        updatedContent = PlannerParser.replaceSection(updatedContent, 'Phases', phasesContent);
-
-        this.beginInternalUpdate();
-        await this.app.vault.modify(projectFile, updatedContent);
-        this.endInternalUpdate();
-
-        console.log(`[Holos] Migrated project: ${projectFile.basename}`);
-        return true;
     }
 
     // ===== File watchers ===== //
@@ -719,7 +541,7 @@ export class TrackNoteService {
 
             // Create the track file
             const trackFilePath = `${trackFolderPath}/${track.label}.md`;
-            const trackContent = this.generateTrackContent(track);
+            const trackContent = generateTrackContent(track);
             await this.app.vault.create(trackFilePath, trackContent);
 
             return true;
@@ -729,35 +551,6 @@ export class TrackNoteService {
         }
     }
 
-    /** Generate track file content from Track object */
-    private generateTrackContent(track: Track): string {
-        const lines: string[] = [];
-
-        // Frontmatter
-        lines.push('---');
-        lines.push('tags:');
-        lines.push('  - holos/track');
-        lines.push(`id: ${track.id}`);
-        lines.push(`order: ${track.order}`);
-        lines.push(`color: "${track.color}"`);
-        lines.push('effective:');
-        lines.push(`  start: ${track.effective.start}`);
-        if (track.effective.end) {
-            lines.push(`  end: ${track.effective.end}`);
-        }
-        lines.push(`timeCommitment: ${track.timeCommitment}`);
-        lines.push(`journalHeader: ${track.journalHeader}`);
-        lines.push('---');
-        lines.push('');
-
-        // Description
-        if (track.description) {
-            lines.push(track.description);
-            lines.push('');
-        }
-
-        return lines.join('\n');
-    }
 
     /** Update track label, which updates the name of the track folder and the file. */
     async updateTrackLabel(trackId: string, label: string) {
@@ -903,7 +696,7 @@ export class TrackNoteService {
             const trackFolder = trackFiles.track.parent;
             if (!trackFolder) return false;
 
-            const projectContent = this.generateProjectContent(project);
+            const projectContent = generateProjectContent(project);
 
             if (this.settings.projectNotesAsFolders) {
                 const projectFolderPath = `${trackFolder.path}/${project.label}`;
@@ -972,35 +765,6 @@ export class TrackNoteService {
         }
     }
 
-    /** Generate project file content from Project object */
-    private generateProjectContent(project: Project): string {
-        const lines: string[] = [];
-
-        // Frontmatter
-        lines.push('---');
-        lines.push('tags:');
-        lines.push('  - holos/project');
-        lines.push(`id: ${project.id}`);
-        lines.push('phases: true');
-        lines.push('---');
-        lines.push('');
-
-        // Habits section
-        lines.push('## Habits');
-        lines.push('');
-        for (const habit of Object.values(project.habits)) {
-            const rruleStr = habit.rrule ? ` (${habit.rrule})` : '';
-            lines.push(`- ${habit.label}${rruleStr}`);
-        }
-        lines.push('');
-
-        // Phases section
-        lines.push('## Phases');
-        lines.push('');
-        lines.push(PlannerParser.serializePhasesSection(project.phases));
-
-        return lines.join('\n');
-    }
 
     /** Delete a track and its folder */
     async deleteTrack(trackId: string): Promise<boolean> {
@@ -1065,25 +829,7 @@ export class TrackNoteService {
             this.endInternalUpdate();
         }
 
-        // Direct update - change project label in memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            label
-                        }
-                    }
-                }
-            };
-        });
+        this.updateProjectInStore(trackId, projectId, { label });
     }
 
     /** Update project description (first section) */
@@ -1104,25 +850,7 @@ export class TrackNoteService {
             this.endInternalUpdate();
         }
 
-        // Direct update - change project description in memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            description
-                        }
-                    }
-                }
-            };
-        });
+        this.updateProjectInStore(trackId, projectId, { description });
     }
 
     /** Delete a project file or folder-note directory */
@@ -1150,12 +878,6 @@ export class TrackNoteService {
 
     /** Add a new habit to a project */
     async addProjectHabit(trackId: string, projectId: string): Promise<void> {
-        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
-        if (!projectFile) {
-            console.warn(`Project ${projectId} not found in track ${trackId}`);
-            return;
-        }
-
         const newHabitId = `habit-${Date.now()}`;
         const newHabit: Habit = {
             id: newHabitId,
@@ -1164,139 +886,26 @@ export class TrackNoteService {
             rrule: ""
         };
 
-        const content = await this.app.vault.read(projectFile);
-        const habitSection = PlannerParser.extractSection(content, "Habits");
-        const habits = PlannerParser.parseHabitSection(habitSection);
-        
-        habits[newHabitId] = newHabit;
-        
-        const newHabitsSection = PlannerParser.serializeHabits(habits);
-        const updated = PlannerParser.replaceSection(content, 'Habits', newHabitsSection);
-        
-        this.beginInternalUpdate();
-        try {
-            await this.app.vault.modify(projectFile, updated);
-        } finally {
-            this.endInternalUpdate();
-        }
-
-        // Direct update - add habit to memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            habits: {
-                                ...track.projects[projectId].habits,
-                                [newHabitId]: newHabit
-                            }
-                        }
-                    }
-                }
-            };
-        });
+        await this.mutateHabits(trackId, projectId, (habits) => ({
+            ...habits,
+            [newHabitId]: newHabit,
+        }));
     }
 
     /** Update a specific habit in a project */
     async updateProjectHabit(trackId: string, projectId: string, habitId: string, habit: Habit): Promise<void> {
-        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
-        if (!projectFile) {
-            console.warn(`Project ${projectId} not found in track ${trackId}`);
-            return;
-        }
-
-        const content = await this.app.vault.read(projectFile);
-        const habitSection = PlannerParser.extractSection(content, "Habits");
-        const habits = PlannerParser.parseHabitSection(habitSection);
-        
-        habits[habitId] = habit;
-        
-        const newHabitsSection = PlannerParser.serializeHabits(habits);
-        const updated = PlannerParser.replaceSection(content, 'Habits', newHabitsSection);
-        
-        this.beginInternalUpdate();
-        try {
-            await this.app.vault.modify(projectFile, updated);
-        } finally {
-            this.endInternalUpdate();
-        }
-
-        // Direct update - update habit in memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            habits: {
-                                ...track.projects[projectId].habits,
-                                [habitId]: habit
-                            }
-                        }
-                    }
-                }
-            };
-        });
+        await this.mutateHabits(trackId, projectId, (habits) => ({
+            ...habits,
+            [habitId]: habit,
+        }));
     }
 
     /** Delete a habit from a project */
     async deleteProjectHabit(trackId: string, projectId: string, habitId: string): Promise<void> {
-        const projectFile = this.trackFileCache[trackId]?.projects[projectId];
-        if (!projectFile) {
-            console.warn(`Project ${projectId} not found in track ${trackId}`);
-            return;
-        }
-
-        const content = await this.app.vault.read(projectFile);
-        const habitSection = PlannerParser.extractSection(content, "Habits");
-        const habits = PlannerParser.parseHabitSection(habitSection);
-        
-        delete habits[habitId];
-        
-        const newHabitsSection = PlannerParser.serializeHabits(habits);
-        const updated = PlannerParser.replaceSection(content, 'Habits', newHabitsSection);
-        
-        this.beginInternalUpdate();
-        try {
-            await this.app.vault.modify(projectFile, updated);
-        } finally {
-            this.endInternalUpdate();
-        }
-
-        // Direct update - remove habit from memory
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-
-            const newHabits = { ...track.projects[projectId].habits };
-            delete newHabits[habitId];
-
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            habits: newHabits
-                        }
-                    }
-                }
-            };
+        await this.mutateHabits(trackId, projectId, (habits) => {
+            const next = { ...habits };
+            delete next[habitId];
+            return next;
         });
     }
 
@@ -1304,11 +913,20 @@ export class TrackNoteService {
 
     // ===== Project Phase operations ===== //
 
-    /** Helper: read phases from file, apply mutation, write back, update store */
-    private async mutatePhases(
+    /**
+     * Read a named markdown section from a project file, apply a mutation,
+     * write it back, and reflect the result into the store. Parsing,
+     * serializing, and the store field are supplied by the caller so this one
+     * helper serves both Habits and Phases (and any future section).
+     */
+    private async mutateSection<T>(
         trackId: string,
         projectId: string,
-        mutate: (phases: Phase[]) => Phase[]
+        section: string,
+        parse: (raw: string) => T,
+        serialize: (value: T) => string,
+        mutate: (value: T) => T,
+        toProjectField: (value: T) => Partial<Project>,
     ): Promise<void> {
         const projectFile = this.trackFileCache[trackId]?.projects[projectId];
         if (!projectFile) {
@@ -1317,11 +935,9 @@ export class TrackNoteService {
         }
 
         const content = await this.app.vault.read(projectFile);
-        const phasesSection = PlannerParser.extractSection(content, "Phases");
-        const phases = PlannerParser.parsePhasesSection(phasesSection);
-        const newPhases = mutate(phases);
-        const serialized = PlannerParser.serializePhasesSection(newPhases);
-        const updated = PlannerParser.replaceSection(content, 'Phases', serialized);
+        const parsed = parse(PlannerParser.extractSection(content, section));
+        const next = mutate(parsed);
+        const updated = PlannerParser.replaceSection(content, section, serialize(next));
 
         this.beginInternalUpdate();
         try {
@@ -1330,23 +946,41 @@ export class TrackNoteService {
             this.endInternalUpdate();
         }
 
-        this.parsedTracksContent.update(tracks => {
-            const track = tracks[trackId];
-            if (!track?.projects[projectId]) return tracks;
-            return {
-                ...tracks,
-                [trackId]: {
-                    ...track,
-                    projects: {
-                        ...track.projects,
-                        [projectId]: {
-                            ...track.projects[projectId],
-                            phases: newPhases
-                        }
-                    }
-                }
-            };
-        });
+        this.updateProjectInStore(trackId, projectId, toProjectField(next));
+    }
+
+    /** Read phases from file, apply a mutation, write back, and update the store */
+    private async mutatePhases(
+        trackId: string,
+        projectId: string,
+        mutate: (phases: Phase[]) => Phase[]
+    ): Promise<void> {
+        await this.mutateSection(
+            trackId,
+            projectId,
+            "Phases",
+            (raw) => PlannerParser.parsePhasesSection(raw),
+            (phases) => PlannerParser.serializePhasesSection(phases),
+            mutate,
+            (phases) => ({ phases }),
+        );
+    }
+
+    /** Read habits from file, apply a mutation, write back, and update the store */
+    private async mutateHabits(
+        trackId: string,
+        projectId: string,
+        mutate: (habits: Record<string, Habit>) => Record<string, Habit>
+    ): Promise<void> {
+        await this.mutateSection(
+            trackId,
+            projectId,
+            "Habits",
+            (raw) => PlannerParser.parseHabitSection(raw),
+            (habits) => PlannerParser.serializeHabits(habits),
+            mutate,
+            (habits) => ({ habits }),
+        );
     }
 
     /** Add a new phase to a project */

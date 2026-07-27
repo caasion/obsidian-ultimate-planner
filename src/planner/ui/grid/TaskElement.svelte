@@ -1,7 +1,11 @@
 <script lang="ts">
-	import type { Element, Time } from "src/plugin/types";
+	import { Menu } from "obsidian";
+	import type { Element, Project, Time } from "src/plugin/types";
 	import { formatTime } from "src/plugin/helpers";
 	import TaskCheckbox from "src/components/TaskCheckbox.svelte";
+	import TimePickerPopup from "./TimePickerPopup.svelte";
+	import DurationPickerPopup from "./DurationPickerPopup.svelte";
+	import ProjectPickerPopup from "./ProjectPickerPopup.svelte";
 
 	interface TaskElementProps {
 		element: Element;
@@ -9,6 +13,7 @@
 		color: string;
 		projectLabel?: string;
 		showProjectLabel?: boolean;
+		projects?: Project[];
 		onUpdate: (index: number, updatedElement: Element) => void;
 		onDelete: (index: number) => void;
 		onToggle: (index: number) => void;
@@ -16,7 +21,7 @@
 		onCloseProjectTask?: (index: number) => void;
 	}
 
-	let { element, index, color, projectLabel, showProjectLabel = true, onUpdate, onDelete, onToggle, onCancel, onCloseProjectTask }: TaskElementProps = $props();
+	let { element, index, color, projectLabel, showProjectLabel = true, projects = [], onUpdate, onDelete, onToggle, onCancel, onCloseProjectTask }: TaskElementProps = $props();
 
 	let progressPercent = $derived(
 		element.progress !== undefined && element.duration
@@ -24,13 +29,23 @@
 			: undefined
 	);
 
+	// Trailing "[[Project]]" wikilink association stored inside element.text.
+	const associationRegex = /\s*\[\[([^\]#]+)\]\]\s*$/;
+
+	// The plain description with any trailing project association stripped out.
+	let description = $derived(element.text.replace(associationRegex, '').trim());
+
+	// The current association label (from a trailing "[[Project]]" link), if any.
+	let associationLabel = $derived(element.text.match(associationRegex)?.[1]?.trim());
+
 	let isEditing = $state<boolean>(false);
 	let editText = $state<string>("");
 	let skipBlur = $state<boolean>(false);
 
 	function startEdit() {
 		isEditing = true;
-		editText = element.raw.replace(/^\t- /, '').trim();
+		// Only the description is editable; metadata & association are managed via popups.
+		editText = description;
 	}
 
 	function cancelEdit() {
@@ -39,70 +54,19 @@
 		skipBlur = false;
 	}
 
+	// Rebuilds element.text from a new description while preserving the association.
+	function withDescription(newDescription: string): string {
+		const trimmed = newDescription.trim();
+		return associationLabel ? `${trimmed} [[${associationLabel}]]`.trim() : trimmed;
+	}
+
 	function saveEdit() {
 		if (skipBlur) {
 			skipBlur = false;
 			return;
 		}
 
-		let isTask = false;
-		let taskStatus: ' ' | '/' | 'x' | '-' | undefined;
-		let startTime: Time | undefined;
-		let progress: number | undefined;
-		let duration: number | undefined;
-		let timeUnit: 'min' | 'hr' | undefined;
-		let sourceRef: string | undefined = element.sourceRef;
-
-		// Extract source reference: [[File#^blockId]]
-		const sourceRefRegex = /(\[\[[^\]]+#\^[a-zA-Z0-9]+\]\])/;
-		const sourceRefMatch = editText.match(sourceRefRegex);
-		if (sourceRefMatch) {
-			const [fullMatch, ref] = sourceRefMatch;
-			editText = editText.replace(fullMatch, '').trim();
-			sourceRef = ref;
-		}
-
-		const taskStatusRegex = /^\[([ x\/\-])\]/;
-		const startTimeRegex = /@\s*(\d{1,2}):(\d{2})/;
-		const progressDurationRegex = /\[(?:(\d+)?(\/))?(\d+)\s*(hr|min)\]/;
-
-		const taskStatusMatch = editText.match(taskStatusRegex);
-		if (taskStatusMatch) {
-			const [fullMatch, checkmark] = taskStatusMatch;
-			editText = editText.replace(fullMatch, '').trim();
-			isTask = true;
-			taskStatus = checkmark as typeof taskStatus;
-		}
-
-		const startTimeMatch = editText.match(startTimeRegex);
-		if (startTimeMatch) {
-			const [fullMatch, hours, minutes] = startTimeMatch;
-			editText = editText.replace(fullMatch, '').trim();
-			startTime = { hours: parseInt(hours), minutes: parseInt(minutes) };
-		}
-
-		const progressDurationMatch = editText.match(progressDurationRegex);
-		if (progressDurationMatch) {
-			const [fullMatch, progressMatch, hasProgress, durationMatch, unitMatch] = progressDurationMatch;
-			editText = editText.replace(fullMatch, '');
-			progress = hasProgress ? (parseInt(progressMatch) || 0) : undefined;
-			duration = parseInt(durationMatch);
-			timeUnit = unitMatch as 'min' | 'hr';
-		}
-
-		const updatedElement: Element = {
-			...element,
-			text: editText.trim(),
-			isTask,
-			taskStatus,
-			startTime,
-			progress,
-			duration,
-			timeUnit,
-			sourceRef,
-		}
-		
-		onUpdate(index, updatedElement);
+		onUpdate(index, { ...element, text: withDescription(editText) });
 		cancelEdit();
 	}
 
@@ -124,7 +88,94 @@
 
 	function handleProjectClick(e: MouseEvent) {
 		e.preventDefault();
-		// TODO: implement navigation to project
+		openAssociationPicker();
+	}
+
+	/* === Metadata popups === */
+	type PopupKind = 'time' | 'duration' | 'project' | null;
+	let activePopup = $state<PopupKind>(null);
+	let metaRowEl = $state<HTMLElement | undefined>(undefined);
+
+	function openTimePicker() { activePopup = 'time'; }
+	function openDurationPicker() { activePopup = 'duration'; }
+	function openAssociationPicker() { activePopup = 'project'; }
+	function closePopup() { activePopup = null; }
+
+	function saveTime(startTime: Time | undefined) {
+		onUpdate(index, { ...element, startTime });
+	}
+
+	function saveDuration(duration: number | undefined, timeUnit: 'min' | 'hr' | undefined) {
+		// Clearing the duration also clears any tracked progress.
+		onUpdate(index, {
+			...element,
+			duration,
+			timeUnit,
+			progress: duration === undefined ? undefined : element.progress,
+		});
+	}
+
+	function saveAssociation(project: Project | undefined) {
+		const label = project?.label;
+		const base = description;
+		const newText = label ? `${base} [[${label}]]`.trim() : base;
+		onUpdate(index, { ...element, text: newText });
+	}
+
+	function toggleCheckbox() {
+		if (element.isTask) {
+			onUpdate(index, { ...element, isTask: false, taskStatus: undefined });
+		} else {
+			onUpdate(index, { ...element, isTask: true, taskStatus: element.taskStatus ?? ' ' });
+		}
+	}
+
+	function openContextMenu(e: MouseEvent) {
+		e.preventDefault();
+		const menu = new Menu();
+
+		menu.addItem((item) =>
+			item
+				.setTitle(element.isTask ? "Remove checkbox" : "Add checkbox")
+				.setIcon(element.isTask ? "square" : "check-square")
+				.onClick(() => toggleCheckbox())
+		);
+
+		menu.addSeparator();
+
+		menu.addItem((item) =>
+			item
+				.setTitle(element.startTime ? "Edit time" : "Add time")
+				.setIcon("clock")
+				.onClick(() => openTimePicker())
+		);
+
+		menu.addItem((item) =>
+			item
+				.setTitle(element.duration ? "Edit duration" : "Add duration")
+				.setIcon("hourglass")
+				.onClick(() => openDurationPicker())
+		);
+
+		if (projects.length > 0) {
+			menu.addItem((item) =>
+				item
+					.setTitle(associationLabel ? "Edit association" : "Add association")
+					.setIcon("folder-symlink")
+					.onClick(() => openAssociationPicker())
+			);
+		}
+
+		menu.addSeparator();
+
+		menu.addItem((item) =>
+			item
+				.setTitle("Delete")
+				.setIcon("trash")
+				.onClick(() => deleteElement())
+		);
+
+		menu.showAtMouseEvent(e);
 	}
 </script>
 
@@ -138,10 +189,10 @@
 			class="element-input"
 		/>
 	{:else}
-		<div class="element-content" ondblclick={startEdit} role="button" tabindex="0">
+		<div class="element-content" ondblclick={startEdit} oncontextmenu={openContextMenu} role="button" tabindex="0">
 			<div class="element-top-row">
 				<div class="element-checkbox-container">
-					{#if element.taskStatus}
+					{#if element.isTask}
 						{#if element.sourceRef}
 							<button
 								onclick={() => onCloseProjectTask?.(index)}
@@ -156,7 +207,7 @@
 							</button>
 						{:else}
 							<TaskCheckbox
-								status={element.taskStatus}
+								status={element.taskStatus ?? ' '}
 								onToggle={() => onToggle(index)}
 								onCancel={() => onCancel(index)}
 							/>
@@ -169,27 +220,29 @@
 					class:partial={element.taskStatus == "/"}
 					class:cancelled={element.taskStatus == "-"}
 				>
-					{element.text.replace(/\s*\[\[[^\]]+\]\]\s*$/, '')}
+					{description}
 				</span>
 				<button class="delete-btn" onclick={deleteElement} title="Delete">
 						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
 					</button>
 			</div>
-			<div class="element-meta-row">
+			<div class="element-meta-row" bind:this={metaRowEl}>
 				{#if element.duration && element.timeUnit}
-					<span
-						class="meta-tag"
+					<button
+						class="meta-tag meta-tag-btn"
 						class:meta-tag-progress={progressPercent !== undefined}
 						style={`--meta-tag-bg: ${color}5F;${progressPercent !== undefined ? ` --progress: ${progressPercent}%;` : ''}`}
+						title="Edit duration"
+						onclick={openDurationPicker}
 					>
 						{#if element.progress !== undefined}{element.progress}/{/if}{element.duration} {element.timeUnit == 'min' ? 'm' : 'h'}
-					</span>
+					</button>
 				{/if}
 				{#if element.startTime}
-					<span class="meta-tag" style={`--meta-tag-bg: ${color}5F;`}>
+					<button class="meta-tag meta-tag-btn" style={`--meta-tag-bg: ${color}5F;`} title="Edit time" onclick={openTimePicker}>
 						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alarm-clock-icon lucide-alarm-clock"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/><path d="M6.38 18.7 4 21"/><path d="M17.64 18.67 20 21"/></svg>
 						{formatTime(element.startTime)}
-					</span>
+					</button>
 				{/if}
 				{#if projectLabel && showProjectLabel}
 					<button class="project-label" title={projectLabel} onclick={handleProjectClick}>
@@ -198,6 +251,32 @@
 					</button>
 				{/if}
 			</div>
+
+			{#if activePopup === 'time'}
+				<TimePickerPopup
+					value={element.startTime}
+					anchorEl={metaRowEl}
+					onSave={saveTime}
+					onClose={closePopup}
+				/>
+			{:else if activePopup === 'duration'}
+				<DurationPickerPopup
+					duration={element.duration}
+					timeUnit={element.timeUnit}
+					anchorEl={metaRowEl}
+					onSave={saveDuration}
+					onClose={closePopup}
+				/>
+			{:else if activePopup === 'project'}
+				<ProjectPickerPopup
+					{projects}
+					{color}
+					currentLabel={associationLabel}
+					anchorEl={metaRowEl}
+					onSelect={saveAssociation}
+					onClose={closePopup}
+				/>
+			{/if}
 		</div>
 	{/if}
 
@@ -314,6 +393,15 @@
 
 	.meta-tag:hover {
 		filter: brightness(1.2);
+	}
+
+	.meta-tag-btn {
+		font-family: inherit;
+		box-shadow: none;
+		cursor: pointer;
+		height: auto;
+		min-height: 0;
+		padding: 1px 6px;
 	}
 
 	.meta-tag-progress {

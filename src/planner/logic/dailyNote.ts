@@ -22,7 +22,8 @@ export class DailyNoteService {
     
     public parsedContent: Writable<Record<ISODate, Record<string, TrackData>>> = writable({});
     public parsedJournalContent: Writable<Record<ISODate, Record<string, string>>> = writable({});
-    
+    public intentions: Writable<Record<ISODate, string>> = writable({});
+
     private fileModifyRef: EventRef | null = null;
     private watchedDates: ISODate[] = [];
 
@@ -74,23 +75,72 @@ export class DailyNoteService {
         return parsed;
     }
 
+    /** Load the intention frontmatter field from a daily note */
+    async loadIntention(date: ISODate): Promise<string> {
+        const dailyNoteFile = getDailyNote(moment(date), getAllDailyNotes());
+        if (!dailyNoteFile) return "";
+
+        return new Promise((resolve) => {
+            this.app.fileManager.processFrontMatter(dailyNoteFile, (fm) => {
+                resolve(fm?.intention ?? "");
+            });
+        });
+    }
+
+    /** Save the intention frontmatter field to a daily note */
+    async saveIntention(date: ISODate, intention: string): Promise<void> {
+        let dailyNoteFile = getDailyNote(moment(date), getAllDailyNotes());
+
+        if (!dailyNoteFile) {
+            try {
+                await createDailyNote(moment(date));
+                dailyNoteFile = getDailyNote(moment(date), getAllDailyNotes());
+            } catch (error) {
+                console.error("Error creating daily note for intention:", error);
+                return;
+            }
+        }
+
+        if (!dailyNoteFile) return;
+
+        this.isWriting = true;
+        try {
+            await this.app.fileManager.processFrontMatter(dailyNoteFile, (fm) => {
+                if (intention.trim()) {
+                    fm.intention = intention.trim();
+                } else {
+                    delete fm.intention;
+                }
+            });
+        } finally {
+            window.setTimeout(() => {
+                this.isWriting = false;
+            }, 100);
+        }
+
+        this.intentions.update((prev) => ({ ...prev, [date]: intention.trim() }));
+    }
+
     /** Load content for multiple dates */
     async loadMultipleDates(dates: ISODate[]): Promise<void> {
         if (this.isWriting) return;
-        
+
         const result: Record<ISODate, Record<string, TrackData>> = {};
         const journalResult: Record<ISODate, Record<string, string>> = {};
+        const intentionResult: Record<ISODate, string> = {};
         const trackMeta = this.getTrackMetaSnapshot();
-        
+
         await Promise.all(
             dates.map(async (date) => {
                 result[date] = await this.loadDailyNoteContent(date, trackMeta);
                 journalResult[date] = await this.loadJournalContent(date);
+                intentionResult[date] = await this.loadIntention(date);
             })
         );
-        
+
         this.parsedContent.set(result);
         this.parsedJournalContent.set(journalResult);
+        this.intentions.set(intentionResult);
     }
 
     // ===== Write operations ===== //
@@ -168,6 +218,12 @@ export class DailyNoteService {
                     this.parsedContent.update(content => ({
                         ...content,
                         [date]: newContent
+                    }));
+                    // Reload intention
+                    const newIntention = await this.loadIntention(date);
+                    this.intentions.update(prev => ({
+                        ...prev,
+                        [date]: newIntention
                     }));
                 }
             }

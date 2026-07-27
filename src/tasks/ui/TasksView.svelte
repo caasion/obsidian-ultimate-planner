@@ -3,7 +3,7 @@
 	import type { Element, ISODate, PluginSettings, Track, TrackData, Project } from "src/plugin/types";
 	import type { DailyNoteService } from "src/planner/logic/dailyNote";
 	import type { TrackNoteService } from "src/tracks/logic/trackNote";
-	import { getISODate, getISODates, calculateTotalTimeSpent, formatTimeArguments, reconstructRawText } from "src/plugin/helpers";
+	import { getISODate, getISODates, calculateTotalTimeSpent, formatTimeArguments, reconstructRawText, extractSourceRefBlockId } from "src/plugin/helpers";
 	import TaskCheckbox from "src/components/TaskCheckbox.svelte";
 	import Datepicker from "src/components/Datepicker.svelte";
 	import Portal from "src/components/Portal.svelte";
@@ -164,6 +164,16 @@
 			}
 		}
 
+		// Block IDs of project tasks already pulled into daily notes (referenced via sourceRef).
+		// A scheduled daily copy carries the project task's id inside its sourceRef ("[[File#^id]]"),
+		// not in its own blockId (which stays undefined), so we match against that.
+		const scheduledRefIds = new Set(
+			rows
+				.filter(r => r.source === 'daily')
+				.map(r => extractSourceRefBlockId(r.element.sourceRef))
+				.filter((id): id is string => !!id)
+		);
+
 		// 2) Tasks from project data (not already in daily notes via sourceRef)
 		for (const [trackId, track] of Object.entries(parsedTracks)) {
 			for (const [projectId, project] of Object.entries(track.projects)) {
@@ -172,10 +182,7 @@
 
 					// Skip if this task is already represented in daily notes (has a sourceRef that would appear there)
 					// We include project-only tasks here (those without scheduled dates that haven't been pulled into daily notes)
-					const alreadyInDaily = rows.some(r =>
-						r.source === 'daily' && r.element.blockId && element.blockId && r.element.blockId === element.blockId
-					);
-					if (alreadyInDaily) return;
+					if (element.blockId && scheduledRefIds.has(element.blockId)) return;
 
 					rows.push({
 						element,
@@ -384,9 +391,9 @@
 
 			// Sync to project source if applicable (only for full complete/uncomplete, not partial)
 			if (task.element.sourceRef && newStatus !== '/') {
-				const match = task.element.sourceRef.match(/\[\[[^\]]+#\^([a-zA-Z0-9]+)\]\]/);
-				if (match) {
-					trackNoteService.closeProjectTaskByBlockId(task.trackId, match[1], newStatus as ' ' | 'x');
+				const refBlockId = extractSourceRefBlockId(task.element.sourceRef);
+				if (refBlockId) {
+					trackNoteService.closeProjectTaskByBlockId(task.trackId, refBlockId, newStatus as ' ' | 'x');
 				}
 			}
 		} else if (task.source === 'project' && task.projectId && task.phaseId !== undefined && task.projectDataIndex !== undefined) {
